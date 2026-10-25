@@ -1,65 +1,99 @@
-import Image from "next/image";
+import Link from "next/link";
+import { WaitlistForm } from "./waitlist-form";
+
+// Doğrulama sayfası: kliniklere değer önerisini anlatır ve pilot başvurusu toplar.
+const problems = [
+  {
+    title: "Gece gelen mesajlar kayboluyor",
+    body: "Yurt dışındaki hasta gece 02:00'de yazıyor, sabah dönene kadar başka kliniğe geçmiş oluyor.",
+  },
+  {
+    title: "Dil engeli",
+    body: "İngilizce, Arapça, Almanca sorulara anında ve doğru yanıt verecek personel bulmak zor ve pahalı.",
+  },
+  {
+    title: "Aynı sorular, her gün",
+    body: "Fiyat, transfer, konaklama, tedavi süresi… Ekibiniz gününü kopyala-yapıştır ile geçiriyor.",
+  },
+];
+
+const features = [
+  "7/24 yanıt, ortalama birkaç saniye",
+  "Türkçe, İngilizce, Arapça, Almanca",
+  "Fiyat aralığı, transfer, konaklama gibi soruları sizin bilgilerinizle yanıtlar",
+  "Hastanın tedavi, ülke ve tarih bilgisini toplayıp panelde özetler",
+  "Uygun saatleri kontrol edip randevu oluşturur",
+  "Emin olmadığında veya acil durumda konuşmayı anında ekibinize devreder",
+];
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-20">
+      <section className="max-w-3xl">
+        <p className="mb-4 inline-block rounded-full border border-border px-3 py-1 text-xs font-medium text-muted">
+          Diş ve estetik klinikleri için
+        </p>
+        <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
+          WhatsApp&apos;ınıza gelen hiçbir hasta cevapsız kalmasın.
+        </h1>
+        <p className="mt-5 text-lg text-muted">
+          Klinik Asistan, hasta sorularını 7/24 ve dört dilde yanıtlayan, bilgilerini toplayan ve randevu oluşturan yapay
+          zekâ resepsiyonistinizdir. Ekibiniz sadece hazır hastalarla ilgilenir.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <a href="#pilot" className="rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground">
+            Ücretsiz pilota başvur
+          </a>
+          <Link href="/demo" className="rounded-lg border border-border px-5 py-3 text-sm font-semibold">
+            Canlı demoyu dene
+          </Link>
+        </div>
+      </section>
+
+      <section className="mt-20 grid gap-4 sm:grid-cols-3">
+        {problems.map((p) => (
+          <div key={p.title} className="rounded-xl border border-border bg-card p-5">
+            <h2 className="font-semibold">{p.title}</h2>
+            <p className="mt-2 text-sm text-muted">{p.body}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mt-20 grid gap-10 sm:grid-cols-2">
+        <div>
+          <h2 className="text-2xl font-bold">Ne yapar?</h2>
+          <ul className="mt-5 space-y-3">
+            {features.map((f) => (
+              <li key={f} className="flex gap-3 text-sm">
+                <span aria-hidden className="mt-0.5 text-accent">✓</span>
+                <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="text-2xl font-bold">Basit hesap</h2>
+          <p className="mt-4 text-sm text-muted">
+            Bir implant veya kaplama hastası kliniğe ortalama binlerce euro kazandırır. Asistan ayda sadece bir ya da iki
+            kaybolan hastayı geri kazandırsa bile kendini fazlasıyla öder.
+          </p>
+          <p className="mt-4 text-sm text-muted">
+            Pilot süresince ücretsiz. Kurulumu ve klinik bilgilerinizin girilmesini biz yapıyoruz.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </section>
+
+      <section id="pilot" className="mt-20 rounded-2xl border border-border bg-card p-6 sm:p-10">
+        <h2 className="text-2xl font-bold">Pilot programa katılın</h2>
+        <p className="mt-2 mb-6 text-sm text-muted">
+          İlk 10 klinikle birlikte geliştiriyoruz. Bilgilerinizi bırakın, sizi arayalım.
+        </p>
+        <WaitlistForm />
+      </section>
+
+      <footer className="mt-16 text-center text-xs text-muted">
+        Klinik Asistan, tıbbi tavsiye vermez; tıbbi sorular ve acil durumlar her zaman klinik ekibine yönlendirilir.
+      </footer>
+    </main>
   );
 }
