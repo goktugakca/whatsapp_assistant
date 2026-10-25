@@ -52,8 +52,11 @@ export async function runAssistant(params: {
   const tools = buildTools(business);
   const replyParts: string[] = [];
 
+  const startedAt = Date.now();
+  const roundTimes: number[] = [];
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const roundStart = Date.now();
       const response = await createMessage({
         model: MODEL,
         max_tokens: 4096,
@@ -65,6 +68,8 @@ export async function runAssistant(params: {
         tools,
         messages: conversation.history,
       });
+
+      roundTimes.push(Date.now() - roundStart);
 
       if (response.stop_reason === "refusal") {
         // Model (ve yedek modeller) yanıtlamadı: bu turu geçmişe eklemeden insana devret.
@@ -110,6 +115,10 @@ export async function runAssistant(params: {
     replyParts.push(FALLBACK_REPLY);
   }
 
+  // Yanıt süresini Vercel loglarında izlemek için: toplam süre ve her model çağrısının süresi.
+  console.info(
+    `asistan: ${business.id} ${Date.now() - startedAt}ms, model çağrıları [${roundTimes.join(", ")}]ms, model ${MODEL}`,
+  );
   const reply = replyParts.join("\n\n") || FALLBACK_REPLY;
   conversation.transcript.push({ from: "assistant", text: reply, at: new Date().toISOString() });
   return { reply, handedOff: conversation.status === "handoff" };
