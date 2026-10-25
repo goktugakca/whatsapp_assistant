@@ -104,7 +104,7 @@ Notlar:
 - **İşletme yapılandırması kodda.** Pilotta her işletme için dosya eklenir; sonra panelden düzenlenecek.
 - **Takvim dahili.** Google Takvim entegrasyonu yol haritasında. Çalışanların izin günleri ve öğle arası henüz yok.
 - **Sadece metin.** Sesli mesaj ve görseller şimdilik okunmuyor; asistana kısa bir not olarak iletiliyor. Kuaför ve berber müşterileri sık sesli mesaj attığı için bu, yol haritasında öne alınmalı.
-- Model: varsayılan `claude-opus-5-5`, sohbet hızı için `low` efor. Reddedilen isteklerde sunucu tarafı yedek model (`fallbacks: "default"`) açık.
+- Model: varsayılan `claude-haiku-5-5` (hızlı ve ucuz), `low` efor. `ANTHROPIC_MODEL` ile değiştirilebilir (ör. `claude-sonnet-5-5`); Opus, Sonnet ve Fable modellerinde reddedilen isteklerde sunucu tarafı yedek model (`fallbacks: "default"`) otomatik açılır. Vercel loglarında her yanıtın süresi `asistan: ...ms` satırında görünür.
 
 ## Yol haritası
 

@@ -9,7 +9,12 @@ type CreateParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
 type BetaMessage = Anthropic.Beta.Messages.BetaMessage;
 export type CreateMessage = (params: CreateParams) => Promise<BetaMessage>;
 
-const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5";
+// Resepsiyon işi kısa yanıtlar ve birkaç araç çağrısından ibaret; hız ve maliyet için
+// Haiku yeterli. Saat ve çakışma kontrolleri kodda yapıldığı için model hata yapamaz.
+const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-5-5";
+// Reddedilen isteği başka modelde yeniden çalıştırma (server-side fallback) sadece bu
+// modellerde var; Haiku'ya gönderilirse istek reddedilir.
+const SUPPORTS_FALLBACK = /^claude-(opus|sonnet|fable)-/.test(MODEL);
 // Sohbet için düşük efor yeterli ve yanıtı hızlandırır; ölçerek ayarlanmalı.
 const EFFORT = (process.env.ANTHROPIC_EFFORT ?? "low") as "low" | "medium" | "high";
 const MAX_TOOL_ROUNDS = 8;
@@ -60,8 +65,10 @@ export async function runAssistant(params: {
       const response = await createMessage({
         model: MODEL,
         max_tokens: 4096,
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
+        ...(SUPPORTS_FALLBACK && {
+          betas: ["server-side-fallback-2026-07-01"],
+          fallbacks: "default" as const,
+        }),
         output_config: { effort: EFFORT },
         cache_control: { type: "ephemeral" },
         system,

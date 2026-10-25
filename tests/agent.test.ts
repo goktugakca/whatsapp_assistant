@@ -130,7 +130,8 @@ describe("runAssistant", () => {
 
     expect(result.reply).toBe("Mehmet Usta 09:00'da boş.");
     expect(calls).toHaveLength(2);
-    expect(calls[0].fallbacks).toBe("default");
+    expect(calls[0].model).toBe("claude-haiku-5-5");
+    expect(calls[0].fallbacks).toBeUndefined(); // Haiku'da server-side fallback yok
     const toolResultTurn = calls[1].messages.at(-1)!;
     const block = (toolResultTurn.content as Anthropic.Beta.Messages.BetaToolResultBlockParam[])[0];
     expect(block.tool_use_id).toBe("t1");
