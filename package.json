@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
-    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs"
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
+    "vercel-build": "node scripts/migrate.mjs --if-configured && next build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

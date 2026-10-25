@@ -105,6 +105,11 @@ function toWaitlistEntry(r: Row): WaitlistEntry {
 export class PostgresStore implements Store {
   constructor(private db: Database) {}
 
+  // Bağlantıyı ve şemanın kurulu olduğunu doğrular (/api/health).
+  async ping() {
+    await this.db.query("select 1 from conversations limit 1");
+  }
+
   async findOrCreateConversation(input: ConversationKey & { contactName?: string }) {
     const [row] = await this.db.query<Row>(
       `insert into conversations (id, business_id, channel, contact, contact_name)

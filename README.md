@@ -66,6 +66,20 @@ npm run lint
 npm run build
 ```
 
+## Vercel'e yayınlama
+
+1. [vercel.com](https://vercel.com)'da GitHub ile giriş yapın → **Add New… → Project** → `whatsapp_assistant` reposunu **Import** edin. Framework otomatik olarak Next.js seçilir; başka ayar gerekmez.
+2. **Environment Variables** bölümüne ekleyin:
+   - `DATABASE_URL` (Neon, `-pooler` içeren adres)
+   - `DATABASE_URL_UNPOOLED` (Neon, `-pooler` içermeyen adres)
+   - `ANTHROPIC_API_KEY`
+   - `PANEL_PASSWORD` (panel bu olmadan production'da açılmaz)
+   - WhatsApp bağlanınca: `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_BUSINESS_ID`
+3. **Deploy**. Her yayında `vercel-build` önce şemayı veritabanına uygular (`scripts/migrate.mjs`), sonra uygulamayı derler. Şema uygulanamazsa yayın durur; eski sürüm çalışmaya devam eder.
+4. Kontrol: `https://<adres>/api/health` → `{"database":"ok","anthropic":true,...}` görmelisiniz. `database: "error"` ise `databaseError` alanındaki koda bakın.
+
+Fonksiyonlar Frankfurt'ta (`fra1`, `vercel.json`) çalışır; Neon veritabanı da aynı bölgede olmalı.
+
 ## WhatsApp bağlantısı (Cloud API)
 
 1. [Meta for Developers](https://developers.facebook.com/)'ta bir uygulama oluşturun, WhatsApp ürününü ekleyin.
