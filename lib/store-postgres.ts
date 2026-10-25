@@ -8,6 +8,7 @@ import type {
   Store,
   WaitlistEntry,
 } from "./store";
+import type { Business } from "./business";
 import { conversationLockKey } from "./store";
 
 // Store'un ihtiyaç duyduğu en küçük veritabanı arayüzü. Üretimde node-postgres,
@@ -229,5 +230,21 @@ export class PostgresStore implements Store {
 
   withConversationLock<T>(key: ConversationKey, fn: () => Promise<T>): Promise<T> {
     return this.db.withLock(`conversation:${conversationLockKey(key)}`, fn);
+  }
+
+  async getBusinessSettings(businessId: string) {
+    const [row] = await this.db.query<{ config: Business }>(
+      "select config from business_settings where business_id = $1",
+      [businessId],
+    );
+    return row?.config;
+  }
+
+  async saveBusinessSettings(business: Business) {
+    await this.db.query(
+      `insert into business_settings (business_id, config, updated_at) values ($1, $2, now())
+       on conflict (business_id) do update set config = excluded.config, updated_at = now()`,
+      [business.id, JSON.stringify(business)],
+    );
   }
 }

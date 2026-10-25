@@ -1,5 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { randomUUID } from "node:crypto";
+import type { Business } from "./business";
 import { KeyedQueue } from "./keyed-queue";
 
 // Veri katmanı. DATABASE_URL tanımlıysa Postgres (lib/store-postgres.ts), değilse bellek
@@ -76,6 +77,9 @@ export interface Store {
   // Aynı konuşma üzerindeki işleri (asistan turu, personel yanıtı) sıraya koyar ki
   // biri diğerinin değişikliğini ezmesin.
   withConversationLock<T>(key: ConversationKey, fn: () => Promise<T>): Promise<T>;
+  // Panelden kaydedilen işletme ayarları; hiç kaydedilmemişse undefined.
+  getBusinessSettings(businessId: string): Promise<Business | undefined>;
+  saveBusinessSettings(business: Business): Promise<void>;
 }
 
 export function conversationLockKey(key: ConversationKey): string {
@@ -92,6 +96,7 @@ export class InMemoryStore implements Store {
   private seenMessages = new Set<string>();
   private waitlist: WaitlistEntry[] = [];
   private locks = new KeyedQueue();
+  private businessSettings = new Map<string, Business>();
 
   async findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
@@ -166,6 +171,15 @@ export class InMemoryStore implements Store {
 
   withConversationLock<T>(key: ConversationKey, fn: () => Promise<T>): Promise<T> {
     return this.locks.run(conversationLockKey(key), fn);
+  }
+
+  async getBusinessSettings(businessId: string) {
+    const b = this.businessSettings.get(businessId);
+    return b && structuredClone(b);
+  }
+
+  async saveBusinessSettings(business: Business) {
+    this.businessSettings.set(business.id, structuredClone(business));
   }
 }
 

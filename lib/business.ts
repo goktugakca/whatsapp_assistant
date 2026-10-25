@@ -1,10 +1,12 @@
 // İşletme yapılandırması. Randevuyla çalışan her işletme (kuaför, berber, tırnak salonu,
-// klinik…) bu yapıyla tanımlanır. Pilot aşamasında kayıtlar kodda; sonra veritabanına taşınacak.
+// klinik…) bu yapıyla tanımlanır. Başlangıç değerleri lib/businesses/ altında; işletme
+// panelden değiştirdiğinde güncel hali veritabanında tutulur (loadBusiness).
 
 import { barber } from "./businesses/barber";
 import { dentalClinic } from "./businesses/dental-clinic";
 import { hairSalon } from "./businesses/hair-salon";
 import { nailSalon } from "./businesses/nail-salon";
+import type { Store } from "./store";
 
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Pazar
 
@@ -51,18 +53,24 @@ export interface Business {
   policies: string[]; // Asistanın uyması gereken işletmeye özel kurallar
 }
 
+// Örnek işletmeler: demo ve panelde listelenir, ayarı hiç kaydedilmemişse başlangıç değeri.
 export const businesses: Business[] = [hairSalon, barber, nailSalon, dentalClinic];
 
-export function getBusinessById(id: string): Business | undefined {
+export function getDefaultBusiness(id: string): Business | undefined {
   return businesses.find((b) => b.id === id);
 }
 
+// İşletmenin güncel hali: panelden kaydedilmiş ayar varsa o, yoksa başlangıç değeri.
+export async function loadBusiness(store: Store, id: string): Promise<Business | undefined> {
+  return (await store.getBusinessSettings(id)) ?? getDefaultBusiness(id);
+}
+
 // Pilotta tek bir WhatsApp numarası, WHATSAPP_BUSINESS_ID ile seçilen işletmeye bağlanır.
-export function getBusinessByPhoneNumberId(phoneNumberId: string): Business | undefined {
+export function businessIdForPhoneNumber(phoneNumberId: string): string | undefined {
   const explicit = businesses.find((b) => b.whatsappPhoneNumberId === phoneNumberId);
-  if (explicit) return explicit;
+  if (explicit) return explicit.id;
   if (phoneNumberId && phoneNumberId === process.env.WHATSAPP_PHONE_NUMBER_ID) {
-    return getBusinessById(process.env.WHATSAPP_BUSINESS_ID ?? businesses[0].id);
+    return process.env.WHATSAPP_BUSINESS_ID ?? businesses[0].id;
   }
   return undefined;
 }

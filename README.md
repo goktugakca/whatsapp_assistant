@@ -23,7 +23,7 @@ Randevuyla çalışan işletmelerin (kuaför, berber, tırnak salonu, güzellik 
 | `demo-tirnak` | Tırnak salonu | 2 uzman, iptal kuralı |
 | `demo-dis` | Diş kliniği | Çalışan seçimi yok (tek takvim), çok dilli, tıbbi güvenlik kuralları |
 
-Yeni bir işletme eklemek için `lib/businesses/` altına bir dosya ekleyip `lib/business.ts` içindeki `businesses` listesine koymak yeterli. Sektöre özel davranışlar (örneğin klinikte tıbbi tavsiye vermemek, tırnakta mevcut protezi sormak) `lib/verticals.ts` dosyasında tanımlı; işletme tipini seçince otomatik geliyor.
+**İşletme ayarları panelden düzenlenir** (`/panel/ayarlar`): genel bilgiler, çalışma saatleri, hizmetler ve fiyatlar, çalışanlar (yaptıkları hizmetler, kendi saatleri), sık sorulan sorular ve kurallar. Kaydedilen ayar `business_settings` tablosuna yazılır ve asistan bir sonraki mesajdan itibaren onu kullanır; tutarsız ayarlar (kapanış açılıştan önce, olmayan hizmete atanmış çalışan vb.) `lib/business-schema.ts` tarafından reddedilir. `lib/businesses/` altındaki dosyalar sadece başlangıç değeridir. Yeni bir işletme eklemek için oraya bir dosya ekleyip `lib/business.ts` içindeki `businesses` listesine koymak yeterli. Sektöre özel davranışlar (örneğin klinikte tıbbi tavsiye vermemek, tırnakta mevcut protezi sormak) `lib/verticals.ts` dosyasında tanımlı; işletme tipini seçince otomatik geliyor.
 
 ### Asistanın araçları (`lib/agent/tools.ts`)
 
@@ -101,7 +101,7 @@ Notlar:
 - **Çakışan randevu imkânsız:** Kontrol ve kayıt tek adımda yapılır. Postgres'te aynı işletme + çalışan için eklemeler kısa bir kilitle sıraya girer, ayrıca bir `EXCLUDE` kısıtı zaman aralığı çakışan iki kaydı veritabanı seviyesinde reddeder. Gerçek Postgres 16'da, aynı saate 10'ar eşzamanlı istekle denendi: her saate tam olarak usta sayısı kadar randevu yazıldı.
 - **Konuşma kilidi:** Aynı müşterinin mesajları, personel yanıtları ve asistan turları konuşma başına bir kilitle sıraya girer (Postgres işlem seviyesinde advisory lock; PgBouncer transaction modunda da doğru çalışır). Birden fazla sunucuda da birbirini ezmez. Kilit, asistan turu süresince bir veritabanı bağlantısını açık bir işlemde tutar; veritabanında `idle_in_transaction_session_timeout` en az 2 dakika olmalı.
 - **Mesaj tekrar kontrolü** veritabanında (`processed_messages`).
-- **İşletme yapılandırması kodda.** Pilotta her işletme için dosya eklenir; sonra panelden düzenlenecek.
+- **Tek panel şifresi.** Tüm işletmeler aynı `PANEL_PASSWORD` ile görülüyor; gerçek işletmeler için işletme başına kullanıcı girişi gerekecek.
 - **Takvim dahili.** Google Takvim entegrasyonu yol haritasında. Çalışanların izin günleri ve öğle arası henüz yok.
 - **Sadece metin.** Sesli mesaj ve görseller şimdilik okunmuyor; asistana kısa bir not olarak iletiliyor. Kuaför ve berber müşterileri sık sesli mesaj attığı için bu, yol haritasında öne alınmalı.
 - Model: varsayılan `claude-haiku-5-5` (hızlı ve ucuz), `low` efor. `ANTHROPIC_MODEL` ile değiştirilebilir (ör. `claude-sonnet-5-5`); Opus, Sonnet ve Fable modellerinde reddedilen isteklerde sunucu tarafı yedek model (`fallbacks: "default"`) otomatik açılır. Vercel loglarında her yanıtın süresi `asistan: ...ms` satırında görünür.
@@ -110,7 +110,7 @@ Notlar:
 
 1. Randevu hatırlatma şablon mesajları (gelmeyen müşteri oranını düşürmek için; salonlarda en çok istenen özellik olması bekleniyor)
 2. Sesli mesajı metne çevirme
-3. Panelden işletme bilgisi, çalışan ve izin günü düzenleme; çoklu işletme ve kullanıcı girişi
+3. İşletme başına kullanıcı girişi; çalışan izin günleri ve tatiller
 4. Randevu iptal ve erteleme aracı
 5. Google Takvim entegrasyonu
 6. Raporlama: yanıt süresi, randevuya dönüşüm, mesai dışı gelen talepler

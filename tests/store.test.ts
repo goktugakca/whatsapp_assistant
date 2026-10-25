@@ -14,7 +14,7 @@ const implementations: [string, () => Promise<Store>][] = [
   [
     "PostgresStore",
     async () => {
-      await pglite.query("truncate conversations, appointments, processed_messages, waitlist cascade");
+      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings cascade");
       return new PostgresStore(pglite);
     },
   ],
@@ -138,7 +138,20 @@ describe.each(implementations)("%s", (_name, create) => {
     expect(list[1].businessType).toBeUndefined();
   });
 
-  it("aynı konuşmadaki işleri sırayla çalıştırır", async () => {
+  it("işletme ayarlarını kaydeder, günceller ve aynen geri okur", async () => {
+    expect(await store.getBusinessSettings(barber.id)).toBeUndefined();
+    const updated = structuredClone(barber);
+    updated.name = "Usta Berber";
+    updated.staff[1].workingHours = [{ day: 2, open: "12:00", close: "20:00" }];
+    await store.saveBusinessSettings(updated);
+    expect(await store.getBusinessSettings(barber.id)).toEqual(updated);
+
+    updated.services.push({ id: "yikama", name: "Yıkama", description: "", durationMinutes: 10, priceInfo: "100 TL" });
+    await store.saveBusinessSettings(updated);
+    expect((await store.getBusinessSettings(barber.id))?.services.at(-1)?.name).toBe("Yıkama");
+  });
+
+    it("aynı konuşmadaki işleri sırayla çalıştırır", async () => {
     const order: string[] = [];
     const slow = store.withConversationLock(key, async () => {
       order.push("a-start");

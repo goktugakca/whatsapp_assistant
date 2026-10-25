@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { businesses, getBusinessById } from "@/lib/business";
+import { businesses, loadBusiness } from "@/lib/business";
+import { getStore } from "@/lib/store";
 import { demoExamples } from "@/lib/demo-examples";
 import { BusinessPicker } from "../business-picker";
 import { DemoChat } from "./demo-chat";
@@ -8,7 +9,8 @@ export const metadata = { title: "Canlı demo · Randevu Asistanı" };
 
 export default async function DemoPage(props: PageProps<"/demo">) {
   const { isletme } = await props.searchParams;
-  const business = (typeof isletme === "string" && getBusinessById(isletme)) || businesses[0];
+  const id = typeof isletme === "string" ? isletme : businesses[0].id;
+  const business = (await loadBusiness(await getStore(), id)) ?? businesses[0];
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">

@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { connection } from "next/server";
-import { businesses, getBusinessById } from "@/lib/business";
+import { businesses, loadBusiness } from "@/lib/business";
 import { getStore, type Conversation } from "@/lib/store";
 import { verticals } from "@/lib/verticals";
 import { BusinessPicker } from "../business-picker";
@@ -22,8 +23,9 @@ function fmt(iso: string) {
 export default async function PanelPage(props: PageProps<"/panel">) {
   await connection(); // Her istekte güncel veri
   const { isletme } = await props.searchParams;
-  const business = (typeof isletme === "string" && getBusinessById(isletme)) || businesses[0];
   const store = await getStore();
+  const id = typeof isletme === "string" ? isletme : businesses[0].id;
+  const business = (await loadBusiness(store, id)) ?? businesses[0];
   const [conversations, appointments, waitlist] = await Promise.all([
     store.listConversations(business.id),
     store.listAppointments(business.id),
@@ -41,6 +43,12 @@ export default async function PanelPage(props: PageProps<"/panel">) {
         <div>
           <h1 className="text-2xl font-bold">{business.name}</h1>
           <p className="text-sm text-muted">{verticals[business.type].label} · İşletme paneli</p>
+          <Link
+            href={`/panel/ayarlar?isletme=${business.id}`}
+            className="mt-2 inline-block rounded-lg border border-border px-3 py-1.5 text-xs font-medium"
+          >
+            Ayarlar: saatler, hizmetler, çalışanlar
+          </Link>
         </div>
         <dl className="flex gap-6 text-sm">
           <Stat label="Konuşma" value={conversations.length} />

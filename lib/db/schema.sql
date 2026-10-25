@@ -60,3 +60,11 @@ create table if not exists waitlist (
   city text,
   created_at timestamptz not null default now()
 );
+
+-- Panelden düzenlenen işletme ayarları (hizmetler, çalışanlar, saatler…). Kayıt yoksa
+-- uygulama lib/businesses/ altındaki başlangıç değerini kullanır.
+create table if not exists business_settings (
+  business_id text primary key,
+  config jsonb not null,
+  updated_at timestamptz not null default now()
+);

@@ -1,5 +1,5 @@
 import { runAssistant, type CreateMessage } from "./agent/run";
-import { getBusinessByPhoneNumberId } from "./business";
+import { businessIdForPhoneNumber, loadBusiness } from "./business";
 import type { Store } from "./store";
 import { sendText, type InboundMessage } from "./whatsapp";
 
@@ -15,7 +15,8 @@ export async function handleInboundMessage(message: InboundMessage, deps: Deps):
 
   if (!(await store.markMessageSeen(message.id))) return "duplicate";
 
-  const business = getBusinessByPhoneNumberId(message.phoneNumberId);
+  const businessId = businessIdForPhoneNumber(message.phoneNumberId);
+  const business = businessId && (await loadBusiness(store, businessId));
   if (!business) {
     console.warn("Bilinmeyen phone_number_id:", message.phoneNumberId);
     return "unknown-business";

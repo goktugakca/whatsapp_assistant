@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { runAssistant } from "@/lib/agent/run";
-import { getBusinessById } from "@/lib/business";
+import { loadBusiness } from "@/lib/business";
 import { getStore } from "@/lib/store";
 
 // WhatsApp kurulumu olmadan asistanı tarayıcıdan denemek için.
@@ -20,10 +20,10 @@ export async function POST(request: Request) {
 
   const parsed = body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Geçersiz istek" }, { status: 400 });
-  const business = getBusinessById(parsed.data.businessId);
+  const store = await getStore();
+  const business = await loadBusiness(store, parsed.data.businessId);
   if (!business) return Response.json({ error: "Bilinmeyen işletme" }, { status: 404 });
 
-  const store = await getStore();
   const key = { businessId: business.id, channel: "demo" as const, contact: parsed.data.sessionId };
   const text = parsed.data.text;
 
