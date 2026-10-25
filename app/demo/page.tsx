@@ -21,7 +21,9 @@ export default async function DemoPage(props: PageProps<"/demo">) {
             <p className="mt-2 text-muted">
               Sol taraf, müşterinin WhatsApp&apos;ta gördüğünün aynısı. Asistan &quot;{business.name}&quot; adlı örnek
               işletmenin hizmet, fiyat ve çalışan bilgileriyle çalışıyor. Konuşmalar ve randevular{" "}
-              <Link href={`/panel?isletme=${business.id}`} className="underline">
+              {/* Panel parola korumalı: önceden yükleme (prefetch) tarayıcının giriş penceresini
+                  kullanıcı tıklamadan açıyordu. */}
+              <Link href={`/panel?isletme=${business.id}`} prefetch={false} className="underline">
                 işletme panelinde
               </Link>{" "}
               görünür.
