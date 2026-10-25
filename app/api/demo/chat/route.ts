@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { runAssistant } from "@/lib/agent/run";
-import { demoClinic } from "@/lib/clinic";
+import { getBusinessById } from "@/lib/business";
 import { getStore } from "@/lib/store";
 
 // WhatsApp kurulumu olmadan asistanı tarayıcıdan denemek için.
@@ -8,6 +8,7 @@ import { getStore } from "@/lib/store";
 export const maxDuration = 60;
 
 const body = z.object({
+  businessId: z.string(),
   sessionId: z.string().min(8).max(64),
   text: z.string().min(1).max(2000),
 });
@@ -19,17 +20,19 @@ export async function POST(request: Request) {
 
   const parsed = body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Geçersiz istek" }, { status: 400 });
+  const business = getBusinessById(parsed.data.businessId);
+  if (!business) return Response.json({ error: "Bilinmeyen işletme" }, { status: 404 });
 
   const store = getStore();
   const conversation = await store.findOrCreateConversation({
-    clinicId: demoClinic.id,
+    businessId: business.id,
     channel: "demo",
     contact: parsed.data.sessionId,
     contactName: "Demo kullanıcısı",
   });
 
   if (conversation.status === "handoff") {
-    conversation.transcript.push({ from: "patient", text: parsed.data.text, at: new Date().toISOString() });
+    conversation.transcript.push({ from: "customer", text: parsed.data.text, at: new Date().toISOString() });
     conversation.history.push({ role: "user", content: parsed.data.text });
     await store.saveConversation(conversation);
     return Response.json({
@@ -39,7 +42,7 @@ export async function POST(request: Request) {
     });
   }
 
-  const result = await runAssistant({ clinic: demoClinic, conversation, store, text: parsed.data.text });
+  const result = await runAssistant({ business, conversation, store, text: parsed.data.text });
   await store.saveConversation(conversation);
   return Response.json(result);
 }

@@ -1,44 +1,51 @@
 import Link from "next/link";
+import { verticals } from "@/lib/verticals";
 import { WaitlistForm } from "./waitlist-form";
 
-// Doğrulama sayfası: kliniklere değer önerisini anlatır ve pilot başvurusu toplar.
+// Doğrulama sayfası: işletmelere değer önerisini anlatır ve pilot başvurusu toplar.
 const problems = [
   {
-    title: "Gece gelen mesajlar kayboluyor",
-    body: "Yurt dışındaki hasta gece 02:00'de yazıyor, sabah dönene kadar başka kliniğe geçmiş oluyor.",
+    title: "Eliniz doluyken gelen mesajlar",
+    body: "Müşteri koltuktayken telefona bakamıyorsunuz. Yazan kişi cevap alamayınca başka salona geçiyor.",
   },
   {
-    title: "Dil engeli",
-    body: "İngilizce, Arapça, Almanca sorulara anında ve doğru yanıt verecek personel bulmak zor ve pahalı.",
+    title: "Kapalıyken gelen talepler",
+    body: "Randevu isteklerinin önemli kısmı akşam, gece ve kapalı günlerde geliyor; sabah dönene kadar iş kaçıyor.",
   },
   {
     title: "Aynı sorular, her gün",
-    body: "Fiyat, transfer, konaklama, tedavi süresi… Ekibiniz gününü kopyala-yapıştır ile geçiriyor.",
+    body: "Fiyat ne kadar, yarın yer var mı, adres nerede, kim müsait… Gününüz kopyala-yapıştır ile geçiyor.",
   },
 ];
 
 const features = [
-  "7/24 yanıt, ortalama birkaç saniye",
-  "Türkçe, İngilizce, Arapça, Almanca",
-  "Fiyat aralığı, transfer, konaklama gibi soruları sizin bilgilerinizle yanıtlar",
-  "Hastanın tedavi, ülke ve tarih bilgisini toplayıp panelde özetler",
-  "Uygun saatleri kontrol edip randevu oluşturur",
-  "Emin olmadığında veya acil durumda konuşmayı anında ekibinize devreder",
+  "Müşteri sadece WhatsApp'tan yazar; uygulama indirmesi veya üye olması gerekmez",
+  "Fiyat, adres, çalışma saati gibi soruları sizin bilgilerinizle anında yanıtlar",
+  "Hangi çalışanın ne zaman boş olduğunu bilir, müşteri isterse belirli ustaya randevu verir",
+  "Randevuyu oluşturur ve panelinize düşürür",
+  "Türkçe'nin yanında İngilizce ve diğer dillerde de yanıt verir",
+  "Emin olmadığında veya müşteri isterse konuşmayı size devreder",
 ];
+
+const sectors = Object.values(verticals).map((v) => v.label);
 
 export default function Home() {
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-20">
       <section className="max-w-3xl">
-        <p className="mb-4 inline-block rounded-full border border-border px-3 py-1 text-xs font-medium text-muted">
-          Diş ve estetik klinikleri için
-        </p>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {sectors.map((s) => (
+            <span key={s} className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted">
+              {s}
+            </span>
+          ))}
+        </div>
         <h1 className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
-          WhatsApp&apos;ınıza gelen hiçbir hasta cevapsız kalmasın.
+          Siz işinize bakın, randevuları WhatsApp&apos;ta asistanınız alsın.
         </h1>
         <p className="mt-5 text-lg text-muted">
-          Klinik Asistan, hasta sorularını 7/24 ve dört dilde yanıtlayan, bilgilerini toplayan ve randevu oluşturan yapay
-          zekâ resepsiyonistinizdir. Ekibiniz sadece hazır hastalarla ilgilenir.
+          Randevu Asistanı, WhatsApp&apos;ınıza gelen mesajları 7/24 yanıtlar, müşterinin istediği hizmet ve çalışana göre
+          boş saatleri bulur ve randevuyu oluşturur. Kuaför, berber, tırnak salonu, güzellik merkezi ve klinikler için.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <a href="#pilot" className="rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-accent-foreground">
@@ -74,11 +81,11 @@ export default function Home() {
         <div className="rounded-xl border border-border bg-card p-6">
           <h2 className="text-2xl font-bold">Basit hesap</h2>
           <p className="mt-4 text-sm text-muted">
-            Bir implant veya kaplama hastası kliniğe ortalama binlerce euro kazandırır. Asistan ayda sadece bir ya da iki
-            kaybolan hastayı geri kazandırsa bile kendini fazlasıyla öder.
+            Cevapsız kalan her mesaj, kaçan bir randevu demek. Haftada birkaç kaçan müşteriyi geri kazanmak bile
+            asistanın maliyetini fazlasıyla karşılar.
           </p>
           <p className="mt-4 text-sm text-muted">
-            Pilot süresince ücretsiz. Kurulumu ve klinik bilgilerinizin girilmesini biz yapıyoruz.
+            Pilot süresince ücretsiz. Hizmet, fiyat ve çalışan bilgilerinizin girilmesini biz yapıyoruz.
           </p>
         </div>
       </section>
@@ -86,13 +93,13 @@ export default function Home() {
       <section id="pilot" className="mt-20 rounded-2xl border border-border bg-card p-6 sm:p-10">
         <h2 className="text-2xl font-bold">Pilot programa katılın</h2>
         <p className="mt-2 mb-6 text-sm text-muted">
-          İlk 10 klinikle birlikte geliştiriyoruz. Bilgilerinizi bırakın, sizi arayalım.
+          İlk işletmelerle birlikte geliştiriyoruz. Bilgilerinizi bırakın, sizi arayalım.
         </p>
-        <WaitlistForm />
+        <WaitlistForm businessTypes={sectors} />
       </section>
 
       <footer className="mt-16 text-center text-xs text-muted">
-        Klinik Asistan, tıbbi tavsiye vermez; tıbbi sorular ve acil durumlar her zaman klinik ekibine yönlendirilir.
+        Randevu Asistanı bağımsız bir üründür; WhatsApp, Meta Platforms, Inc.&apos;in markasıdır.
       </footer>
     </main>
   );

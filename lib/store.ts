@@ -11,7 +11,7 @@ export interface Lead {
   name?: string;
   country?: string;
   language?: string;
-  treatment?: string;
+  interest?: string; // İlgilendiği hizmet
   timeframe?: string;
   notes?: string;
   updatedAt: string;
@@ -19,7 +19,7 @@ export interface Lead {
 
 export interface Conversation {
   id: string;
-  clinicId: string;
+  businessId: string;
   channel: Channel;
   contact: string; // WhatsApp numarası veya demo oturum kimliği
   contactName?: string;
@@ -29,18 +29,19 @@ export interface Conversation {
   // Modele gönderilen geçmiş. Sadece sona eklenir (append-only); düşünme blokları korunur.
   history: Anthropic.Beta.Messages.BetaMessageParam[];
   // Panelde gösterilen sade metin akışı.
-  transcript: { from: "patient" | "assistant" | "staff"; text: string; at: string }[];
+  transcript: { from: "customer" | "assistant" | "staff"; text: string; at: string }[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Appointment {
   id: string;
-  clinicId: string;
+  businessId: string;
   conversationId: string;
-  patientName: string;
+  customerName: string;
   contact: string;
   serviceId: string;
+  staffId?: string; // Çalışanı olmayan işletmelerde boş
   start: string; // ISO, ofsetli: 2026-10-27T10:00:00+03:00
   end: string;
   createdAt: string;
@@ -48,7 +49,8 @@ export interface Appointment {
 
 export interface WaitlistEntry {
   id: string;
-  clinicName: string;
+  businessName: string;
+  businessType?: string;
   contactName: string;
   phone: string;
   city?: string;
@@ -57,15 +59,15 @@ export interface WaitlistEntry {
 
 export interface Store {
   findOrCreateConversation(input: {
-    clinicId: string;
+    businessId: string;
     channel: Channel;
     contact: string;
     contactName?: string;
   }): Promise<Conversation>;
   getConversation(id: string): Promise<Conversation | undefined>;
   saveConversation(conversation: Conversation): Promise<void>;
-  listConversations(clinicId: string): Promise<Conversation[]>;
-  listAppointments(clinicId: string): Promise<Appointment[]>;
+  listConversations(businessId: string): Promise<Conversation[]>;
+  listAppointments(businessId: string): Promise<Appointment[]>;
   addAppointment(input: Omit<Appointment, "id" | "createdAt">): Promise<Appointment>;
   // WhatsApp aynı mesajı birden fazla kez gönderebilir; ilk görüşte true döner.
   markMessageSeen(messageId: string): Promise<boolean>;
@@ -80,13 +82,13 @@ export class InMemoryStore implements Store {
   private waitlist: WaitlistEntry[] = [];
 
   async findOrCreateConversation(input: {
-    clinicId: string;
+    businessId: string;
     channel: Channel;
     contact: string;
     contactName?: string;
   }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
-      if (c.clinicId === input.clinicId && c.channel === input.channel && c.contact === input.contact) {
+      if (c.businessId === input.businessId && c.channel === input.channel && c.contact === input.contact) {
         if (input.contactName && !c.contactName) c.contactName = input.contactName;
         return c;
       }
@@ -114,15 +116,15 @@ export class InMemoryStore implements Store {
     this.conversations.set(conversation.id, conversation);
   }
 
-  async listConversations(clinicId: string) {
+  async listConversations(businessId: string) {
     return [...this.conversations.values()]
-      .filter((c) => c.clinicId === clinicId)
+      .filter((c) => c.businessId === businessId)
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   }
 
-  async listAppointments(clinicId: string) {
+  async listAppointments(businessId: string) {
     return this.appointments
-      .filter((a) => a.clinicId === clinicId)
+      .filter((a) => a.businessId === businessId)
       .sort((a, b) => a.start.localeCompare(b.start));
   }
 

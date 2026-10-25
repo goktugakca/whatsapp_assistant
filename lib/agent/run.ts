@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describeNow } from "../availability";
-import type { Clinic } from "../clinic";
+import type { Business } from "../business";
 import type { Conversation, Store } from "../store";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools, executeTool } from "./tools";
@@ -15,7 +15,7 @@ const EFFORT = (process.env.ANTHROPIC_EFFORT ?? "low") as "low" | "medium" | "hi
 const MAX_TOOL_ROUNDS = 8;
 
 export const FALLBACK_REPLY =
-  "Mesajınızı aldık, ekibimiz en kısa sürede size dönüş yapacak. / We received your message, our team will get back to you shortly.";
+  "Mesajınızı aldık, en kısa sürede size dönüş yapacağız. / We received your message, we will get back to you shortly.";
 
 let client: Anthropic | undefined;
 const defaultCreateMessage: CreateMessage = (params) => {
@@ -28,28 +28,28 @@ export interface RunResult {
   handedOff: boolean;
 }
 
-// Hastadan gelen bir mesajı işler: modeli araçlarla çalıştırır, konuşmayı günceller
-// ve hastaya gönderilecek metni döndürür. Konuşmayı kaydetmek çağıranın işidir.
+// Müşteriden gelen bir mesajı işler: modeli araçlarla çalıştırır, konuşmayı günceller
+// ve müşteriye gönderilecek metni döndürür. Konuşmayı kaydetmek çağıranın işidir.
 export async function runAssistant(params: {
-  clinic: Clinic;
+  business: Business;
   conversation: Conversation;
   store: Store;
   text: string;
   now?: Date;
   createMessage?: CreateMessage;
 }): Promise<RunResult> {
-  const { clinic, conversation, store, text } = params;
+  const { business, conversation, store, text } = params;
   const createMessage = params.createMessage ?? defaultCreateMessage;
   const now = params.now ?? new Date();
 
-  conversation.transcript.push({ from: "patient", text, at: now.toISOString() });
+  conversation.transcript.push({ from: "customer", text, at: now.toISOString() });
   conversation.history.push({
     role: "user",
-    content: `[Şu an: ${describeNow(clinic, now)}]\n${text}`,
+    content: `[Şu an: ${describeNow(business, now)}]\n${text}`,
   });
 
-  const system = buildSystemPrompt(clinic);
-  const tools = buildTools(clinic);
+  const system = buildSystemPrompt(business);
+  const tools = buildTools(business);
   const replyParts: string[] = [];
 
   try {
@@ -89,7 +89,7 @@ export async function runAssistant(params: {
       for (const tool of toolUses) {
         let outcome;
         try {
-          outcome = await executeTool(tool.name, tool.input, { clinic, conversation, store, now });
+          outcome = await executeTool(tool.name, tool.input, { business, conversation, store, now });
         } catch (error) {
           outcome = { content: `Araç hatası: ${(error as Error).message}`, isError: true };
         }

@@ -1,11 +1,20 @@
-import type { Clinic } from "./clinic";
+import type { Business, Staff, WorkingHours } from "./business";
 
-// Tarih ve saatler kliniğin yerel saatinde "YYYY-MM-DD" / "HH:mm" olarak çalışılır,
+// Tarih ve saatler işletmenin yerel saatinde "YYYY-MM-DD" / "HH:mm" olarak çalışılır,
 // dışarıya ofsetli ISO metin olarak verilir (2026-10-27T10:00:00+03:00).
+
+// Çalışanı olmayan işletmeler tek bir takvim gibi davranır; bu sahte kaynak kimliği onu temsil eder.
+export const SINGLE_RESOURCE = "_";
 
 export interface BusyRange {
   start: string; // ISO
   end: string; // ISO
+  staffId?: string; // Yoksa SINGLE_RESOURCE
+}
+
+export interface Slot {
+  start: string;
+  staffIds: string[]; // Bu saatte hizmeti verebilecek boş çalışanlar
 }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -29,42 +38,70 @@ export function weekdayOf(date: string): number {
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
+// Hizmeti verebilen kaynaklar: çalışan tanımlıysa o hizmeti yapanlar, değilse tek takvim.
+export function resourcesFor(
+  business: Business,
+  serviceId: string,
+  staffId?: string,
+): Pick<Staff, "id" | "workingHours">[] {
+  if (business.staff.length === 0) return [{ id: SINGLE_RESOURCE }];
+  return business.staff.filter((s) => s.serviceIds.includes(serviceId) && (!staffId || s.id === staffId));
+}
+
 export function freeSlots(params: {
-  clinic: Clinic;
+  business: Business;
   date: string;
-  durationMinutes: number;
+  serviceId: string;
+  staffId?: string; // Belirli bir çalışan istenirse
   busy: BusyRange[];
   now?: Date;
-}): string[] {
-  const { clinic, date, durationMinutes, busy } = params;
+}): Slot[] {
+  const { business, date, busy } = params;
   if (!DATE_RE.test(date)) return [];
-  const hours = clinic.workingHours.find((h) => h.day === weekdayOf(date));
-  if (!hours) return [];
+  const service = business.services.find((s) => s.id === params.serviceId);
+  if (!service) return [];
+
+  const weekday = weekdayOf(date);
+  const businessHours = business.workingHours.find((h) => h.day === weekday);
+  if (!businessHours) return [];
 
   const now = (params.now ?? new Date()).getTime();
-  const busyMs = busy.map((b) => [Date.parse(b.start), Date.parse(b.end)] as const);
-  const open = toMinutes(hours.open);
-  const close = toMinutes(hours.close);
-  const slots: string[] = [];
+  const durationMs = service.durationMinutes * 60_000;
+  const resources = resourcesFor(business, service.id, params.staffId).flatMap((r) => {
+    const hours: WorkingHours | undefined = r.workingHours
+      ? r.workingHours.find((h) => h.day === weekday)
+      : businessHours;
+    if (!hours) return [];
+    const busyMs = busy
+      .filter((b) => (b.staffId ?? SINGLE_RESOURCE) === r.id)
+      .map((b) => [Date.parse(b.start), Date.parse(b.end)] as const);
+    return [{ id: r.id, open: toMinutes(hours.open), close: toMinutes(hours.close), busyMs }];
+  });
 
-  for (let t = open; t + durationMinutes <= close; t += clinic.slotMinutes) {
-    const start = localIso(date, t, clinic.utcOffset);
+  const slots: Slot[] = [];
+  const open = toMinutes(businessHours.open);
+  const close = toMinutes(businessHours.close);
+  for (let t = open; t + service.durationMinutes <= close; t += business.slotMinutes) {
+    const start = localIso(date, t, business.utcOffset);
     const startMs = Date.parse(start);
-    const endMs = startMs + durationMinutes * 60_000;
     if (startMs <= now) continue;
-    if (busyMs.some(([bs, be]) => startMs < be && bs < endMs)) continue;
-    slots.push(start);
+    const endMs = startMs + durationMs;
+    const staffIds = resources
+      .filter((r) => t >= r.open && t + service.durationMinutes <= r.close)
+      .filter((r) => !r.busyMs.some(([bs, be]) => startMs < be && bs < endMs))
+      .map((r) => r.id);
+    if (staffIds.length > 0) slots.push({ start, staffIds });
   }
   return slots;
 }
 
-// Modele "bugün" bilgisini kliniğin yerel saatiyle vermek için.
-export function describeNow(clinic: Clinic, now = new Date()): string {
-  const sign = clinic.utcOffset.startsWith("-") ? -1 : 1;
-  const [oh, om] = clinic.utcOffset.slice(1).split(":").map(Number);
+// Modele "şu an" bilgisini işletmenin yerel saatiyle vermek için.
+export function describeNow(business: Business, now = new Date()): string {
+  const sign = business.utcOffset.startsWith("-") ? -1 : 1;
+  const [oh, om] = business.utcOffset.slice(1).split(":").map(Number);
   const local = new Date(now.getTime() + sign * (oh * 60 + om) * 60_000);
   const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
   const date = `${local.getUTCFullYear()}-${pad(local.getUTCMonth() + 1)}-${pad(local.getUTCDate())}`;
   const time = `${pad(local.getUTCHours())}:${pad(local.getUTCMinutes())}`;
-  return `${date} ${days[local.getUTCDay()]} ${time} (klinik yerel saati, UTC${clinic.utcOffset})`;
+  return `${date} ${days[local.getUTCDay()]} ${time} (işletmenin yerel saati, UTC${business.utcOffset})`;
 }

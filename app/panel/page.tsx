@@ -1,9 +1,11 @@
 import { connection } from "next/server";
-import { demoClinic } from "@/lib/clinic";
+import { businesses, getBusinessById } from "@/lib/business";
 import { getStore, type Conversation } from "@/lib/store";
+import { verticals } from "@/lib/verticals";
+import { BusinessPicker } from "../business-picker";
 import { resumeAssistant, sendStaffReply } from "./actions";
 
-export const metadata = { title: "Panel · Klinik Asistan" };
+export const metadata = { title: "Panel · Randevu Asistanı" };
 
 const timeFmt = new Intl.DateTimeFormat("tr-TR", {
   timeZone: "Europe/Istanbul",
@@ -17,28 +19,32 @@ function fmt(iso: string) {
   return timeFmt.format(new Date(iso));
 }
 
-export default async function PanelPage() {
+export default async function PanelPage(props: PageProps<"/panel">) {
   await connection(); // Her istekte güncel veri
-  const clinic = demoClinic;
+  const { isletme } = await props.searchParams;
+  const business = (typeof isletme === "string" && getBusinessById(isletme)) || businesses[0];
   const store = getStore();
   const [conversations, appointments, waitlist] = await Promise.all([
-    store.listConversations(clinic.id),
-    store.listAppointments(clinic.id),
+    store.listConversations(business.id),
+    store.listAppointments(business.id),
     store.listWaitlist(),
   ]);
   const handoffs = conversations.filter((c) => c.status === "handoff");
-  const serviceName = (id: string) => clinic.services.find((s) => s.id === id)?.name ?? id;
+  const serviceName = (id: string) => business.services.find((s) => s.id === id)?.name ?? id;
+  const staffName = (id?: string) => business.staff.find((s) => s.id === id)?.name ?? "–";
+  const hasStaff = business.staff.length > 0;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <BusinessPicker basePath="/panel" currentId={business.id} />
+      <header className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{clinic.name}</h1>
-          <p className="text-sm text-muted">Klinik paneli</p>
+          <h1 className="text-2xl font-bold">{business.name}</h1>
+          <p className="text-sm text-muted">{verticals[business.type].label} · İşletme paneli</p>
         </div>
         <dl className="flex gap-6 text-sm">
           <Stat label="Konuşma" value={conversations.length} />
-          <Stat label="Ekip bekliyor" value={handoffs.length} highlight={handoffs.length > 0} />
+          <Stat label="Sizi bekliyor" value={handoffs.length} highlight={handoffs.length > 0} />
           <Stat label="Randevu" value={appointments.length} />
         </dl>
       </header>
@@ -53,8 +59,9 @@ export default async function PanelPage() {
               <thead className="text-xs text-muted">
                 <tr>
                   <th className="px-4 py-2 font-medium">Zaman</th>
-                  <th className="px-4 py-2 font-medium">Hasta</th>
+                  <th className="px-4 py-2 font-medium">Müşteri</th>
                   <th className="px-4 py-2 font-medium">Hizmet</th>
+                  {hasStaff && <th className="px-4 py-2 font-medium">Çalışan</th>}
                   <th className="px-4 py-2 font-medium">İletişim</th>
                 </tr>
               </thead>
@@ -62,8 +69,9 @@ export default async function PanelPage() {
                 {appointments.map((a) => (
                   <tr key={a.id} className="border-t border-border">
                     <td className="px-4 py-2 whitespace-nowrap">{fmt(a.start)}</td>
-                    <td className="px-4 py-2">{a.patientName}</td>
+                    <td className="px-4 py-2">{a.customerName}</td>
                     <td className="px-4 py-2">{serviceName(a.serviceId)}</td>
+                    {hasStaff && <td className="px-4 py-2">{staffName(a.staffId)}</td>}
                     <td className="px-4 py-2 font-mono text-xs">{a.contact}</td>
                   </tr>
                 ))}
@@ -91,7 +99,8 @@ export default async function PanelPage() {
           <ul className="mt-3 space-y-2 text-sm">
             {waitlist.map((w) => (
               <li key={w.id} className="rounded-lg border border-border bg-card px-4 py-2">
-                <span className="font-medium">{w.clinicName}</span> · {w.contactName} · {w.phone}
+                <span className="font-medium">{w.businessName}</span>
+                {w.businessType ? ` (${w.businessType})` : ""} · {w.contactName} · {w.phone}
                 {w.city ? ` · ${w.city}` : ""} <span className="text-muted">({fmt(w.createdAt)})</span>
               </li>
             ))}
@@ -117,7 +126,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
     ["Ad", lead?.name],
     ["Ülke", lead?.country],
     ["Dil", lead?.language],
-    ["Tedavi", lead?.treatment],
+    ["Hizmet", lead?.interest],
     ["Zaman", lead?.timeframe],
     ["Not", lead?.notes],
   ].filter(([, v]) => v);
@@ -135,7 +144,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
         </div>
         {c.status === "handoff" ? (
           <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
-            Ekip bekliyor
+            Sizi bekliyor
           </span>
         ) : (
           <span className="rounded-full bg-bubble-out px-2 py-0.5 text-xs font-medium">Asistan yanıtlıyor</span>
@@ -161,11 +170,11 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
 
       <div className="max-h-72 space-y-2 overflow-y-auto px-4 py-3">
         {c.transcript.map((m, i) => (
-          <div key={i} className={`flex ${m.from === "patient" ? "justify-start" : "justify-end"}`}>
+          <div key={i} className={`flex ${m.from === "customer" ? "justify-start" : "justify-end"}`}>
             <p
               dir="auto"
               className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-1.5 text-sm ${
-                m.from === "patient" ? "bg-bubble-in border border-border" : "bg-bubble-out"
+                m.from === "customer" ? "bg-bubble-in border border-border" : "bg-bubble-out"
               }`}
             >
               {m.from === "staff" && <span className="block text-[10px] font-semibold text-muted">Personel</span>}

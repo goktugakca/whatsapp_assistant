@@ -1,8 +1,11 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildSystemPrompt } from "@/lib/agent/prompt";
 import { FALLBACK_REPLY, runAssistant, type CreateMessage } from "@/lib/agent/run";
-import { executeTool } from "@/lib/agent/tools";
-import { demoClinic } from "@/lib/clinic";
+import { buildTools, executeTool } from "@/lib/agent/tools";
+import { businesses, type Business } from "@/lib/business";
+import { barber } from "@/lib/businesses/barber";
+import { dentalClinic } from "@/lib/businesses/dental-clinic";
 import { handleInboundMessage } from "@/lib/inbound";
 import { InMemoryStore } from "@/lib/store";
 
@@ -25,109 +28,159 @@ function scripted(responses: BetaMessage[]) {
   return { createMessage, calls };
 }
 
-async function setup() {
+async function setup(business: Business) {
   const store = new InMemoryStore();
   const conversation = await store.findOrCreateConversation({
-    clinicId: demoClinic.id,
+    businessId: business.id,
     channel: "demo",
     contact: "test-session",
   });
-  return { store, conversation };
+  return { store, conversation, ctx: { business, conversation, store, now } };
 }
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
+
+describe("istem ve araç tanımları", () => {
+  it.each(businesses.map((b) => [b.id, b] as const))("%s için üretilebiliyor", (_id, business) => {
+    const prompt = buildSystemPrompt(business);
+    expect(prompt).toContain(business.name);
+    for (const s of business.services) expect(prompt).toContain(s.name);
+    for (const p of business.staff) expect(prompt).toContain(p.name);
+    for (const tool of buildTools(business)) expect(tool.strict).toBe(true);
+  });
+
+  it("sektöre özel kuralları ekler", () => {
+    expect(buildSystemPrompt(dentalClinic)).toContain("Tıbbi teşhis koyma");
+    expect(buildSystemPrompt(barber)).not.toContain("Tıbbi teşhis koyma");
+  });
+});
+
 describe("araçlar", () => {
-  it("sadece boş saate randevu verir ve aynı saati ikinci kez vermez", async () => {
-    const { store, conversation } = await setup();
-    const ctx = { clinic: demoClinic, conversation, store, now };
+  it("tek takvimli işletmede aynı saate ikinci randevuyu ve uydurma saati reddeder", async () => {
+    const { store, ctx } = await setup(dentalClinic);
     const start = "2026-10-26T10:00:00+03:00";
+    const book = (customer_name: string, at: string) =>
+      executeTool("book_appointment", { customer_name, service_id: "muayene", staff_id: "any", start: at }, ctx);
 
-    const first = await executeTool("book_appointment", { patient_name: "Ali", service_id: "muayene", start }, ctx);
-    expect(first.isError).toBeFalsy();
-    expect(await store.listAppointments(demoClinic.id)).toHaveLength(1);
+    expect((await book("Ali", start)).isError).toBeFalsy();
+    expect(await store.listAppointments(dentalClinic.id)).toHaveLength(1);
+    expect((await book("Veli", start)).isError).toBe(true);
+    expect((await book("Veli", "2026-10-26T10:07:00+03:00")).isError).toBe(true);
+  });
 
-    const second = await executeTool("book_appointment", { patient_name: "Veli", service_id: "muayene", start }, ctx);
-    expect(second.isError).toBe(true);
+  it("berberde aynı saate iki farklı ustaya randevu verir, üçüncüyü reddeder", async () => {
+    const { store, ctx } = await setup(barber);
+    const start = "2026-10-26T18:00:00+03:00";
+    const book = (customer_name: string, staff_id: string) =>
+      executeTool("book_appointment", { customer_name, service_id: "sac", staff_id, start }, ctx);
 
-    const invented = await executeTool(
-      "book_appointment",
-      { patient_name: "Veli", service_id: "muayene", start: "2026-10-26T10:07:00+03:00" },
+    expect((await book("Ali", "mehmet")).isError).toBeFalsy();
+    expect((await book("Veli", "mehmet")).isError).toBe(true); // Mehmet Usta dolu
+    expect((await book("Veli", "any")).isError).toBeFalsy(); // Can'a düşer
+    expect((await book("Ayşe", "any")).isError).toBe(true); // İkisi de dolu
+
+    const staff = (await store.listAppointments(barber.id)).map((a) => a.staffId).sort();
+    expect(staff).toEqual(["can", "mehmet"]);
+  });
+
+  it("boş saatleri çalışan adlarıyla döndürür", async () => {
+    const { ctx } = await setup(barber);
+    const result = await executeTool(
+      "check_availability",
+      { date: "2026-10-26", service_id: "sac", staff_id: "any" },
       ctx,
     );
-    expect(invented.isError).toBe(true);
+    expect(JSON.parse(result.content).slots[0].staff).toEqual([
+      { id: "mehmet", name: "Mehmet Usta" },
+      { id: "can", name: "Can" },
+    ]);
   });
 
   it("lead bilgisini boş alanları ezmeden birleştirir", async () => {
-    const { store, conversation } = await setup();
-    const ctx = { clinic: demoClinic, conversation, store, now };
-    const empty = { name: "", country: "", language: "", treatment: "", timeframe: "", notes: "" };
-    await executeTool("save_lead", { ...empty, name: "John", country: "UK" }, ctx);
-    await executeTool("save_lead", { ...empty, treatment: "implant" }, ctx);
-    expect(conversation.lead).toMatchObject({ name: "John", country: "UK", treatment: "implant" });
+    const { conversation, ctx } = await setup(barber);
+    const empty = { name: "", language: "", country: "", interest: "", timeframe: "", notes: "" };
+    await executeTool("save_lead", { ...empty, name: "John", language: "English" }, ctx);
+    await executeTool("save_lead", { ...empty, interest: "saç + sakal" }, ctx);
+    expect(conversation.lead).toMatchObject({ name: "John", language: "English", interest: "saç + sakal" });
   });
 });
 
 describe("runAssistant", () => {
   it("araç çağrısını çalıştırır, sonucu modele geri verir ve son metni döndürür", async () => {
-    const { store, conversation } = await setup();
+    const { store, conversation } = await setup(barber);
     const { createMessage, calls } = scripted([
       message(
-        [{ type: "tool_use", id: "t1", name: "check_availability", input: { date: "2026-10-26", service_id: "muayene" } }],
+        [
+          {
+            type: "tool_use",
+            id: "t1",
+            name: "check_availability",
+            input: { date: "2026-10-26", service_id: "sac", staff_id: "mehmet" },
+          },
+        ],
         "tool_use",
       ),
-      message([{ type: "text", text: "Pazartesi 09:00 veya 09:30 uygun.", citations: null }], "end_turn"),
+      message([{ type: "text", text: "Mehmet Usta 09:00'da boş.", citations: null }], "end_turn"),
     ]);
 
-    const result = await runAssistant({ clinic: demoClinic, conversation, store, text: "Pazartesi müsait misiniz?", now, createMessage });
+    const result = await runAssistant({ business: barber, conversation, store, text: "Pazartesi?", now, createMessage });
 
-    expect(result.reply).toBe("Pazartesi 09:00 veya 09:30 uygun.");
+    expect(result.reply).toBe("Mehmet Usta 09:00'da boş.");
     expect(calls).toHaveLength(2);
     expect(calls[0].fallbacks).toBe("default");
     const toolResultTurn = calls[1].messages.at(-1)!;
-    expect(toolResultTurn.role).toBe("user");
     const block = (toolResultTurn.content as Anthropic.Beta.Messages.BetaToolResultBlockParam[])[0];
     expect(block.tool_use_id).toBe("t1");
     expect(String(block.content)).toContain("2026-10-26T09:00:00+03:00");
-    // Geçmiş sırası: kullanıcı, asistan(tool_use), kullanıcı(tool_result), asistan(metin)
     expect(conversation.history.map((m) => m.role)).toEqual(["user", "assistant", "user", "assistant"]);
   });
 
   it("modeli çağıramazsa konuşmayı devreder ve güvenli yanıt verir", async () => {
-    const { store, conversation } = await setup();
+    const { store, conversation } = await setup(barber);
     const createMessage: CreateMessage = async () => {
       throw new Error("ağ hatası");
     };
     vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = await runAssistant({ clinic: demoClinic, conversation, store, text: "Merhaba", now, createMessage });
+    const result = await runAssistant({ business: barber, conversation, store, text: "Merhaba", now, createMessage });
     expect(result.reply).toBe(FALLBACK_REPLY);
     expect(conversation.status).toBe("handoff");
   });
 
   it("ret yanıtında geçmişe asistan turu eklemeden devreder", async () => {
-    const { store, conversation } = await setup();
+    const { store, conversation } = await setup(barber);
     const { createMessage } = scripted([message([], "refusal")]);
-    const result = await runAssistant({ clinic: demoClinic, conversation, store, text: "...", now, createMessage });
+    const result = await runAssistant({ business: barber, conversation, store, text: "...", now, createMessage });
     expect(result.handedOff).toBe(true);
     expect(conversation.history.map((m) => m.role)).toEqual(["user"]);
   });
 });
 
 describe("handleInboundMessage", () => {
-  it("tekrar gelen mesajı yok sayar ve devredilmiş konuşmada otomatik yanıt vermez", async () => {
-    vi.spyOn(demoClinic, "whatsappPhoneNumberId", "get").mockReturnValue("pn-1");
+  it("numarayı doğru işletmeye bağlar, tekrarı yok sayar, devredilmiş konuşmada sessiz kalır", async () => {
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");
+    vi.stubEnv("WHATSAPP_BUSINESS_ID", barber.id);
+    vi.spyOn(console, "warn").mockImplementation(() => {});
     const store = new InMemoryStore();
     const send = vi.fn(async () => {});
-    const { createMessage } = scripted([
-      message([{ type: "text", text: "Merhaba!", citations: null }], "end_turn"),
-    ]);
+    const { createMessage } = scripted([message([{ type: "text", text: "Merhaba!", citations: null }], "end_turn")]);
     const inbound = { id: "wamid.1", phoneNumberId: "pn-1", from: "905551112233", text: "Selam", timestamp: 0 };
 
     expect(await handleInboundMessage(inbound, { store, send, createMessage })).toBe("replied");
     expect(send).toHaveBeenCalledWith({ phoneNumberId: "pn-1", to: "905551112233", text: "Merhaba!" });
+    const [conversation] = await store.listConversations(barber.id);
+    expect(conversation).toBeDefined();
+
     expect(await handleInboundMessage(inbound, { store, send, createMessage })).toBe("duplicate");
 
-    const [conversation] = await store.listConversations(demoClinic.id);
     conversation.status = "handoff";
     expect(await handleInboundMessage({ ...inbound, id: "wamid.2" }, { store, send, createMessage })).toBe("handoff");
     expect(send).toHaveBeenCalledTimes(1);
+
+    expect(
+      await handleInboundMessage({ ...inbound, id: "wamid.3", phoneNumberId: "baska" }, { store, send, createMessage }),
+    ).toBe("unknown-business");
   });
 });

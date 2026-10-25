@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { getClinicById } from "@/lib/clinic";
+import { getBusinessById, phoneNumberIdFor } from "@/lib/business";
 import { isPanelAuthorized } from "@/lib/panel-auth";
 import { getStore } from "@/lib/store";
 import { sendText } from "@/lib/whatsapp";
@@ -33,14 +33,15 @@ export async function sendStaffReply(formData: FormData) {
   if (!conversation) return;
 
   if (conversation.channel === "whatsapp") {
-    const clinic = getClinicById(conversation.clinicId);
-    if (!clinic?.whatsappPhoneNumberId) throw new Error("Kliniğin WhatsApp numarası tanımlı değil");
-    await sendText({ phoneNumberId: clinic.whatsappPhoneNumberId, to: conversation.contact, text });
+    const business = getBusinessById(conversation.businessId);
+    const phoneNumberId = business && phoneNumberIdFor(business);
+    if (!phoneNumberId) throw new Error("İşletmenin WhatsApp numarası tanımlı değil");
+    await sendText({ phoneNumberId, to: conversation.contact, text });
   }
 
   conversation.transcript.push({ from: "staff", text, at: new Date().toISOString() });
   // Asistan yeniden açıldığında personelin ne dediğini bilsin.
-  conversation.history.push({ role: "assistant", content: `[Klinik personeli yazdı] ${text}` });
+  conversation.history.push({ role: "assistant", content: `[İşletme personeli yazdı] ${text}` });
   await store.saveConversation(conversation);
   revalidatePath("/panel");
 }

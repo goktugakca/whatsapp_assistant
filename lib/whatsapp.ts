@@ -6,7 +6,7 @@ const GRAPH_VERSION = process.env.WHATSAPP_GRAPH_VERSION ?? "v23.0";
 export interface InboundMessage {
   id: string;
   phoneNumberId: string; // Mesajın geldiği işletme numarası
-  from: string; // Hastanın numarası
+  from: string; // Müşterinin numarası
   contactName?: string;
   text: string;
   timestamp: number;
@@ -62,7 +62,7 @@ export function parseInboundMessages(payload: unknown): InboundMessage[] {
           message.button?.text ??
           message.interactive?.button_reply?.title ??
           message.interactive?.list_reply?.title ??
-          `[Hasta bir ${message.type} mesajı gönderdi; asistan şimdilik sadece metin okuyabiliyor.]`;
+          `[Müşteri bir ${message.type} mesajı gönderdi; asistan şimdilik sadece metin okuyabiliyor.]`;
         result.push({
           id: message.id,
           phoneNumberId,

@@ -2,21 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Bubble = { from: "patient" | "assistant" | "system"; text: string };
+type Bubble = { from: "customer" | "assistant" | "system"; text: string };
 
 function newSessionId() {
   return crypto.randomUUID();
 }
 
-export function DemoChat({ clinicName }: { clinicName: string }) {
+export function DemoChat({ businessId, businessName }: { businessId: string; businessName: string }) {
   const [sessionId, setSessionId] = useState(newSessionId);
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Sadece mesaj alanını kaydır; scrollIntoView mobilde bütün sayfayı kaydırıyordu.
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [bubbles, pending]);
 
   async function send(event: React.FormEvent) {
@@ -24,13 +26,13 @@ export function DemoChat({ clinicName }: { clinicName: string }) {
     const message = text.trim();
     if (!message || pending) return;
     setText("");
-    setBubbles((b) => [...b, { from: "patient", text: message }]);
+    setBubbles((b) => [...b, { from: "customer", text: message }]);
     setPending(true);
     try {
       const res = await fetch("/api/demo/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, text: message }),
+        body: JSON.stringify({ businessId, sessionId, text: message }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Hata");
@@ -39,7 +41,7 @@ export function DemoChat({ clinicName }: { clinicName: string }) {
         ...(data.reply ? [{ from: "assistant" as const, text: data.reply }] : []),
         ...(data.note ? [{ from: "system" as const, text: data.note }] : []),
         ...(data.handedOff && data.reply
-          ? [{ from: "system" as const, text: "Konuşma klinik ekibine devredildi." }]
+          ? [{ from: "system" as const, text: "Konuşma işletmeye devredildi." }]
           : []),
       ]);
     } catch (error) {
@@ -55,10 +57,10 @@ export function DemoChat({ clinicName }: { clinicName: string }) {
   }
 
   return (
-    <section className="flex h-[78vh] min-h-[480px] flex-col overflow-hidden rounded-2xl border border-border bg-card">
+    <section className="flex h-[70vh] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-card">
       <header className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <p className="font-semibold">{clinicName}</p>
+          <p className="font-semibold">{businessName}</p>
           <p className="text-xs text-muted">WhatsApp asistanı · demo</p>
         </div>
         <button onClick={reset} className="text-xs text-muted underline">
@@ -66,9 +68,9 @@ export function DemoChat({ clinicName }: { clinicName: string }) {
         </button>
       </header>
 
-      <div className="flex-1 space-y-2 overflow-y-auto bg-background p-4">
+      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto bg-background p-4">
         {bubbles.length === 0 && (
-          <p className="mt-10 text-center text-sm text-muted">Hasta gibi bir mesaj yazarak başlayın.</p>
+          <p className="mt-10 text-center text-sm text-muted">Müşteri gibi bir mesaj yazarak başlayın.</p>
         )}
         {bubbles.map((b, i) =>
           b.from === "system" ? (
@@ -76,11 +78,11 @@ export function DemoChat({ clinicName }: { clinicName: string }) {
               {b.text}
             </p>
           ) : (
-            <div key={i} className={`flex ${b.from === "patient" ? "justify-end" : "justify-start"}`}>
+            <div key={i} className={`flex ${b.from === "customer" ? "justify-end" : "justify-start"}`}>
               <p
                 dir="auto"
                 className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm shadow-sm ${
-                  b.from === "patient" ? "bg-bubble-out" : "bg-bubble-in"
+                  b.from === "customer" ? "bg-bubble-out" : "bg-bubble-in"
                 }`}
               >
                 {b.text}
@@ -89,7 +91,6 @@ export function DemoChat({ clinicName }: { clinicName: string }) {
           ),
         )}
         {pending && <p className="text-xs text-muted">yazıyor…</p>}
-        <div ref={bottomRef} />
       </div>
 
       <form onSubmit={send} className="flex gap-2 border-t border-border p-3">

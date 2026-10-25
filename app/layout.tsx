@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Klinik Asistan: WhatsApp'ta 7/24 yapay zekâ resepsiyonist",
+  title: "Randevu Asistanı: WhatsApp'tan 7/24 randevu alan yapay zekâ",
   description:
-    "Kliniğinizin WhatsApp'ına gelen hasta sorularını 7/24, dört dilde yanıtlayan ve randevu oluşturan yapay zekâ asistanı.",
+    "Kuaför, berber, tırnak salonu ve kliniklerin WhatsApp'ına gelen mesajları 7/24 yanıtlayan ve randevu oluşturan yapay zekâ asistanı.",
 };
 
 export default function RootLayout({
