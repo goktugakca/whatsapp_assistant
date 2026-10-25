@@ -46,12 +46,18 @@ Sadece demo için `ANTHROPIC_API_KEY` yeterli; `DATABASE_URL` yoksa veriler bell
 
 ### Veritabanı
 
+Proje Neon'a bağlı (`neon.ts`; proje kimliği gitignore'daki `.neon` dosyasında).
+
 ```bash
-# .env.local içine DATABASE_URL ekleyin (Neon veya Supabase ücretsiz katman yeterli)
-npm run db:migrate   # şemayı uygular; tekrar çalıştırmak güvenli
+npm i -g neon@latest
+neon login           # tarayıcıyla giriş
+neon deploy          # neon.ts'i uygular, DATABASE_URL ve DATABASE_URL_UNPOOLED'ı .env.local'a çeker
+npm run db:migrate   # şemayı uygular (havuzsuz DATABASE_URL_UNPOOLED ile); tekrar çalıştırmak güvenli
 ```
 
-Şema: `lib/db/schema.sql`. Postgres'in `btree_gist` eklentisi gerekir (Neon ve Supabase'de var).
+- Uygulama havuzlu `DATABASE_URL`'i (`-pooler`) `node-postgres` ile kullanır; Vercel'de `attachDatabasePool` ile Fluid compute'a bağlanır.
+- Şema: `lib/db/schema.sql`. `btree_gist` eklentisi gerekir (Neon'da var).
+- Neon dışında herhangi bir Postgres 13+ ile de çalışır; sadece `DATABASE_URL` vermek yeterli.
 
 ```bash
 npm test           # birim testleri (vitest)

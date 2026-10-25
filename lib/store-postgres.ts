@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 import type {
   Appointment,
@@ -18,9 +19,12 @@ export interface Database {
 }
 
 export function createPgDatabase(connectionString: string): Database {
-  // Sunucusuz ortamda her örnek kendi havuzunu açar; Neon/Supabase'in havuzlanmış
-  // (pooled) bağlantı adresini kullanın.
+  // Sunucusuz ortamda her örnek kendi havuzunu açar; Neon'un havuzlanmış (-pooler)
+  // adresini (DATABASE_URL) kullanın.
   const pool = new Pool({ connectionString, max: 5 });
+  // Vercel Fluid compute'ta boşta kalan bağlantıların fonksiyon askıya alınmadan önce
+  // düzgün kapanmasını sağlar; Vercel dışında etkisizdir.
+  attachDatabasePool(pool);
   return {
     async query<T>(text: string, params?: unknown[]) {
       const result = await pool.query(text, params);

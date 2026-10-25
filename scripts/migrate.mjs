@@ -1,11 +1,13 @@
-// Şemayı DATABASE_URL'deki veritabanına uygular. Tekrar çalıştırmak güvenlidir.
+// Şemayı veritabanına uygular. Tekrar çalıştırmak güvenlidir.
 // Kullanım: npm run db:migrate
+// Şema değişiklikleri havuzsuz (direct) bağlantıyla yapılmalı; Neon bunu
+// DATABASE_URL_UNPOOLED olarak verir. Yoksa DATABASE_URL kullanılır.
 import { readFile } from "node:fs/promises";
 import pg from "pg";
 
-const url = process.env.DATABASE_URL;
+const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 if (!url) {
-  console.error("DATABASE_URL tanımlı değil (.env.local dosyasına ekleyin).");
+  console.error("DATABASE_URL_UNPOOLED veya DATABASE_URL tanımlı değil (.env.local dosyasına ekleyin).");
   process.exit(1);
 }
 
