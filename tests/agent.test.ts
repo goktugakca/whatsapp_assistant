@@ -176,6 +176,7 @@ describe("handleInboundMessage", () => {
     expect(await handleInboundMessage(inbound, { store, send, createMessage })).toBe("duplicate");
 
     conversation.status = "handoff";
+    await store.saveConversation(conversation);
     expect(await handleInboundMessage({ ...inbound, id: "wamid.2" }, { store, send, createMessage })).toBe("handoff");
     expect(send).toHaveBeenCalledTimes(1);
 

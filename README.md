@@ -42,7 +42,16 @@ cp .env.example .env.local   # değerleri doldurun
 npm run dev                  # http://localhost:3000
 ```
 
-Sadece demo için `ANTHROPIC_API_KEY` yeterli. Panel geliştirme ortamında parolasız açılır; production'da `PANEL_PASSWORD` zorunlu.
+Sadece demo için `ANTHROPIC_API_KEY` yeterli; `DATABASE_URL` yoksa veriler bellekte tutulur. Panel geliştirme ortamında parolasız açılır; production'da `PANEL_PASSWORD` zorunlu.
+
+### Veritabanı
+
+```bash
+# .env.local içine DATABASE_URL ekleyin (Neon veya Supabase ücretsiz katman yeterli)
+npm run db:migrate   # şemayı uygular; tekrar çalıştırmak güvenli
+```
+
+Şema: `lib/db/schema.sql`. Postgres'in `btree_gist` eklentisi gerekir (Neon ve Supabase'de var).
 
 ```bash
 npm test           # birim testleri (vitest)
@@ -68,8 +77,10 @@ Notlar:
 
 ## Mimari ve bilinen sınırlar
 
-- **Veri bellekte duruyor** (`lib/store.ts` → `InMemoryStore`). Sunucu yeniden başlayınca konuşmalar silinir. Pilottan önceki ilk iş: aynı `Store` arayüzüyle Postgres uygulaması.
-- **Tek süreç varsayımı.** Aynı müşterinin mesajları süreç içinde sıraya alınıyor (`lib/inbound.ts`). Birden fazla sunucuda bunun için kuyruk veya veritabanı kilidi gerekir. Mesaj tekrar kontrolü de veritabanına taşınmalı.
+- **Veri katmanı** (`lib/store.ts`): `DATABASE_URL` varsa Postgres (`lib/store-postgres.ts`), yoksa bellek. İki uygulama da aynı testlerden geçer (`tests/store.test.ts`; Postgres testleri gömülü PGlite ile, sunucu gerekmeden koşar).
+- **Çakışan randevu imkânsız:** Kontrol ve kayıt tek adımda yapılır. Postgres'te aynı işletme + çalışan için eklemeler kısa bir kilitle sıraya girer, ayrıca bir `EXCLUDE` kısıtı zaman aralığı çakışan iki kaydı veritabanı seviyesinde reddeder. Gerçek Postgres 16'da, aynı saate 10'ar eşzamanlı istekle denendi: her saate tam olarak usta sayısı kadar randevu yazıldı.
+- **Konuşma kilidi:** Aynı müşterinin mesajları, personel yanıtları ve asistan turları konuşma başına bir kilitle sıraya girer (Postgres işlem seviyesinde advisory lock; PgBouncer transaction modunda da doğru çalışır). Birden fazla sunucuda da birbirini ezmez. Kilit, asistan turu süresince bir veritabanı bağlantısını açık bir işlemde tutar; veritabanında `idle_in_transaction_session_timeout` en az 2 dakika olmalı.
+- **Mesaj tekrar kontrolü** veritabanında (`processed_messages`).
 - **İşletme yapılandırması kodda.** Pilotta her işletme için dosya eklenir; sonra panelden düzenlenecek.
 - **Takvim dahili.** Google Takvim entegrasyonu yol haritasında. Çalışanların izin günleri ve öğle arası henüz yok.
 - **Sadece metin.** Sesli mesaj ve görseller şimdilik okunmuyor; asistana kısa bir not olarak iletiliyor. Kuaför ve berber müşterileri sık sesli mesaj attığı için bu, yol haritasında öne alınmalı.
@@ -77,12 +88,11 @@ Notlar:
 
 ## Yol haritası
 
-1. Postgres (Neon/Supabase) + kalıcı mesaj tekrar kontrolü
-2. Randevu hatırlatma şablon mesajları (gelmeyen müşteri oranını düşürmek için; salonlarda en çok istenen özellik olması bekleniyor)
-3. Sesli mesajı metne çevirme
-4. Panelden işletme bilgisi, çalışan ve izin günü düzenleme; çoklu işletme ve kullanıcı girişi
-5. Randevu iptal ve erteleme aracı
-6. Google Takvim entegrasyonu
-7. Raporlama: yanıt süresi, randevuya dönüşüm, mesai dışı gelen talepler
+1. Randevu hatırlatma şablon mesajları (gelmeyen müşteri oranını düşürmek için; salonlarda en çok istenen özellik olması bekleniyor)
+2. Sesli mesajı metne çevirme
+3. Panelden işletme bilgisi, çalışan ve izin günü düzenleme; çoklu işletme ve kullanıcı girişi
+4. Randevu iptal ve erteleme aracı
+5. Google Takvim entegrasyonu
+6. Raporlama: yanıt süresi, randevuya dönüşüm, mesai dışı gelen talepler
 
 Doğrulama planı ve işletme görüşme kiti: [`docs/dogrulama-kiti.md`](docs/dogrulama-kiti.md).

@@ -23,26 +23,27 @@ export async function POST(request: Request) {
   const business = getBusinessById(parsed.data.businessId);
   if (!business) return Response.json({ error: "Bilinmeyen işletme" }, { status: 404 });
 
-  const store = getStore();
-  const conversation = await store.findOrCreateConversation({
-    businessId: business.id,
-    channel: "demo",
-    contact: parsed.data.sessionId,
-    contactName: "Demo kullanıcısı",
-  });
+  const store = await getStore();
+  const key = { businessId: business.id, channel: "demo" as const, contact: parsed.data.sessionId };
+  const text = parsed.data.text;
 
-  if (conversation.status === "handoff") {
-    conversation.transcript.push({ from: "customer", text: parsed.data.text, at: new Date().toISOString() });
-    conversation.history.push({ role: "user", content: parsed.data.text });
+  const result = await store.withConversationLock(key, async () => {
+    const conversation = await store.findOrCreateConversation({ ...key, contactName: "Demo kullanıcısı" });
+
+    if (conversation.status === "handoff") {
+      conversation.transcript.push({ from: "customer", text, at: new Date().toISOString() });
+      conversation.history.push({ role: "user", content: text });
+      await store.saveConversation(conversation);
+      return {
+        reply: null,
+        handedOff: true,
+        note: "Konuşma personele devredildi. Panelden yanıt verebilir veya asistanı yeniden açabilirsiniz.",
+      };
+    }
+
+    const run = await runAssistant({ business, conversation, store, text });
     await store.saveConversation(conversation);
-    return Response.json({
-      reply: null,
-      handedOff: true,
-      note: "Konuşma personele devredildi. Panelden yanıt verebilir veya asistanı yeniden açabilirsiniz.",
-    });
-  }
-
-  const result = await runAssistant({ business, conversation, store, text: parsed.data.text });
-  await store.saveConversation(conversation);
+    return run;
+  });
   return Response.json(result);
 }

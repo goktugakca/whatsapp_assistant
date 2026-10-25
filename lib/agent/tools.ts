@@ -148,18 +148,26 @@ export async function executeTool(name: string, input: unknown, ctx: ToolContext
           isError: true,
         };
       }
-      const staffId = slot.staffIds[0];
+      // Müsait çalışanları sırayla dene: kontrol ile kayıt arasında başka bir müşteri
+      // aynı kişiyi almış olabilir; veritabanı çakışmayı reddeder.
       const end = new Date(Date.parse(args.start) + service.durationMinutes * 60_000).toISOString();
-      const appointment = await store.addAppointment({
-        businessId: business.id,
-        conversationId: conversation.id,
-        customerName: args.customer_name,
-        contact: conversation.contact,
-        serviceId: service.id,
-        staffId: staffId === SINGLE_RESOURCE ? undefined : staffId,
-        start: args.start,
-        end,
-      });
+      let appointment = null;
+      for (const staffId of slot.staffIds) {
+        appointment = await store.addAppointmentIfFree({
+          businessId: business.id,
+          conversationId: conversation.id,
+          customerName: args.customer_name,
+          contact: conversation.contact,
+          serviceId: service.id,
+          staffId: staffId === SINGLE_RESOURCE ? undefined : staffId,
+          start: args.start,
+          end,
+        });
+        if (appointment) break;
+      }
+      if (!appointment) {
+        return { content: "Bu saat az önce doldu. check_availability ile yeni saatleri al.", isError: true };
+      }
       return {
         content: JSON.stringify({
           ok: true,

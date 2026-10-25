@@ -1,8 +1,9 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { randomUUID } from "node:crypto";
+import { KeyedQueue } from "./keyed-queue";
 
-// Veri katmanı. Prototip bellekte tutar (sunucu yeniden başlayınca silinir);
-// Store arayüzü sabit kaldığı sürece Postgres'e geçiş tek bir dosyayı değiştirir.
+// Veri katmanı. DATABASE_URL tanımlıysa Postgres (lib/store-postgres.ts), değilse bellek
+// (sunucu yeniden başlayınca silinir; sadece geliştirme ve demo için).
 
 export type Channel = "whatsapp" | "demo";
 export type ConversationStatus = "bot" | "handoff";
@@ -42,8 +43,8 @@ export interface Appointment {
   contact: string;
   serviceId: string;
   staffId?: string; // Çalışanı olmayan işletmelerde boş
-  start: string; // ISO, ofsetli: 2026-10-27T10:00:00+03:00
-  end: string;
+  start: string; // ISO
+  end: string; // ISO
   createdAt: string;
 }
 
@@ -57,22 +58,32 @@ export interface WaitlistEntry {
   createdAt: string;
 }
 
+export type ConversationKey = Pick<Conversation, "businessId" | "channel" | "contact">;
+
 export interface Store {
-  findOrCreateConversation(input: {
-    businessId: string;
-    channel: Channel;
-    contact: string;
-    contactName?: string;
-  }): Promise<Conversation>;
+  findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation>;
   getConversation(id: string): Promise<Conversation | undefined>;
   saveConversation(conversation: Conversation): Promise<void>;
   listConversations(businessId: string): Promise<Conversation[]>;
   listAppointments(businessId: string): Promise<Appointment[]>;
-  addAppointment(input: Omit<Appointment, "id" | "createdAt">): Promise<Appointment>;
+  // Aynı kaynağa (çalışan veya tek takvim) çakışan randevu varsa kaydetmez ve null döner.
+  // Kontrol ve kayıt tek adımda yapılır; iki müşteri aynı anda aynı saati alamaz.
+  addAppointmentIfFree(input: Omit<Appointment, "id" | "createdAt">): Promise<Appointment | null>;
   // WhatsApp aynı mesajı birden fazla kez gönderebilir; ilk görüşte true döner.
   markMessageSeen(messageId: string): Promise<boolean>;
   addWaitlistEntry(input: Omit<WaitlistEntry, "id" | "createdAt">): Promise<WaitlistEntry>;
   listWaitlist(): Promise<WaitlistEntry[]>;
+  // Aynı konuşma üzerindeki işleri (asistan turu, personel yanıtı) sıraya koyar ki
+  // biri diğerinin değişikliğini ezmesin.
+  withConversationLock<T>(key: ConversationKey, fn: () => Promise<T>): Promise<T>;
+}
+
+export function conversationLockKey(key: ConversationKey): string {
+  return `${key.businessId}:${key.channel}:${key.contact}`;
+}
+
+export function overlaps(a: { start: string; end: string }, b: { start: string; end: string }): boolean {
+  return Date.parse(a.start) < Date.parse(b.end) && Date.parse(b.start) < Date.parse(a.end);
 }
 
 export class InMemoryStore implements Store {
@@ -80,17 +91,13 @@ export class InMemoryStore implements Store {
   private appointments: Appointment[] = [];
   private seenMessages = new Set<string>();
   private waitlist: WaitlistEntry[] = [];
+  private locks = new KeyedQueue();
 
-  async findOrCreateConversation(input: {
-    businessId: string;
-    channel: Channel;
-    contact: string;
-    contactName?: string;
-  }): Promise<Conversation> {
+  async findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
       if (c.businessId === input.businessId && c.channel === input.channel && c.contact === input.contact) {
         if (input.contactName && !c.contactName) c.contactName = input.contactName;
-        return c;
+        return structuredClone(c);
       }
     }
     const now = new Date().toISOString();
@@ -104,31 +111,38 @@ export class InMemoryStore implements Store {
       updatedAt: now,
     };
     this.conversations.set(conversation.id, conversation);
-    return conversation;
+    return structuredClone(conversation);
   }
 
+  // Kopya döndürülür ki Postgres'te olduğu gibi değişiklikler ancak saveConversation ile kalıcı olsun.
   async getConversation(id: string) {
-    return this.conversations.get(id);
+    const c = this.conversations.get(id);
+    return c && structuredClone(c);
   }
 
   async saveConversation(conversation: Conversation) {
     conversation.updatedAt = new Date().toISOString();
-    this.conversations.set(conversation.id, conversation);
+    this.conversations.set(conversation.id, structuredClone(conversation));
   }
 
   async listConversations(businessId: string) {
     return [...this.conversations.values()]
       .filter((c) => c.businessId === businessId)
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+      .map((c) => structuredClone(c));
   }
 
   async listAppointments(businessId: string) {
     return this.appointments
       .filter((a) => a.businessId === businessId)
-      .sort((a, b) => a.start.localeCompare(b.start));
+      .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
   }
 
-  async addAppointment(input: Omit<Appointment, "id" | "createdAt">) {
+  async addAppointmentIfFree(input: Omit<Appointment, "id" | "createdAt">) {
+    const clash = this.appointments.some(
+      (a) => a.businessId === input.businessId && a.staffId === input.staffId && overlaps(a, input),
+    );
+    if (clash) return null;
     const appointment: Appointment = { id: randomUUID(), createdAt: new Date().toISOString(), ...input };
     this.appointments.push(appointment);
     return appointment;
@@ -149,12 +163,27 @@ export class InMemoryStore implements Store {
   async listWaitlist() {
     return [...this.waitlist].reverse();
   }
+
+  withConversationLock<T>(key: ConversationKey, fn: () => Promise<T>): Promise<T> {
+    return this.locks.run(conversationLockKey(key), fn);
+  }
 }
 
-// Geliştirme sırasında hot reload modülü yeniden yüklese de veriler kaybolmasın.
+// Geliştirme sırasında hot reload modülü yeniden yüklese de veriler ve bağlantılar kaybolmasın.
 const globalForStore = globalThis as unknown as { __store?: Store };
 
-export function getStore(): Store {
-  if (!globalForStore.__store) globalForStore.__store = new InMemoryStore();
+export async function getStore(): Promise<Store> {
+  if (!globalForStore.__store) {
+    const url = process.env.DATABASE_URL;
+    if (url) {
+      const { PostgresStore, createPgDatabase } = await import("./store-postgres");
+      globalForStore.__store = new PostgresStore(createPgDatabase(url));
+    } else {
+      if (process.env.NODE_ENV === "production") {
+        console.warn("DATABASE_URL tanımlı değil; veriler bellekte tutuluyor ve yeniden başlatmada silinecek.");
+      }
+      globalForStore.__store = new InMemoryStore();
+    }
+  }
   return globalForStore.__store;
 }

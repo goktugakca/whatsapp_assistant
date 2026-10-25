@@ -23,7 +23,7 @@ export async function joinWaitlist(_prev: WaitlistState, formData: FormData): Pr
   });
   if (!parsed.success) return { ok: false, message: "Lütfen işletme adı, adınız ve telefonunuzu eksiksiz girin." };
 
-  await getStore().addWaitlistEntry(parsed.data);
+  await (await getStore()).addWaitlistEntry(parsed.data);
   console.info("Yeni pilot başvurusu:", parsed.data.businessName, parsed.data.businessType ?? "", parsed.data.city ?? "");
   return { ok: true, message: "Teşekkürler! 24 saat içinde WhatsApp'tan size ulaşacağız." };
 }

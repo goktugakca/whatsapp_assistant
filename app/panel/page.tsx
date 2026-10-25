@@ -23,7 +23,7 @@ export default async function PanelPage(props: PageProps<"/panel">) {
   await connection(); // Her istekte güncel veri
   const { isletme } = await props.searchParams;
   const business = (typeof isletme === "string" && getBusinessById(isletme)) || businesses[0];
-  const store = getStore();
+  const store = await getStore();
   const [conversations, appointments, waitlist] = await Promise.all([
     store.listConversations(business.id),
     store.listAppointments(business.id),

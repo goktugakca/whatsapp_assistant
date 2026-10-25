@@ -37,8 +37,8 @@ export async function POST(request: Request) {
   }
 
   const messages = parseInboundMessages(payload);
-  const store = getStore();
   after(async () => {
+    const store = await getStore();
     for (const message of messages) {
       try {
         await handleInboundMessage(message, { store });
