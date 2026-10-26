@@ -156,7 +156,21 @@ export interface ToolOutcome {
   isError?: boolean;
 }
 
-export async function executeTool(name: string, input: unknown, ctx: ToolContext): Promise<ToolOutcome> {
+// Model bazen Türkçe karakterleri araç girdisinde kaçış kodu olarak yazıyor ("Sal\\u0131").
+// Müşteriye ve veritabanına gerçek karakter gitsin diye tüm metin alanlarında çözülür.
+export function decodeUnicodeEscapes<T>(value: T): T {
+  if (typeof value === "string") {
+    return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))) as T;
+  }
+  if (Array.isArray(value)) return value.map(decodeUnicodeEscapes) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, decodeUnicodeEscapes(v)])) as T;
+  }
+  return value;
+}
+
+export async function executeTool(name: string, rawInput: unknown, ctx: ToolContext): Promise<ToolOutcome> {
+  const input = decodeUnicodeEscapes(rawInput);
   const { business, conversation, store } = ctx;
   const staffName = (id: string) => business.staff.find((s) => s.id === id)?.name;
 

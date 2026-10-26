@@ -263,3 +263,20 @@ describe("seçenekler ve randevu kartı", () => {
     });
   });
 });
+
+describe("araç girdisindeki kaçış kodları", () => {
+  it("\\u0131 gibi kodları gerçek karaktere çevirir (düğmeler ve müşteri adı)", async () => {
+    const { store, conversation } = await setup(barber);
+    const effects = { options: [] as string[], bookedAppointmentIds: [] as string[] };
+    const ctx = { business: barber, conversation, store, now, effects };
+    await executeTool("show_options", { options: ["Sal\\u0131 09:00", "Per\\u015fembe 12:00"] }, ctx);
+    expect(effects.options).toEqual(["Salı 09:00", "Perşembe 12:00"]);
+
+    await executeTool(
+      "book_appointment",
+      { customer_name: "Ay\\u015fe I\\u015f\\u0131k", service_id: "sac", staff_id: "any", start: "2026-10-26T10:00:00+03:00" },
+      ctx,
+    );
+    expect((await store.listAppointments(barber.id))[0].customerName).toBe("Ayşe Işık");
+  });
+});
