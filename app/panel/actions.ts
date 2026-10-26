@@ -7,6 +7,7 @@ import { freeSlots, SINGLE_RESOURCE } from "@/lib/availability";
 import { loadBusiness, phoneNumberIdFor } from "@/lib/business";
 import { validateBusiness } from "@/lib/business-schema";
 import { isPanelAuthorized } from "@/lib/panel-auth";
+import { normalizePhone } from "@/lib/phone";
 import { getStore, type Conversation, type Store } from "@/lib/store";
 import { sendText } from "@/lib/whatsapp";
 
@@ -150,7 +151,9 @@ export async function addManualAppointment(
       businessId: business.id,
       source: "panel",
       customerName: input.customerName,
-      contact: input.contact || "—",
+      // WhatsApp'tan gelen numarayla aynı biçim: hatırlatma gönderilebilsin, müşteri
+      // WhatsApp'tan yazınca kendi randevusunu görebilsin.
+      contact: (input.contact && normalizePhone(input.contact)) || input.contact || "—",
       serviceId: service.id,
       staffId: staffId === SINGLE_RESOURCE ? undefined : staffId,
       start,

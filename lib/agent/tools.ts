@@ -68,6 +68,25 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
       },
     },
     {
+      name: "list_my_appointments",
+      description:
+        "Bu müşterinin bu işletmedeki yaklaşan randevularını döndürür. Müşteri randevusunu sorduğunda, iptal veya erteleme istediğinde önce bunu kullan.",
+      strict: true,
+      input_schema: { type: "object", properties: {}, required: [], additionalProperties: false },
+    },
+    {
+      name: "cancel_appointment",
+      description:
+        "Müşterinin kendi randevusunu iptal eder; saat başkalarına açılır. Sadece müşteri açıkça iptal istediğinde ve hangi randevu olduğu netken kullan. Erteleme isteniyorsa önce yeni saate book_appointment ile randevu al, başarılı olursa eskisini iptal et.",
+      strict: true,
+      input_schema: {
+        type: "object",
+        properties: { appointment_id: { type: "string", description: "list_my_appointments'tan dönen kimlik" } },
+        required: ["appointment_id"],
+        additionalProperties: false,
+      },
+    },
+    {
       name: "show_options",
       description:
         "Müşteriye tıklanabilir seçenek düğmeleri gösterir (WhatsApp'ta da düğme/liste olarak gider). Boş saatleri, hizmetleri, çalışanları veya evet/hayır gibi seçimleri sunarken kullan. Her seçenek en fazla 24 karakterlik kısa bir etiket olsun (ör. \"Salı 14:30\", \"Saç + sakal\"); en fazla 10 seçenek. Müşteri bir düğmeye basarsa etiket mesaj olarak gelir.",
@@ -113,6 +132,7 @@ const saveLeadInput = z.object({
 });
 const handoffInput = z.object({ reason: z.string() });
 const showOptionsInput = z.object({ options: z.array(z.string()) });
+const cancelInput = z.object({ appointment_id: z.string() });
 
 export const MAX_OPTIONS = 10;
 export const MAX_OPTION_LENGTH = 24; // WhatsApp liste satırı başlık sınırı
@@ -216,6 +236,32 @@ export async function executeTool(name: string, input: unknown, ctx: ToolContext
       return { content: "Kaydedildi." };
     }
 
+    case "list_my_appointments": {
+      const upcoming = await customerAppointments(ctx);
+      if (upcoming.length === 0) return { content: "Bu müşterinin yaklaşan randevusu yok." };
+      return {
+        content: JSON.stringify(
+          upcoming.map((a) => ({
+            appointment_id: a.id,
+            start: a.start,
+            service: business.services.find((s) => s.id === a.serviceId)?.name ?? a.serviceId,
+            staff: a.staffId ? staffName(a.staffId) : undefined,
+          })),
+        ),
+      };
+    }
+
+    case "cancel_appointment": {
+      const args = cancelInput.parse(input);
+      // Müşteri sadece kendi yaklaşan randevusunu iptal edebilir.
+      const own = (await customerAppointments(ctx)).find((a) => a.id === args.appointment_id);
+      if (!own) {
+        return { content: "Bu müşteriye ait böyle yaklaşan bir randevu yok. list_my_appointments ile kontrol et.", isError: true };
+      }
+      await store.cancelAppointment(business.id, own.id);
+      return { content: JSON.stringify({ ok: true, cancelled: own.id, start: own.start }) };
+    }
+
     case "show_options": {
       const args = showOptionsInput.parse(input);
       const options = [
@@ -255,4 +301,11 @@ async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staff
     busy: appointments.map((a) => ({ start: a.start, end: a.end, staffId: a.staffId })),
     now: ctx.now,
   });
+}
+
+async function customerAppointments(ctx: ToolContext) {
+  const now = (ctx.now ?? new Date()).getTime();
+  return (await ctx.store.listAppointments(ctx.business.id)).filter(
+    (a) => a.contact === ctx.conversation.contact && Date.parse(a.end) > now,
+  );
 }
