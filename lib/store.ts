@@ -49,9 +49,10 @@ export interface Appointment {
   end: string; // ISO
   createdAt: string;
   cancelledAt?: string;
+  reminderSentAt?: string;
 }
 
-export type NewAppointment = Omit<Appointment, "id" | "createdAt" | "cancelledAt">;
+export type NewAppointment = Omit<Appointment, "id" | "createdAt" | "cancelledAt" | "reminderSentAt">;
 
 export interface WaitlistEntry {
   id: string;
@@ -75,6 +76,12 @@ export interface Store {
   getAppointment(id: string): Promise<Appointment | undefined>;
   // İptal edilen randevu saati boşaltır; zaten iptalse veya yoksa false döner.
   cancelAppointment(businessId: string, id: string): Promise<boolean>;
+  // Tüm işletmelerde [from, to) aralığında başlayan, hatırlatması gönderilmemiş aktif randevular.
+  listAppointmentsForReminder(from: string, to: string): Promise<Appointment[]>;
+  // Hatırlatmayı gönderim için ayırır: ilk çağıran true alır, böylece aynı anda çalışan iki
+  // görev aynı müşteriye iki kez yazmaz. Gönderim başarısız olursa releaseReminder ile geri alınır.
+  claimReminder(id: string): Promise<boolean>;
+  releaseReminder(id: string): Promise<void>;
   // Aynı kaynağa (çalışan veya tek takvim) çakışan randevu varsa kaydetmez ve null döner.
   // Kontrol ve kayıt tek adımda yapılır; iki müşteri aynı anda aynı saati alamaz.
   addAppointmentIfFree(input: NewAppointment): Promise<Appointment | null>;
@@ -161,6 +168,25 @@ export class InMemoryStore implements Store {
     if (!a) return false;
     a.cancelledAt = new Date().toISOString();
     return true;
+  }
+
+  async listAppointmentsForReminder(from: string, to: string) {
+    const [f, t] = [Date.parse(from), Date.parse(to)];
+    return this.appointments
+      .filter((a) => !a.cancelledAt && !a.reminderSentAt && Date.parse(a.start) >= f && Date.parse(a.start) < t)
+      .map((a) => ({ ...a }));
+  }
+
+  async claimReminder(id: string) {
+    const a = this.appointments.find((x) => x.id === id);
+    if (!a || a.reminderSentAt || a.cancelledAt) return false;
+    a.reminderSentAt = new Date().toISOString();
+    return true;
+  }
+
+  async releaseReminder(id: string) {
+    const a = this.appointments.find((x) => x.id === id);
+    if (a) a.reminderSentAt = undefined;
   }
 
   async addAppointmentIfFree(input: NewAppointment) {

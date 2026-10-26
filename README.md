@@ -110,6 +110,23 @@ Notlar:
 - **Sadece metin.** Sesli mesaj ve görseller şimdilik okunmuyor; asistana kısa bir not olarak iletiliyor. Kuaför ve berber müşterileri sık sesli mesaj attığı için bu, yol haritasında öne alınmalı.
 - Model: varsayılan `claude-haiku-5-5` (hızlı ve ucuz), `low` efor. `ANTHROPIC_MODEL` ile değiştirilebilir (ör. `claude-sonnet-5-5`); Opus, Sonnet ve Fable modellerinde reddedilen isteklerde sunucu tarafı yedek model (`fallbacks: "default"`) otomatik açılır. Vercel loglarında her yanıtın süresi `asistan: ...ms` satırında görünür.
 
+## Randevu hatırlatmaları
+
+Her gün 18:00'de (İstanbul, `vercel.json` → `crons`) ertesi günün randevusu olan müşterilere WhatsApp'tan hatırlatma gider (`lib/reminders.ts`). Aynı kişiye iki kez gitmez; gönderim başarısız olursa sonraki çalıştırmada tekrar denenir. Hatırlatma müşterinin konuşmasına da yazılır, müşteri "iptal" diye yanıt verirse asistan randevuyu bulup iptal edebilir.
+
+WhatsApp, son 24 saatte yazmamış bir müşteriye sadece **Meta'nın onayladığı şablonla** yazmaya izin verir. Kurulum:
+
+1. Meta Business Manager → WhatsApp Manager → **Message templates → Create template**. Kategori **Utility**, dil **Turkish**, ad örneğin `randevu_hatirlatma`. Gövde:
+   ```
+   Merhaba {{1}}, yarın {{3}} için {{2}} randevunuzu hatırlatırız. Görüşmek üzere, {{4}}.
+   Değişiklik veya iptal için bu mesaja yanıt verebilirsiniz.
+   ```
+   Örnek değerler: `Ali`, `Saç kesimi`, `27 Ekim Salı 10:00`, `Demo Berber`.
+2. Onaylanınca Vercel'e: `WHATSAPP_REMINDER_TEMPLATE=randevu_hatirlatma` (dil kodu farklıysa `WHATSAPP_REMINDER_LANGUAGE`, varsayılan `tr`).
+3. Vercel'e `CRON_SECRET` ekleyin (rastgele uzun bir metin); Vercel cron isteklerine bunu kendisi ekler.
+
+Hatırlatma sadece telefon numarası olan randevulara gider: WhatsApp'tan alınan randevular ve panelden telefonla girilenler. Demo randevuları atlanır. Panel takviminde gönderilenler "🔔 hatırlatıldı" ile görünür.
+
 ## Google Takvim
 
 - **Şimdi:** Panel takviminde işletmeye özel bir abonelik linki var (`/api/takvim/<işletme>/<anahtar>.ics`). Google Takvim'e "URL ile" eklenince randevular görünür. Tek yönlüdür ve Google bu linki birkaç saatte bir yeniler. Anahtar `PANEL_PASSWORD`'den (veya `CALENDAR_FEED_SECRET`'tan) türetilir; şifre değişince link de değişir.
@@ -118,7 +135,6 @@ Notlar:
 
 ## Yol haritası
 
-1. Randevu hatırlatma şablon mesajları (gelmeyen müşteri oranını düşürmek için; salonlarda en çok istenen özellik olması bekleniyor)
 2. Sesli mesajı metne çevirme
 3. İşletme başına kullanıcı girişi; çalışan izin günleri ve tatiller
 4. Randevu iptal ve erteleme aracı

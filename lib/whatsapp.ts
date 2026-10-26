@@ -154,3 +154,25 @@ export async function sendReply(params: {
   }
   await postMessage(phoneNumberId, { to, type: "interactive", interactive: buildInteractive(text, options) });
 }
+
+// Onaylı şablon mesajı: 24 saatlik pencere dışında (ör. hatırlatma) sadece bununla yazılabilir.
+// Şablon Meta'da önceden oluşturulup onaylanmış olmalı; parametreler gövdedeki {{1}}, {{2}}… yerine geçer.
+export async function sendTemplate(params: {
+  phoneNumberId: string;
+  to: string;
+  name: string;
+  language: string;
+  bodyParams: string[];
+}): Promise<void> {
+  await postMessage(params.phoneNumberId, {
+    to: params.to,
+    type: "template",
+    template: {
+      name: params.name,
+      language: { code: params.language },
+      components: [
+        { type: "body", parameters: params.bodyParams.map((text) => ({ type: "text", text })) },
+      ],
+    },
+  });
+}

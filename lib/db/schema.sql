@@ -43,6 +43,7 @@ create table if not exists appointments (
 alter table appointments alter column conversation_id drop not null;
 alter table appointments add column if not exists source text not null default 'assistant';
 alter table appointments add column if not exists cancelled_at timestamptz;
+alter table appointments add column if not exists reminder_sent_at timestamptz;
 
 -- Aynı işletmede aynı kaynağa zaman aralığı çakışan iki aktif randevu olamaz. İptal edilen
 -- randevu saati boşaltır. (Eski, iptali hesaba katmayan kısıt kaldırılır.)

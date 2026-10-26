@@ -173,6 +173,7 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
                       <p className="text-xs text-muted">
                         {card.serviceName}
                         {card.staffName ? ` · ${card.staffName}` : ""} · {a.source === "panel" ? "panelden" : "asistan"}
+                        {a.reminderSentAt ? " · 🔔 hatırlatıldı" : ""}
                       </p>
                     </div>
                     <form action={cancelAppointmentAction}>

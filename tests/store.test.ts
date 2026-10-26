@@ -151,6 +151,27 @@ describe.each(implementations)("%s", (_name, create) => {
     expect(await store.getAppointment("olmayan")).toBeUndefined();
   });
 
+    it("hatırlatmayı sadece bir kez ayırır; iptal edileni ve aralık dışını listelemez", async () => {
+    const c = await conversation();
+    const a = await store.addAppointmentIfFree(appointment(c.id));
+    const b = await store.addAppointmentIfFree(appointment(c.id, { staffId: "can" }));
+    await store.cancelAppointment(key.businessId, b!.id);
+
+    const from = "2026-10-26T00:00:00Z";
+    const to = "2026-10-27T00:00:00Z";
+    expect((await store.listAppointmentsForReminder(from, to)).map((x) => x.id)).toEqual([a!.id]);
+    expect(await store.listAppointmentsForReminder("2026-10-27T00:00:00Z", "2026-10-28T00:00:00Z")).toEqual([]);
+
+    const claims = await Promise.all([store.claimReminder(a!.id), store.claimReminder(a!.id)]);
+    expect(claims.filter(Boolean)).toHaveLength(1);
+    expect(await store.listAppointmentsForReminder(from, to)).toEqual([]);
+    expect((await store.getAppointment(a!.id))?.reminderSentAt).toBeDefined();
+
+    await store.releaseReminder(a!.id);
+    expect(await store.claimReminder(a!.id)).toBe(true);
+    expect(await store.claimReminder(b!.id)).toBe(false); // iptal edilmiş
+  });
+
     it("aynı WhatsApp mesajını sadece ilk seferde yeni sayar", async () => {
     expect(await store.markMessageSeen("wamid.1")).toBe(true);
     expect(await store.markMessageSeen("wamid.1")).toBe(false);

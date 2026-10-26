@@ -92,6 +92,7 @@ function toAppointment(r: Row): Appointment {
     end: iso(r.end_at),
     createdAt: iso(r.created_at),
     cancelledAt: r.cancelled_at ? iso(r.cancelled_at) : undefined,
+    reminderSentAt: r.reminder_sent_at ? iso(r.reminder_sent_at) : undefined,
   };
 }
 
@@ -182,6 +183,29 @@ export class PostgresStore implements Store {
       [id, businessId],
     );
     return rows.length === 1;
+  }
+
+  async listAppointmentsForReminder(from: string, to: string) {
+    const rows = await this.db.query<Row>(
+      `select * from appointments
+       where cancelled_at is null and reminder_sent_at is null and start_at >= $1 and start_at < $2
+       order by start_at`,
+      [from, to],
+    );
+    return rows.map(toAppointment);
+  }
+
+  async claimReminder(id: string) {
+    const rows = await this.db.query(
+      `update appointments set reminder_sent_at = now()
+       where id = $1 and reminder_sent_at is null and cancelled_at is null returning id`,
+      [id],
+    );
+    return rows.length === 1;
+  }
+
+  async releaseReminder(id: string) {
+    await this.db.query("update appointments set reminder_sent_at = null where id = $1", [id]);
   }
 
   async addAppointmentIfFree(input: NewAppointment) {
