@@ -1,25 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { z } from "zod";
 import { freeSlots, SINGLE_RESOURCE } from "@/lib/availability";
 import { loadBusiness, phoneNumberIdFor } from "@/lib/business";
 import { validateBusiness } from "@/lib/business-schema";
-import { isPanelAuthorized } from "@/lib/panel-auth";
+import { assertBusinessAccess } from "@/lib/dal";
 import { normalizePhone } from "@/lib/phone";
 import { getStore, type Conversation, type Store } from "@/lib/store";
 import { sendText } from "@/lib/whatsapp";
-
-async function requirePanelAuth() {
-  if (!isPanelAuthorized((await headers()).get("authorization"))) throw new Error("Yetkisiz");
-}
 
 // Konuşmayı kilit altında güncel haliyle okuyup değiştirir; aynı anda çalışan bir asistan
 // turunun değişikliklerini ezmez.
 async function updateConversation(store: Store, id: string, change: (c: Conversation) => Promise<void>) {
   const current = await store.getConversation(id);
   if (!current) return;
+  await assertBusinessAccess(current.businessId);
   await store.withConversationLock(current, async () => {
     const conversation = await store.getConversation(id);
     if (!conversation) return;
@@ -29,7 +25,6 @@ async function updateConversation(store: Store, id: string, change: (c: Conversa
 }
 
 export async function resumeAssistant(formData: FormData) {
-  await requirePanelAuth();
   const id = z.string().parse(formData.get("conversationId"));
   const store = await getStore();
   await updateConversation(store, id, async (conversation) => {
@@ -40,7 +35,6 @@ export async function resumeAssistant(formData: FormData) {
 }
 
 export async function sendStaffReply(formData: FormData) {
-  await requirePanelAuth();
   const id = z.string().parse(formData.get("conversationId"));
   const text = z.string().trim().min(1).max(4000).parse(formData.get("text"));
   const store = await getStore();
@@ -63,7 +57,6 @@ export type SettingsState = { ok: boolean; message: string; errors?: string[] } 
 // Ayarlar sayfasının tamamı tek seferde, JSON olarak kaydedilir. Kimlik, tür, saat dilimi ve
 // WhatsApp numarası panelden değiştirilemez; mevcut kayıttan alınır.
 export async function saveBusinessSettings(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
-  await requirePanelAuth();
   const store = await getStore();
   let input: Record<string, unknown>;
   try {
@@ -71,6 +64,7 @@ export async function saveBusinessSettings(_prev: SettingsState, formData: FormD
   } catch {
     return { ok: false, message: "Form okunamadı." };
   }
+  await assertBusinessAccess(String(input.id ?? ""));
   const current = await loadBusiness(store, String(input.id ?? ""));
   if (!current) return { ok: false, message: "İşletme bulunamadı." };
 
@@ -113,8 +107,8 @@ export async function addManualAppointment(
   _prev: ManualAppointmentState,
   formData: FormData,
 ): Promise<ManualAppointmentState> {
-  await requirePanelAuth();
   const values = Object.fromEntries([...formData].map(([k, v]) => [k, String(v)]));
+  await assertBusinessAccess(values.businessId ?? "");
   const fail = (message: string, suggestions?: string[]) => ({ ok: false, message, suggestions, values });
   const parsed = manualAppointmentInput.safeParse(values);
   if (!parsed.success) return fail(parsed.error.issues[0].message);
@@ -169,8 +163,8 @@ export async function addManualAppointment(
 }
 
 export async function cancelAppointmentAction(formData: FormData) {
-  await requirePanelAuth();
   const businessId = z.string().parse(formData.get("businessId"));
+  await assertBusinessAccess(businessId);
   const appointmentId = z.string().parse(formData.get("appointmentId"));
   await (await getStore()).cancelAppointment(businessId, appointmentId);
   revalidatePath("/panel", "layout");

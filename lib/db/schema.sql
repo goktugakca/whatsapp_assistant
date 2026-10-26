@@ -83,3 +83,13 @@ create table if not exists business_settings (
   config jsonb not null,
   updated_at timestamptz not null default now()
 );
+
+-- İşletme paneli kullanıcıları. Her kullanıcı tek bir işletmeyi yönetir; yönetici (admin)
+-- veritabanında değil, PANEL_PASSWORD ile girer.
+create table if not exists panel_users (
+  id uuid primary key,
+  username text not null unique,
+  password_hash text not null,
+  business_id text not null,
+  created_at timestamptz not null default now()
+);

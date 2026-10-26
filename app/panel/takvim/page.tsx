@@ -7,11 +7,12 @@ import { feedToken } from "@/lib/calendar-feed";
 import { getStore, type Appointment } from "@/lib/store";
 import { verticals } from "@/lib/verticals";
 import { isDate, localDate, localMinutes, mondayOf, weekDays, addDays } from "@/lib/week";
-import { BusinessPicker } from "../../business-picker";
+import { resolvePanelBusiness } from "@/lib/dal";
+import { PanelHeader } from "../panel-header";
 import { cancelAppointmentAction } from "../actions";
 import { ManualAppointmentForm } from "./manual-appointment-form";
 
-export const metadata = { title: "Takvim · Randevu Asistanı" };
+export const metadata = { title: "Takvim · Sırada" };
 
 const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const HOUR_HEIGHT = 64; // px
@@ -33,8 +34,8 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
   await connection();
   const { isletme, hafta } = await props.searchParams;
   const store = await getStore();
-  const id = typeof isletme === "string" ? isletme : businesses[0].id;
-  const business = (await loadBusiness(store, id)) ?? businesses[0];
+  const { session, businessId } = await resolvePanelBusiness(isletme);
+  const business = (await loadBusiness(store, businessId)) ?? businesses[0];
   const offset = business.utcOffset;
 
   const today = localDate(new Date(), offset);
@@ -61,7 +62,7 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <BusinessPicker basePath="/panel/takvim" currentId={business.id} />
+      <PanelHeader session={session} basePath="/panel/takvim" businessId={business.id} />
       <header className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{business.name}</h1>

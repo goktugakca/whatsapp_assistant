@@ -1,9 +1,17 @@
 import Link from "next/link";
-import { businesses } from "@/lib/business";
+import { businesses as allBusinesses, type Business } from "@/lib/business";
 import { verticals } from "@/lib/verticals";
 
 // Demo ve panelde örnek işletmeler arasında geçiş.
-export function BusinessPicker({ basePath, currentId }: { basePath: string; currentId: string }) {
+export function BusinessPicker({
+  basePath,
+  currentId,
+  businesses = allBusinesses,
+}: {
+  basePath: string;
+  currentId: string;
+  businesses?: Business[];
+}) {
   return (
     <nav className="flex flex-wrap gap-2" aria-label="İşletme seç">
       {businesses.map((b) => (

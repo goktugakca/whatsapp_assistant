@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import type {
   Appointment,
   NewAppointment,
+  PanelUser,
   Conversation,
   ConversationKey,
   Store,
@@ -93,6 +94,16 @@ function toAppointment(r: Row): Appointment {
     createdAt: iso(r.created_at),
     cancelledAt: r.cancelled_at ? iso(r.cancelled_at) : undefined,
     reminderSentAt: r.reminder_sent_at ? iso(r.reminder_sent_at) : undefined,
+  };
+}
+
+function toPanelUser(r: Row): PanelUser {
+  return {
+    id: String(r.id),
+    username: String(r.username),
+    passwordHash: String(r.password_hash),
+    businessId: String(r.business_id),
+    createdAt: iso(r.created_at),
   };
 }
 
@@ -275,6 +286,36 @@ export class PostgresStore implements Store {
 
   withConversationLock<T>(key: ConversationKey, fn: () => Promise<T>): Promise<T> {
     return this.db.withLock(`conversation:${conversationLockKey(key)}`, fn);
+  }
+
+  async createPanelUser(input: Omit<PanelUser, "id" | "createdAt">) {
+    const rows = await this.db.query<Row>(
+      `insert into panel_users (id, username, password_hash, business_id) values ($1, $2, $3, $4)
+       on conflict (username) do nothing returning *`,
+      [randomUUID(), input.username, input.passwordHash, input.businessId],
+    );
+    return rows[0] ? toPanelUser(rows[0]) : null;
+  }
+
+  async findPanelUserByUsername(username: string) {
+    const [row] = await this.db.query<Row>("select * from panel_users where username = $1", [username]);
+    return row ? toPanelUser(row) : undefined;
+  }
+
+  async getPanelUser(id: string) {
+    if (!UUID_RE.test(id)) return undefined;
+    const [row] = await this.db.query<Row>("select * from panel_users where id = $1", [id]);
+    return row ? toPanelUser(row) : undefined;
+  }
+
+  async listPanelUsers() {
+    const rows = await this.db.query<Row>("select * from panel_users order by username");
+    return rows.map(toPanelUser);
+  }
+
+  async deletePanelUser(id: string) {
+    if (!UUID_RE.test(id)) return;
+    await this.db.query("delete from panel_users where id = $1", [id]);
   }
 
   async getBusinessSettings(businessId: string) {

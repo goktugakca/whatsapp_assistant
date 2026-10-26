@@ -5,7 +5,7 @@ import { demoExamples } from "@/lib/demo-examples";
 import { BusinessPicker } from "../business-picker";
 import { DemoChat } from "./demo-chat";
 
-export const metadata = { title: "Canlı demo · Randevu Asistanı" };
+export const metadata = { title: "Canlı demo · Sırada" };
 
 export default async function DemoPage(props: PageProps<"/demo">) {
   const { isletme } = await props.searchParams;

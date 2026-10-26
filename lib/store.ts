@@ -64,6 +64,14 @@ export interface WaitlistEntry {
   createdAt: string;
 }
 
+export interface PanelUser {
+  id: string;
+  username: string; // küçük harf, benzersiz
+  passwordHash: string;
+  businessId: string;
+  createdAt: string;
+}
+
 export type ConversationKey = Pick<Conversation, "businessId" | "channel" | "contact">;
 
 export interface Store {
@@ -95,6 +103,12 @@ export interface Store {
   // Panelden kaydedilen işletme ayarları; hiç kaydedilmemişse undefined.
   getBusinessSettings(businessId: string): Promise<Business | undefined>;
   saveBusinessSettings(business: Business): Promise<void>;
+  // Panel kullanıcıları. Kullanıcı adı alınmışsa createPanelUser null döner.
+  createPanelUser(input: Omit<PanelUser, "id" | "createdAt">): Promise<PanelUser | null>;
+  findPanelUserByUsername(username: string): Promise<PanelUser | undefined>;
+  getPanelUser(id: string): Promise<PanelUser | undefined>;
+  listPanelUsers(): Promise<PanelUser[]>;
+  deletePanelUser(id: string): Promise<void>;
 }
 
 export function conversationLockKey(key: ConversationKey): string {
@@ -112,6 +126,7 @@ export class InMemoryStore implements Store {
   private waitlist: WaitlistEntry[] = [];
   private locks = new KeyedQueue();
   private businessSettings = new Map<string, Business>();
+  private panelUsers: PanelUser[] = [];
 
   async findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
@@ -227,6 +242,31 @@ export class InMemoryStore implements Store {
 
   async saveBusinessSettings(business: Business) {
     this.businessSettings.set(business.id, structuredClone(business));
+  }
+
+  async createPanelUser(input: Omit<PanelUser, "id" | "createdAt">) {
+    if (this.panelUsers.some((u) => u.username === input.username)) return null;
+    const user: PanelUser = { id: randomUUID(), createdAt: new Date().toISOString(), ...input };
+    this.panelUsers.push(user);
+    return { ...user };
+  }
+
+  async findPanelUserByUsername(username: string) {
+    const u = this.panelUsers.find((x) => x.username === username);
+    return u && { ...u };
+  }
+
+  async getPanelUser(id: string) {
+    const u = this.panelUsers.find((x) => x.id === id);
+    return u && { ...u };
+  }
+
+  async listPanelUsers() {
+    return this.panelUsers.map((u) => ({ ...u })).sort((a, b) => a.username.localeCompare(b.username));
+  }
+
+  async deletePanelUser(id: string) {
+    this.panelUsers = this.panelUsers.filter((u) => u.id !== id);
   }
 }
 

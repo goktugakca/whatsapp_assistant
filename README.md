@@ -1,8 +1,8 @@
-# Randevu Asistanı (whatsapp_assistant)
+# Sırada (whatsapp_assistant)
 
 Randevuyla çalışan işletmelerin (kuaför, berber, tırnak salonu, güzellik merkezi, klinik) WhatsApp'ına gelen müşteri mesajlarını 7/24 yanıtlayan, boş saatleri çalışan bazında bulan, randevu oluşturan ve gerektiğinde konuşmayı işletmeye devreden yapay zekâ asistanı.
 
-> "Randevu Asistanı" çalışma adıdır. Meta'nın marka kuralları gereği ürün adında "WhatsApp" kullanılmamalı.
+> Ürün adı "Sırada". Meta'nın marka kuralları gereği ürün adında "WhatsApp" kullanılmamalı.
 
 ## Ne var?
 
@@ -105,10 +105,17 @@ Notlar:
 - **Çakışan randevu imkânsız:** Kontrol ve kayıt tek adımda yapılır. Postgres'te aynı işletme + çalışan için eklemeler kısa bir kilitle sıraya girer, ayrıca bir `EXCLUDE` kısıtı zaman aralığı çakışan iki kaydı veritabanı seviyesinde reddeder. Gerçek Postgres 16'da, aynı saate 10'ar eşzamanlı istekle denendi: her saate tam olarak usta sayısı kadar randevu yazıldı.
 - **Konuşma kilidi:** Aynı müşterinin mesajları, personel yanıtları ve asistan turları konuşma başına bir kilitle sıraya girer (Postgres işlem seviyesinde advisory lock; PgBouncer transaction modunda da doğru çalışır). Birden fazla sunucuda da birbirini ezmez. Kilit, asistan turu süresince bir veritabanı bağlantısını açık bir işlemde tutar; veritabanında `idle_in_transaction_session_timeout` en az 2 dakika olmalı.
 - **Mesaj tekrar kontrolü** veritabanında (`processed_messages`).
-- **Tek panel şifresi.** Tüm işletmeler aynı `PANEL_PASSWORD` ile görülüyor; gerçek işletmeler için işletme başına kullanıcı girişi gerekecek.
+- **İşletmeler kodda tanımlı.** Yeni işletme `lib/businesses/` altına dosya olarak eklenir; ayarları sonra panelden düzenlenir. Panelden yeni işletme oluşturma henüz yok.
 - **Takvim dahili.** Google Takvim entegrasyonu yol haritasında. Çalışanların izin günleri ve öğle arası henüz yok.
 - **Sadece metin.** Sesli mesaj ve görseller şimdilik okunmuyor; asistana kısa bir not olarak iletiliyor. Kuaför ve berber müşterileri sık sesli mesaj attığı için bu, yol haritasında öne alınmalı.
 - Model: varsayılan `claude-haiku-5-5` (hızlı ve ucuz), `low` efor. `ANTHROPIC_MODEL` ile değiştirilebilir (ör. `claude-sonnet-5-5`); Opus, Sonnet ve Fable modellerinde reddedilen isteklerde sunucu tarafı yedek model (`fallbacks: "default"`) otomatik açılır. Vercel loglarında her yanıtın süresi `asistan: ...ms` satırında görünür.
+
+## Panel girişi
+
+- `/giris` sayfasından girilir. **Yönetici:** kullanıcı adı `admin`, şifre `PANEL_PASSWORD`. Tüm işletmeleri görür, **Kullanıcılar** sayfasından işletme kullanıcısı oluşturur ve siler.
+- **İşletme kullanıcısı** sadece kendi işletmesinin panelini, takvimini ve ayarlarını görür; adres çubuğunda başka işletme yazsa bile kendi işletmesi açılır, işlemler sunucuda reddedilir (`lib/dal.ts`).
+- Şifreler `scrypt` ile özetlenip saklanır (`lib/password.ts`). Oturum 7 gün geçerli, imzalı bir çerezdir (`lib/session.ts`); imza anahtarı `SESSION_SECRET` (yoksa `PANEL_PASSWORD`). Anahtar değişirse herkesin oturumu kapanır. Silinen kullanıcının açık oturumu hemen geçersiz olur.
+- Geliştirme ortamında `PANEL_PASSWORD` tanımlı değilse panel girişsiz açılır.
 
 ## Randevu hatırlatmaları
 
@@ -135,10 +142,10 @@ Hatırlatma sadece telefon numarası olan randevulara gider: WhatsApp'tan alına
 
 ## Yol haritası
 
+1. Panelden yeni işletme oluşturma (kayıt akışı)
 2. Sesli mesajı metne çevirme
-3. İşletme başına kullanıcı girişi; çalışan izin günleri ve tatiller
-4. Randevu iptal ve erteleme aracı
-5. Google Takvim entegrasyonu
-6. Raporlama: yanıt süresi, randevuya dönüşüm, mesai dışı gelen talepler
+3. Çalışan izin günleri ve tatiller
+4. İki yönlü Google Takvim entegrasyonu
+5. Raporlama: yanıt süresi, randevuya dönüşüm, mesai dışı gelen talepler
 
 Doğrulama planı ve işletme görüşme kiti: [`docs/dogrulama-kiti.md`](docs/dogrulama-kiti.md).

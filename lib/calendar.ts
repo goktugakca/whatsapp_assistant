@@ -121,7 +121,7 @@ export function toIcs(calendarName: string, events: CalendarEvent[], now = new D
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Randevu Asistani//TR",
+    "PRODID:-//Sirada//TR",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     `X-WR-CALNAME:${escapeText(calendarName)}`,

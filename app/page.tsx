@@ -44,7 +44,7 @@ export default function Home() {
           Siz işinize bakın, randevuları WhatsApp&apos;ta asistanınız alsın.
         </h1>
         <p className="mt-5 text-lg text-muted">
-          Randevu Asistanı, WhatsApp&apos;ınıza gelen mesajları 7/24 yanıtlar, müşterinin istediği hizmet ve çalışana göre
+          Sırada, WhatsApp&apos;ınıza gelen mesajları 7/24 yanıtlar, müşterinin istediği hizmet ve çalışana göre
           boş saatleri bulur ve randevuyu oluşturur. Kuaför, berber, tırnak salonu, güzellik merkezi ve klinikler için.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
@@ -99,7 +99,7 @@ export default function Home() {
       </section>
 
       <footer className="mt-16 text-center text-xs text-muted">
-        Randevu Asistanı bağımsız bir üründür; WhatsApp, Meta Platforms, Inc.&apos;in markasıdır.
+        Sırada bağımsız bir üründür; WhatsApp, Meta Platforms, Inc.&apos;in markasıdır.
       </footer>
     </main>
   );

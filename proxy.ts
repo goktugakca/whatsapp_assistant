@@ -1,15 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isPanelAuthorized } from "@/lib/panel-auth";
+import { readSessionToken, SESSION_COOKIE } from "@/lib/session";
 
-// İşletme paneli için basit parola koruması (HTTP Basic Auth). Pilot aşaması için yeterli;
-// birden fazla işletme geldiğinde gerçek kullanıcı girişine geçilecek.
+// Panel sayfalarına girişsiz gelen kullanıcıyı giriş sayfasına yönlendirir. Bu sadece hızlı
+// bir ön kontrol (çerez imzası); hangi işletmeyi görebileceğine lib/dal.ts karar verir.
 export function proxy(request: NextRequest) {
-  if (isPanelAuthorized(request.headers.get("authorization"))) return NextResponse.next();
+  if (process.env.NODE_ENV !== "production" && !process.env.PANEL_PASSWORD) return NextResponse.next();
+  if (readSessionToken(request.cookies.get(SESSION_COOKIE)?.value)) return NextResponse.next();
 
-  return new NextResponse("Giriş gerekli", {
-    status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Isletme Paneli", charset="UTF-8"' },
-  });
+  const login = new URL("/giris", request.url);
+  login.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
+  return NextResponse.redirect(login);
 }
 
 export const config = {

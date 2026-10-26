@@ -3,10 +3,11 @@ import { connection } from "next/server";
 import { businesses, loadBusiness } from "@/lib/business";
 import { getStore, type Conversation } from "@/lib/store";
 import { verticals } from "@/lib/verticals";
-import { BusinessPicker } from "../business-picker";
+import { resolvePanelBusiness } from "@/lib/dal";
+import { PanelHeader } from "./panel-header";
 import { resumeAssistant, sendStaffReply } from "./actions";
 
-export const metadata = { title: "Panel · Randevu Asistanı" };
+export const metadata = { title: "Panel · Sırada" };
 
 const timeFmt = new Intl.DateTimeFormat("tr-TR", {
   timeZone: "Europe/Istanbul",
@@ -24,12 +25,12 @@ export default async function PanelPage(props: PageProps<"/panel">) {
   await connection(); // Her istekte güncel veri
   const { isletme } = await props.searchParams;
   const store = await getStore();
-  const id = typeof isletme === "string" ? isletme : businesses[0].id;
-  const business = (await loadBusiness(store, id)) ?? businesses[0];
+  const { session, businessId } = await resolvePanelBusiness(isletme);
+  const business = (await loadBusiness(store, businessId)) ?? businesses[0];
   const [conversations, appointments, waitlist] = await Promise.all([
     store.listConversations(business.id),
     store.listAppointments(business.id),
-    store.listWaitlist(),
+    session.isAdmin ? store.listWaitlist() : Promise.resolve([]),
   ]);
   const handoffs = conversations.filter((c) => c.status === "handoff");
   const serviceName = (id: string) => business.services.find((s) => s.id === id)?.name ?? id;
@@ -38,7 +39,7 @@ export default async function PanelPage(props: PageProps<"/panel">) {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-      <BusinessPicker basePath="/panel" currentId={business.id} />
+      <PanelHeader session={session} basePath="/panel" businessId={business.id} />
       <header className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">{business.name}</h1>

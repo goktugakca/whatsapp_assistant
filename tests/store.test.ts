@@ -14,7 +14,7 @@ const implementations: [string, () => Promise<Store>][] = [
   [
     "PostgresStore",
     async () => {
-      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings cascade");
+      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users cascade");
       return new PostgresStore(pglite);
     },
   ],
@@ -170,6 +170,18 @@ describe.each(implementations)("%s", (_name, create) => {
     await store.releaseReminder(a!.id);
     expect(await store.claimReminder(a!.id)).toBe(true);
     expect(await store.claimReminder(b!.id)).toBe(false); // iptal edilmiş
+  });
+
+    it("panel kullanıcılarını oluşturur, kullanıcı adını tekil tutar, bulur ve siler", async () => {
+    const created = await store.createPanelUser({ username: "ali", passwordHash: "h", businessId: "demo-berber" });
+    expect(created).toMatchObject({ username: "ali", businessId: "demo-berber" });
+    expect(await store.createPanelUser({ username: "ali", passwordHash: "h2", businessId: "demo-kuafor" })).toBeNull();
+    expect((await store.findPanelUserByUsername("ali"))?.passwordHash).toBe("h");
+    expect((await store.getPanelUser(created!.id))?.username).toBe("ali");
+    expect((await store.listPanelUsers()).map((u) => u.username)).toEqual(["ali"]);
+    await store.deletePanelUser(created!.id);
+    expect(await store.findPanelUserByUsername("ali")).toBeUndefined();
+    expect(await store.getPanelUser("olmayan")).toBeUndefined();
   });
 
     it("aynı WhatsApp mesajını sadece ilk seferde yeni sayar", async () => {
