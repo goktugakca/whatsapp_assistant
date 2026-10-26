@@ -77,23 +77,80 @@ export function parseInboundMessages(payload: unknown): InboundMessage[] {
   return result;
 }
 
-// Müşterinin başlattığı 24 saatlik pencere içinde serbest metin yanıtı gönderir.
-export async function sendText(params: { phoneNumberId: string; to: string; text: string }): Promise<void> {
+async function postMessage(phoneNumberId: string, message: Record<string, unknown>): Promise<void> {
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   if (!token) throw new Error("WHATSAPP_ACCESS_TOKEN tanımlı değil");
 
-  const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${params.phoneNumberId}/messages`, {
+  const res = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${phoneNumberId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: params.to,
-      type: "text",
-      text: { preview_url: false, body: params.text },
-    }),
+    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", ...message }),
   });
   if (!res.ok) {
     throw new Error(`WhatsApp gönderimi başarısız (${res.status}): ${await res.text()}`);
   }
+}
+
+// Müşterinin başlattığı 24 saatlik pencere içinde serbest metin yanıtı gönderir.
+export async function sendText(params: { phoneNumberId: string; to: string; text: string }): Promise<void> {
+  await postMessage(params.phoneNumberId, {
+    to: params.to,
+    type: "text",
+    // Randevu kartı bağlantısının önizlemesi görünsün.
+    text: { preview_url: true, body: params.text },
+  });
+}
+
+// WhatsApp etkileşimli mesaj sınırları.
+const BODY_LIMIT = 1024;
+const BUTTON_TITLE_LIMIT = 20;
+const ROW_TITLE_LIMIT = 24;
+
+const cut = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
+
+// Seçenekleri WhatsApp'ın etkileşimli mesajına çevirir: en fazla 3 kısa seçenek düğme,
+// daha fazlası liste olur. Müşterinin seçimi etiket olarak geri gelir (parseInboundMessages).
+export function buildInteractive(text: string, options: string[]): Record<string, unknown> {
+  const body = { text: cut(text, BODY_LIMIT) };
+  const asButtons = options.length <= 3 && options.every((o) => o.length <= BUTTON_TITLE_LIMIT);
+  if (asButtons) {
+    return {
+      type: "button",
+      body,
+      action: {
+        buttons: options.map((o, i) => ({ type: "reply", reply: { id: `opt_${i}`, title: o } })),
+      },
+    };
+  }
+  return {
+    type: "list",
+    body,
+    action: {
+      button: "Seçenekler",
+      sections: [
+        {
+          title: "Seçin",
+          rows: options.slice(0, 10).map((o, i) => ({ id: `opt_${i}`, title: cut(o, ROW_TITLE_LIMIT) })),
+        },
+      ],
+    },
+  };
+}
+
+// Asistan yanıtını gönderir: seçenek varsa etkileşimli mesaj, yoksa düz metin. Metin
+// etkileşimli mesajın gövde sınırını aşarsa önce metin, sonra kısa gövdeli seçenekler gider.
+export async function sendReply(params: {
+  phoneNumberId: string;
+  to: string;
+  text: string;
+  options?: string[];
+}): Promise<void> {
+  const { phoneNumberId, to, text, options = [] } = params;
+  if (options.length === 0) return sendText({ phoneNumberId, to, text });
+  if (text.length > BODY_LIMIT) {
+    await sendText({ phoneNumberId, to, text });
+    await postMessage(phoneNumberId, { to, type: "interactive", interactive: buildInteractive("Seçiniz:", options) });
+    return;
+  }
+  await postMessage(phoneNumberId, { to, type: "interactive", interactive: buildInteractive(text, options) });
 }

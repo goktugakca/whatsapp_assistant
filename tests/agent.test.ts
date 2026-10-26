@@ -170,7 +170,7 @@ describe("handleInboundMessage", () => {
     const inbound = { id: "wamid.1", phoneNumberId: "pn-1", from: "905551112233", text: "Selam", timestamp: 0 };
 
     expect(await handleInboundMessage(inbound, { store, send, createMessage })).toBe("replied");
-    expect(send).toHaveBeenCalledWith({ phoneNumberId: "pn-1", to: "905551112233", text: "Merhaba!" });
+    expect(send).toHaveBeenCalledWith({ phoneNumberId: "pn-1", to: "905551112233", text: "Merhaba!", options: [] });
     const [conversation] = await store.listConversations(barber.id);
     expect(conversation).toBeDefined();
 
@@ -184,5 +184,82 @@ describe("handleInboundMessage", () => {
     expect(
       await handleInboundMessage({ ...inbound, id: "wamid.3", phoneNumberId: "baska" }, { store, send, createMessage }),
     ).toBe("unknown-business");
+  });
+});
+
+describe("seçenekler ve randevu kartı", () => {
+  it("show_options düğmeleri ve oluşan randevunun kartı tur sonucunda döner", async () => {
+    const { store, conversation } = await setup(barber);
+    const start = "2026-10-26T18:00:00+03:00";
+    const { createMessage } = scripted([
+      message(
+        [
+          {
+            type: "tool_use",
+            id: "t1",
+            name: "show_options",
+            input: { options: ["Pazartesi 18:00", "Pazartesi 18:00", " ", "Çok uzun bir seçenek etiketi buraya sığmaz"] },
+          },
+          {
+            type: "tool_use",
+            id: "t2",
+            name: "book_appointment",
+            input: { customer_name: "Ali", service_id: "sac", staff_id: "mehmet", start },
+          },
+        ],
+        "tool_use",
+      ),
+      message([{ type: "text", text: "Randevunuz oluşturuldu.", citations: null }], "end_turn"),
+    ]);
+
+    const result = await runAssistant({ business: barber, conversation, store, text: "18:00 olsun", now, createMessage });
+
+    expect(result.options).toEqual(["Pazartesi 18:00", "Çok uzun bir seçenek et…"]);
+    expect(result.options[1]).toHaveLength(24);
+    expect(result.appointments).toHaveLength(1);
+    expect(result.appointments[0]).toMatchObject({
+      serviceName: "Saç kesimi",
+      staffName: "Mehmet Usta",
+      customerName: "Ali",
+      businessName: barber.name,
+    });
+  });
+
+  it("WhatsApp yanıtına takvim bağlantısını ve düğmeleri ekler", async () => {
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");
+    vi.stubEnv("WHATSAPP_BUSINESS_ID", barber.id);
+    vi.stubEnv("APP_URL", "https://ornek.app/");
+    const store = new InMemoryStore();
+    const send = vi.fn(async () => {});
+    const { createMessage } = scripted([
+      message(
+        [
+          {
+            type: "tool_use",
+            id: "t1",
+            name: "book_appointment",
+            input: { customer_name: "Ali", service_id: "sac", staff_id: "any", start: "2026-10-26T18:00:00+03:00" },
+          },
+          { type: "tool_use", id: "t2", name: "show_options", input: { options: ["Evet", "Hayır"] } },
+        ],
+        "tool_use",
+      ),
+      message([{ type: "text", text: "Tamamdır!", citations: null }], "end_turn"),
+    ]);
+    const inbound = { id: "wamid.9", phoneNumberId: "pn-1", from: "905551112233", text: "Ali", timestamp: 0 };
+    vi.useFakeTimers({ now, toFake: ["Date"] });
+    try {
+      await handleInboundMessage(inbound, { store, send, createMessage });
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const [appointment] = await store.listAppointments(barber.id);
+    expect(send).toHaveBeenCalledWith({
+      phoneNumberId: "pn-1",
+      to: "905551112233",
+      text: `Tamamdır!\n\n📅 Randevu ve takvime ekle: https://ornek.app/randevu/${appointment.id}`,
+      options: ["Evet", "Hayır"],
+    });
   });
 });

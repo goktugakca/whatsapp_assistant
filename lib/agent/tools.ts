@@ -68,6 +68,20 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
       },
     },
     {
+      name: "show_options",
+      description:
+        "Müşteriye tıklanabilir seçenek düğmeleri gösterir (WhatsApp'ta da düğme/liste olarak gider). Boş saatleri, hizmetleri, çalışanları veya evet/hayır gibi seçimleri sunarken kullan. Her seçenek en fazla 24 karakterlik kısa bir etiket olsun (ör. \"Salı 14:30\", \"Saç + sakal\"); en fazla 10 seçenek. Müşteri bir düğmeye basarsa etiket mesaj olarak gelir.",
+      strict: true,
+      input_schema: {
+        type: "object",
+        properties: {
+          options: { type: "array", items: { type: "string" }, description: "Kısa seçenek etiketleri" },
+        },
+        required: ["options"],
+        additionalProperties: false,
+      },
+    },
+    {
       name: "handoff_to_human",
       description:
         "Konuşmayı işletme personeline devreder. Bundan sonra asistan bu müşteriye otomatik yanıt vermez.",
@@ -98,12 +112,23 @@ const saveLeadInput = z.object({
   notes: z.string(),
 });
 const handoffInput = z.object({ reason: z.string() });
+const showOptionsInput = z.object({ options: z.array(z.string()) });
+
+export const MAX_OPTIONS = 10;
+export const MAX_OPTION_LENGTH = 24; // WhatsApp liste satırı başlık sınırı
+
+// Bir asistan turunda araçların ürettiği, metin dışındaki çıktılar.
+export interface TurnEffects {
+  options: string[];
+  bookedAppointmentIds: string[];
+}
 
 export interface ToolContext {
   business: Business;
   conversation: Conversation;
   store: Store;
   now?: Date;
+  effects?: TurnEffects;
 }
 
 export interface ToolOutcome {
@@ -156,6 +181,7 @@ export async function executeTool(name: string, input: unknown, ctx: ToolContext
         appointment = await store.addAppointmentIfFree({
           businessId: business.id,
           conversationId: conversation.id,
+          source: "assistant",
           customerName: args.customer_name,
           contact: conversation.contact,
           serviceId: service.id,
@@ -168,6 +194,7 @@ export async function executeTool(name: string, input: unknown, ctx: ToolContext
       if (!appointment) {
         return { content: "Bu saat az önce doldu. check_availability ile yeni saatleri al.", isError: true };
       }
+      ctx.effects?.bookedAppointmentIds.push(appointment.id);
       return {
         content: JSON.stringify({
           ok: true,
@@ -187,6 +214,23 @@ export async function executeTool(name: string, input: unknown, ctx: ToolContext
       }
       conversation.lead = { ...merged, updatedAt: new Date().toISOString() };
       return { content: "Kaydedildi." };
+    }
+
+    case "show_options": {
+      const args = showOptionsInput.parse(input);
+      const options = [
+        ...new Set(
+          args.options
+            .map((o) => o.trim())
+            .filter(Boolean)
+            .map((o) => (o.length > MAX_OPTION_LENGTH ? `${o.slice(0, MAX_OPTION_LENGTH - 1)}…` : o)),
+        ),
+      ].slice(0, MAX_OPTIONS);
+      if (options.length === 0) return { content: "Seçenek listesi boş.", isError: true };
+      if (ctx.effects) ctx.effects.options = options;
+      return {
+        content: "Seçenekler müşteriye düğme olarak gösterilecek. Metinde aynı listeyi tekrar yazma; kısaca hangisini istediğini sor.",
+      };
     }
 
     case "handoff_to_human": {

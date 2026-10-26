@@ -39,7 +39,8 @@ export interface Conversation {
 export interface Appointment {
   id: string;
   businessId: string;
-  conversationId: string;
+  conversationId?: string; // Panelden elle eklenen randevularda yok
+  source: "assistant" | "panel";
   customerName: string;
   contact: string;
   serviceId: string;
@@ -47,7 +48,10 @@ export interface Appointment {
   start: string; // ISO
   end: string; // ISO
   createdAt: string;
+  cancelledAt?: string;
 }
+
+export type NewAppointment = Omit<Appointment, "id" | "createdAt" | "cancelledAt">;
 
 export interface WaitlistEntry {
   id: string;
@@ -66,10 +70,14 @@ export interface Store {
   getConversation(id: string): Promise<Conversation | undefined>;
   saveConversation(conversation: Conversation): Promise<void>;
   listConversations(businessId: string): Promise<Conversation[]>;
+  // İptal edilmemiş randevular, başlangıca göre sıralı.
   listAppointments(businessId: string): Promise<Appointment[]>;
+  getAppointment(id: string): Promise<Appointment | undefined>;
+  // İptal edilen randevu saati boşaltır; zaten iptalse veya yoksa false döner.
+  cancelAppointment(businessId: string, id: string): Promise<boolean>;
   // Aynı kaynağa (çalışan veya tek takvim) çakışan randevu varsa kaydetmez ve null döner.
   // Kontrol ve kayıt tek adımda yapılır; iki müşteri aynı anda aynı saati alamaz.
-  addAppointmentIfFree(input: Omit<Appointment, "id" | "createdAt">): Promise<Appointment | null>;
+  addAppointmentIfFree(input: NewAppointment): Promise<Appointment | null>;
   // WhatsApp aynı mesajı birden fazla kez gönderebilir; ilk görüşte true döner.
   markMessageSeen(messageId: string): Promise<boolean>;
   addWaitlistEntry(input: Omit<WaitlistEntry, "id" | "createdAt">): Promise<WaitlistEntry>;
@@ -139,13 +147,26 @@ export class InMemoryStore implements Store {
 
   async listAppointments(businessId: string) {
     return this.appointments
-      .filter((a) => a.businessId === businessId)
+      .filter((a) => a.businessId === businessId && !a.cancelledAt)
       .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
   }
 
-  async addAppointmentIfFree(input: Omit<Appointment, "id" | "createdAt">) {
+  async getAppointment(id: string) {
+    const a = this.appointments.find((x) => x.id === id);
+    return a && { ...a };
+  }
+
+  async cancelAppointment(businessId: string, id: string) {
+    const a = this.appointments.find((x) => x.id === id && x.businessId === businessId && !x.cancelledAt);
+    if (!a) return false;
+    a.cancelledAt = new Date().toISOString();
+    return true;
+  }
+
+  async addAppointmentIfFree(input: NewAppointment) {
     const clash = this.appointments.some(
-      (a) => a.businessId === input.businessId && a.staffId === input.staffId && overlaps(a, input),
+      (a) =>
+        a.businessId === input.businessId && !a.cancelledAt && a.staffId === input.staffId && overlaps(a, input),
     );
     if (clash) return null;
     const appointment: Appointment = { id: randomUUID(), createdAt: new Date().toISOString(), ...input };

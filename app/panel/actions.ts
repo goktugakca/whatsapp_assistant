@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
+import { freeSlots, SINGLE_RESOURCE } from "@/lib/availability";
 import { loadBusiness, phoneNumberIdFor } from "@/lib/business";
 import { validateBusiness } from "@/lib/business-schema";
 import { isPanelAuthorized } from "@/lib/panel-auth";
@@ -85,4 +86,89 @@ export async function saveBusinessSettings(_prev: SettingsState, formData: FormD
   revalidatePath("/panel", "layout");
   revalidatePath("/demo");
   return { ok: true, message: "Kaydedildi. Asistan bir sonraki mesajdan itibaren yeni bilgileri kullanır." };
+}
+
+export type ManualAppointmentState = {
+  ok: boolean;
+  message: string;
+  suggestions?: string[];
+  // Hata durumunda form sıfırlanınca girilen değerler kaybolmasın.
+  values?: Record<string, string>;
+} | null;
+
+const manualAppointmentInput = z.object({
+  businessId: z.string(),
+  customerName: z.string().trim().min(2, "Müşteri adı gerekli").max(80),
+  contact: z.string().trim().max(30).optional(),
+  serviceId: z.string(),
+  staffId: z.string(), // "any" = fark etmez
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih seçin"),
+  time: z.string().regex(/^\d{2}:\d{2}$/, "Saat seçin"),
+});
+
+// Telefonla veya yüz yüze alınan randevuyu panelden ekler. Asistanla aynı kurallar geçerli:
+// sadece işletmenin ve çalışanın boş olduğu saate yazılır.
+export async function addManualAppointment(
+  _prev: ManualAppointmentState,
+  formData: FormData,
+): Promise<ManualAppointmentState> {
+  await requirePanelAuth();
+  const values = Object.fromEntries([...formData].map(([k, v]) => [k, String(v)]));
+  const fail = (message: string, suggestions?: string[]) => ({ ok: false, message, suggestions, values });
+  const parsed = manualAppointmentInput.safeParse(values);
+  if (!parsed.success) return fail(parsed.error.issues[0].message);
+  const input = parsed.data;
+
+  const store = await getStore();
+  const business = await loadBusiness(store, input.businessId);
+  const service = business?.services.find((s) => s.id === input.serviceId);
+  if (!business || !service) return fail("İşletme veya hizmet bulunamadı.");
+
+  const start = `${input.date}T${input.time}:00${business.utcOffset}`;
+  const staffFilter = input.staffId === "any" ? undefined : input.staffId;
+  const slots = freeSlots({
+    business,
+    date: input.date,
+    serviceId: service.id,
+    staffId: staffFilter,
+    busy: (await store.listAppointments(business.id)).map((a) => ({ start: a.start, end: a.end, staffId: a.staffId })),
+  });
+  const slot = slots.find((s) => s.start === start);
+  if (!slot) {
+    const timeOf = (iso: string) => iso.slice(11, 16);
+    return fail(
+      slots.length
+        ? "Bu saat uygun değil. O gün boş saatler:"
+        : "Bu gün için boş saat yok (kapalı gün, geçmiş saat veya tamamen dolu).",
+      slots.slice(0, 12).map((s) => timeOf(s.start)),
+    );
+  }
+
+  const end = new Date(Date.parse(start) + service.durationMinutes * 60_000).toISOString();
+  for (const staffId of slot.staffIds) {
+    const appointment = await store.addAppointmentIfFree({
+      businessId: business.id,
+      source: "panel",
+      customerName: input.customerName,
+      contact: input.contact || "—",
+      serviceId: service.id,
+      staffId: staffId === SINGLE_RESOURCE ? undefined : staffId,
+      start,
+      end,
+    });
+    if (appointment) {
+      revalidatePath("/panel", "layout");
+      const who = business.staff.find((s) => s.id === appointment.staffId)?.name;
+      return { ok: true, message: `Randevu eklendi${who ? ` (${who})` : ""}.` };
+    }
+  }
+  return fail("Bu saat az önce doldu, başka bir saat seçin.");
+}
+
+export async function cancelAppointmentAction(formData: FormData) {
+  await requirePanelAuth();
+  const businessId = z.string().parse(formData.get("businessId"));
+  const appointmentId = z.string().parse(formData.get("appointmentId"));
+  await (await getStore()).cancelAppointment(businessId, appointmentId);
+  revalidatePath("/panel", "layout");
 }

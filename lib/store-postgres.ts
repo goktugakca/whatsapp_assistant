@@ -3,6 +3,7 @@ import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 import type {
   Appointment,
+  NewAppointment,
   Conversation,
   ConversationKey,
   Store,
@@ -52,6 +53,7 @@ export function createPgDatabase(connectionString: string): Database {
 }
 
 const EXCLUSION_VIOLATION = "23P01";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEADLOCK = "40P01";
 
 type Row = Record<string, unknown>;
@@ -80,7 +82,8 @@ function toAppointment(r: Row): Appointment {
   return {
     id: String(r.id),
     businessId: String(r.business_id),
-    conversationId: String(r.conversation_id),
+    conversationId: opt(r.conversation_id),
+    source: (r.source as Appointment["source"]) ?? "assistant",
     customerName: String(r.customer_name),
     contact: String(r.contact),
     serviceId: String(r.service_id),
@@ -88,6 +91,7 @@ function toAppointment(r: Row): Appointment {
     start: iso(r.start_at),
     end: iso(r.end_at),
     createdAt: iso(r.created_at),
+    cancelledAt: r.cancelled_at ? iso(r.cancelled_at) : undefined,
   };
 }
 
@@ -158,13 +162,29 @@ export class PostgresStore implements Store {
 
   async listAppointments(businessId: string) {
     const rows = await this.db.query<Row>(
-      "select * from appointments where business_id = $1 order by start_at",
+      "select * from appointments where business_id = $1 and cancelled_at is null order by start_at",
       [businessId],
     );
     return rows.map(toAppointment);
   }
 
-  async addAppointmentIfFree(input: Omit<Appointment, "id" | "createdAt">) {
+  async getAppointment(id: string) {
+    if (!UUID_RE.test(id)) return undefined;
+    const [row] = await this.db.query<Row>("select * from appointments where id = $1", [id]);
+    return row ? toAppointment(row) : undefined;
+  }
+
+  async cancelAppointment(businessId: string, id: string) {
+    if (!UUID_RE.test(id)) return false;
+    const rows = await this.db.query(
+      `update appointments set cancelled_at = now()
+       where id = $1 and business_id = $2 and cancelled_at is null returning id`,
+      [id, businessId],
+    );
+    return rows.length === 1;
+  }
+
+  async addAppointmentIfFree(input: NewAppointment) {
     // Kilit (insertAppointment) deadlock'u pratikte önler; yine de Postgres bir isteği
     // deadlock ile iptal ederse yeniden denenir: ya eklenir ya da çakışma döner.
     for (let attempt = 1; ; attempt++) {
@@ -182,25 +202,26 @@ export class PostgresStore implements Store {
     }
   }
 
-  private async insertAppointment(input: Omit<Appointment, "id" | "createdAt">) {
+  private async insertAppointment(input: NewAppointment) {
     // Aynı işletme + kaynak için eklemeler, deyim bitene kadar tutulan bir kilitle sıraya
     // girer: ikinci istek birincinin kaydını görür ve deadlock yerine çakışma hatası alır.
     const [row] = await this.db.query<Row>(
       `with lock as (select pg_advisory_xact_lock(hashtextextended($2 || ':' || coalesce($7, '_'), 0)))
        insert into appointments
-         (id, business_id, conversation_id, customer_name, contact, service_id, staff_id, start_at, end_at)
-       select $1, $2, $3, $4, $5, $6, $7, $8::timestamptz, $9::timestamptz from lock
+         (id, business_id, conversation_id, customer_name, contact, service_id, staff_id, start_at, end_at, source)
+       select $1, $2, $3::uuid, $4, $5, $6, $7, $8::timestamptz, $9::timestamptz, $10 from lock
        returning *`,
       [
         randomUUID(),
         input.businessId,
-        input.conversationId,
+        input.conversationId ?? null,
         input.customerName,
         input.contact,
         input.serviceId,
         input.staffId ?? null,
         input.start,
         input.end,
+        input.source,
       ],
     );
     return toAppointment(row);

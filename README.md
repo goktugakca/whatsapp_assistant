@@ -11,6 +11,9 @@ Randevuyla çalışan işletmelerin (kuaför, berber, tırnak salonu, güzellik 
 | `/` | İşletmelere yönelik tanıtım ve pilot başvuru formu (doğrulama için) |
 | `/demo?isletme=demo-berber` | WhatsApp kurulumu olmadan asistanı tarayıcıda deneme; işletmelere demo göstermek için |
 | `/panel?isletme=demo-berber` | İşletme paneli: konuşmalar, toplanan müşteri bilgisi, devredilen konuşmalar, randevular (çalışan bazında), personel yanıtı |
+| `/panel/takvim?isletme=demo-berber` | Haftalık takvim (çalışan renkleriyle), elle randevu ekleme ve iptal, Google/Apple Takvim abonelik linki |
+| `/panel/ayarlar?isletme=demo-berber` | Çalışma saatleri, hizmetler ve fiyatlar, çalışanlar, SSS ve kurallar |
+| `/randevu/<id>` | Müşterinin randevu sayfası: Google Takvim, Apple/Outlook (.ics) ve yol tarifi bağlantıları. WhatsApp onay mesajında gönderilir |
 | `POST /api/whatsapp/webhook` | Meta'dan gelen WhatsApp mesajları (imza doğrulamalı) |
 | `POST /api/demo/chat` | Demo sohbetinin arka ucu |
 
@@ -30,6 +33,7 @@ Randevuyla çalışan işletmelerin (kuaför, berber, tırnak salonu, güzellik 
 - `check_availability`: İşletmenin ve çalışanların saatlerine, mevcut randevulara ve hizmeti kimin yapabildiğine göre boş saatleri ve o saatte müsait çalışanları verir.
 - `book_appointment`: Sadece gerçekten boş olan bir saate randevu yazar; model saat uyduramaz. Çalışan tercihi yoksa müsait olan birine atar.
 - `save_lead`: Müşterinin adını, dilini, istediği hizmeti ve ne zaman gelmek istediğini panele kaydeder.
+- `show_options`: Boş saatleri, hizmetleri veya çalışanları tıklanabilir düğme olarak sunar. Demoda düğme, WhatsApp'ta etkileşimli mesaj olur (3'e kadar kısa seçenek düğme, fazlası liste).
 - `handoff_to_human`: Konuşmayı işletmeye devreder; asistan o müşteriye artık otomatik yanıt vermez.
 
 Model hata verirse veya yanıtlamayı reddederse, müşteriye güvenli bir "size döneceğiz" mesajı gider ve konuşma işletmeye devredilir.
@@ -105,6 +109,12 @@ Notlar:
 - **Takvim dahili.** Google Takvim entegrasyonu yol haritasında. Çalışanların izin günleri ve öğle arası henüz yok.
 - **Sadece metin.** Sesli mesaj ve görseller şimdilik okunmuyor; asistana kısa bir not olarak iletiliyor. Kuaför ve berber müşterileri sık sesli mesaj attığı için bu, yol haritasında öne alınmalı.
 - Model: varsayılan `claude-haiku-5-5` (hızlı ve ucuz), `low` efor. `ANTHROPIC_MODEL` ile değiştirilebilir (ör. `claude-sonnet-5-5`); Opus, Sonnet ve Fable modellerinde reddedilen isteklerde sunucu tarafı yedek model (`fallbacks: "default"`) otomatik açılır. Vercel loglarında her yanıtın süresi `asistan: ...ms` satırında görünür.
+
+## Google Takvim
+
+- **Şimdi:** Panel takviminde işletmeye özel bir abonelik linki var (`/api/takvim/<işletme>/<anahtar>.ics`). Google Takvim'e "URL ile" eklenince randevular görünür. Tek yönlüdür ve Google bu linki birkaç saatte bir yeniler. Anahtar `PANEL_PASSWORD`'den (veya `CALENDAR_FEED_SECRET`'tan) türetilir; şifre değişince link de değişir.
+- **Müşteri tarafı:** Her randevu için "Google Takvim'e ekle" bağlantısı ve `.ics` dosyası; entegrasyon gerektirmez.
+- **Sonra (pilot işletmelerle):** İki yönlü Google Calendar API entegrasyonu: randevular anında işletmenin takvimine yazılır, takvimdeki dolu saatler asistana kapalı görünür. Google Cloud projesi, OAuth onay ekranı ve Google'ın uygulama doğrulaması gerekir.
 
 ## Yol haritası
 

@@ -25,7 +25,8 @@ create index if not exists conversations_business_updated_idx
 create table if not exists appointments (
   id uuid primary key,
   business_id text not null,
-  conversation_id uuid not null references conversations (id) on delete cascade,
+  -- Panelden elle eklenen randevuların sohbeti yoktur.
+  conversation_id uuid references conversations (id) on delete cascade,
   customer_name text not null,
   contact text not null,
   service_id text not null,
@@ -35,14 +36,27 @@ create table if not exists appointments (
   start_at timestamptz not null,
   end_at timestamptz not null,
   created_at timestamptz not null default now(),
-  check (end_at > start_at),
-  -- Aynı işletmede aynı kaynağa zaman aralığı çakışan iki randevu olamaz.
-  constraint appointments_no_overlap exclude using gist (
-    business_id with =,
-    resource with =,
-    tstzrange(start_at, end_at) with &&
-  )
+  check (end_at > start_at)
 );
+
+-- Sonradan eklenen sütunlar (mevcut veritabanları için).
+alter table appointments alter column conversation_id drop not null;
+alter table appointments add column if not exists source text not null default 'assistant';
+alter table appointments add column if not exists cancelled_at timestamptz;
+
+-- Aynı işletmede aynı kaynağa zaman aralığı çakışan iki aktif randevu olamaz. İptal edilen
+-- randevu saati boşaltır. (Eski, iptali hesaba katmayan kısıt kaldırılır.)
+alter table appointments drop constraint if exists appointments_no_overlap;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'appointments_no_overlap_active') then
+    alter table appointments add constraint appointments_no_overlap_active exclude using gist (
+      business_id with =,
+      resource with =,
+      tstzrange(start_at, end_at) with &&
+    ) where (cancelled_at is null);
+  end if;
+end $$;
 
 create index if not exists appointments_business_start_idx on appointments (business_id, start_at);
 

@@ -50,6 +50,8 @@ ${rules}
       ? `\n- Müşteri belirli bir ${vertical.staffLabel} isterse check_availability'de staff_id olarak onu ver. Tercihi yoksa "any" kullan ve önerdiğin saatte kimin müsait olduğunu söyle.`
       : ""
   }
+- Müşteriye seçim sunarken (boş saatler, hizmetler, çalışanlar, evet/hayır) show_options ile düğme göster; birkaç uygun seçenek yeterli. Aynı listeyi metinde tekrar yazma.
+- Randevu oluşturulunca müşteriye tarih, saat, adres ve takvime ekleme bağlantısı içeren bir onay kartı otomatik gösterilir; metinde randevuyu tek cümleyle onayla.
 - Müşteri bir insanla görüşmek isterse handoff_to_human kullan ve işletmenin en kısa sürede döneceğini söyle.
 - Kendini insan gibi tanıtma; sorulursa işletmenin dijital asistanı olduğunu söyle.`;
 }

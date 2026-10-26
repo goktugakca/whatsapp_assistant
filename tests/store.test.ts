@@ -39,6 +39,7 @@ describe.each(implementations)("%s", (_name, create) => {
       customerName: "Ali",
       contact: key.contact,
       serviceId: "sac",
+      source: "assistant" as const,
       staffId: "mehmet",
       start: "2026-10-26T10:00:00+03:00",
       end: "2026-10-26T10:30:00+03:00",
@@ -122,7 +123,35 @@ describe.each(implementations)("%s", (_name, create) => {
     expect(staff).toEqual(["can", "mehmet"]);
   });
 
-  it("aynı WhatsApp mesajını sadece ilk seferde yeni sayar", async () => {
+  it("iptal edilen randevu saati boşaltır ve listeden çıkar", async () => {
+    const c = await conversation();
+    const first = await store.addAppointmentIfFree(appointment(c.id));
+    expect(first).not.toBeNull();
+    expect(await store.addAppointmentIfFree(appointment(c.id))).toBeNull();
+
+    expect(await store.cancelAppointment("baska-isletme", first!.id)).toBe(false);
+    expect(await store.cancelAppointment(key.businessId, first!.id)).toBe(true);
+    expect(await store.cancelAppointment(key.businessId, first!.id)).toBe(false);
+    expect(await store.listAppointments(key.businessId)).toEqual([]);
+    expect((await store.getAppointment(first!.id))?.cancelledAt).toBeDefined();
+
+    expect(await store.addAppointmentIfFree(appointment(c.id))).not.toBeNull();
+  });
+
+  it("panelden sohbetsiz randevu eklenebilir ve kimliğiyle okunur", async () => {
+    const manual = await store.addAppointmentIfFree({
+      ...appointment("ignored"),
+      conversationId: undefined,
+      source: "panel",
+      customerName: "Telefonla arayan",
+    });
+    expect(manual).toMatchObject({ source: "panel", customerName: "Telefonla arayan" });
+    expect(manual?.conversationId).toBeUndefined();
+    expect(await store.getAppointment(manual!.id)).toMatchObject({ id: manual!.id, source: "panel" });
+    expect(await store.getAppointment("olmayan")).toBeUndefined();
+  });
+
+    it("aynı WhatsApp mesajını sadece ilk seferde yeni sayar", async () => {
     expect(await store.markMessageSeen("wamid.1")).toBe(true);
     expect(await store.markMessageSeen("wamid.1")).toBe(false);
     expect(await store.markMessageSeen("wamid.2")).toBe(true);

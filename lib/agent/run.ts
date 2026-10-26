@@ -1,9 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describeNow } from "../availability";
 import type { Business } from "../business";
+import { toCard, type AppointmentCard } from "../calendar";
 import type { Conversation, Store } from "../store";
 import { buildSystemPrompt } from "./prompt";
-import { buildTools, executeTool } from "./tools";
+import { buildTools, executeTool, type TurnEffects } from "./tools";
 
 type CreateParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
 type BetaMessage = Anthropic.Beta.Messages.BetaMessage;
@@ -31,6 +32,8 @@ const defaultCreateMessage: CreateMessage = (params) => {
 export interface RunResult {
   reply: string;
   handedOff: boolean;
+  options: string[]; // Müşteriye düğme olarak gösterilecek seçenekler
+  appointments: AppointmentCard[]; // Bu turda oluşturulan randevular
 }
 
 // Müşteriden gelen bir mesajı işler: modeli araçlarla çalıştırır, konuşmayı günceller
@@ -56,6 +59,7 @@ export async function runAssistant(params: {
   const system = buildSystemPrompt(business);
   const tools = buildTools(business);
   const replyParts: string[] = [];
+  const effects: TurnEffects = { options: [], bookedAppointmentIds: [] };
 
   const startedAt = Date.now();
   const roundTimes: number[] = [];
@@ -101,7 +105,7 @@ export async function runAssistant(params: {
       for (const tool of toolUses) {
         let outcome;
         try {
-          outcome = await executeTool(tool.name, tool.input, { business, conversation, store, now });
+          outcome = await executeTool(tool.name, tool.input, { business, conversation, store, now, effects });
         } catch (error) {
           outcome = { content: `Araç hatası: ${(error as Error).message}`, isError: true };
         }
@@ -128,5 +132,13 @@ export async function runAssistant(params: {
   );
   const reply = replyParts.join("\n\n") || FALLBACK_REPLY;
   conversation.transcript.push({ from: "assistant", text: reply, at: new Date().toISOString() });
-  return { reply, handedOff: conversation.status === "handoff" };
+
+  const appointments: AppointmentCard[] = [];
+  for (const id of effects.bookedAppointmentIds) {
+    const appointment = await store.getAppointment(id);
+    if (appointment) appointments.push(toCard(business, appointment));
+  }
+  // Devredilen konuşmada müşteriye artık seçenek sunulmaz.
+  const options = conversation.status === "handoff" ? [] : effects.options;
+  return { reply, handedOff: conversation.status === "handoff", options, appointments };
 }

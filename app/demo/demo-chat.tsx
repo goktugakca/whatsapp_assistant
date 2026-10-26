@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { AppointmentCardView } from "@/app/components/appointment-card";
+import type { AppointmentCard } from "@/lib/calendar";
 
-type Bubble = { from: "customer" | "assistant" | "system"; text: string };
+type Bubble =
+  | { from: "customer" | "system"; text: string }
+  | { from: "assistant"; text: string; options: string[] }
+  | { from: "card"; card: AppointmentCard };
 
 function newSessionId() {
   return crypto.randomUUID();
@@ -21,11 +26,12 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
     if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [bubbles, pending]);
 
-  async function send(event: React.FormEvent) {
-    event.preventDefault();
-    const message = text.trim();
+  // Düğmeler sadece son asistan mesajında ve müşteri henüz yanıt vermemişken görünür.
+  const lastAssistant = bubbles.findLastIndex((b) => b.from === "assistant");
+  const optionsVisible = !pending && !bubbles.slice(lastAssistant + 1).some((b) => b.from === "customer");
+
+  async function sendMessage(message: string) {
     if (!message || pending) return;
-    setText("");
     setBubbles((b) => [...b, { from: "customer", text: message }]);
     setPending(true);
     try {
@@ -36,9 +42,11 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Hata");
+      const cards: AppointmentCard[] = data.appointments ?? [];
       setBubbles((b) => [
         ...b,
-        ...(data.reply ? [{ from: "assistant" as const, text: data.reply }] : []),
+        ...(data.reply ? [{ from: "assistant" as const, text: data.reply, options: data.options ?? [] }] : []),
+        ...cards.map((card) => ({ from: "card" as const, card })),
         ...(data.note ? [{ from: "system" as const, text: data.note }] : []),
         ...(data.handedOff && data.reply
           ? [{ from: "system" as const, text: "Konuşma işletmeye devredildi." }]
@@ -49,6 +57,14 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
     } finally {
       setPending(false);
     }
+  }
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    const message = text.trim();
+    if (!message || pending) return;
+    setText("");
+    void sendMessage(message);
   }
 
   function reset() {
@@ -72,13 +88,23 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
         {bubbles.length === 0 && (
           <p className="mt-10 text-center text-sm text-muted">Müşteri gibi bir mesaj yazarak başlayın.</p>
         )}
-        {bubbles.map((b, i) =>
-          b.from === "system" ? (
-            <p key={i} className="text-center text-xs text-muted">
-              {b.text}
-            </p>
-          ) : (
-            <div key={i} className={`flex ${b.from === "customer" ? "justify-end" : "justify-start"}`}>
+        {bubbles.map((b, i) => {
+          if (b.from === "system") {
+            return (
+              <p key={i} className="text-center text-xs text-muted">
+                {b.text}
+              </p>
+            );
+          }
+          if (b.from === "card") {
+            return (
+              <div key={i} className="max-w-[85%]">
+                <AppointmentCardView card={b.card} compact />
+              </div>
+            );
+          }
+          return (
+            <div key={i} className={`flex flex-col ${b.from === "customer" ? "items-end" : "items-start"}`}>
               <p
                 dir="auto"
                 className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm shadow-sm ${
@@ -87,13 +113,27 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
               >
                 {b.text}
               </p>
+              {b.from === "assistant" && i === lastAssistant && optionsVisible && b.options.length > 0 && (
+                <div className="mt-2 flex max-w-[85%] flex-wrap gap-2" role="group" aria-label="Seçenekler">
+                  {b.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => void sendMessage(option)}
+                      className="rounded-full border border-accent/60 bg-card px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent hover:text-accent-foreground"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          ),
-        )}
+          );
+        })}
         {pending && <p className="text-xs text-muted">yazıyor…</p>}
       </div>
 
-      <form onSubmit={send} className="flex gap-2 border-t border-border p-3">
+      <form onSubmit={submit} className="flex gap-2 border-t border-border p-3">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}

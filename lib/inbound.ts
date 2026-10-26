@@ -1,17 +1,18 @@
 import { runAssistant, type CreateMessage } from "./agent/run";
 import { businessIdForPhoneNumber, loadBusiness } from "./business";
 import type { Store } from "./store";
-import { sendText, type InboundMessage } from "./whatsapp";
+import { appUrl } from "./calendar";
+import { sendReply, type InboundMessage } from "./whatsapp";
 
 type Outcome = "duplicate" | "unknown-business" | "handoff" | "replied";
-type Deps = { store: Store; send?: typeof sendText; createMessage?: CreateMessage };
+type Deps = { store: Store; send?: typeof sendReply; createMessage?: CreateMessage };
 
 // Gelen bir WhatsApp mesajının tüm akışı: tekrarları ele, işletmeyi bul,
 // devredilmiş konuşmada sessiz kal, değilse asistanı çalıştırıp yanıtla.
 // Aynı müşterinin art arda gelen mesajları kilit sayesinde sırayla işlenir.
 export async function handleInboundMessage(message: InboundMessage, deps: Deps): Promise<Outcome> {
   const { store } = deps;
-  const send = deps.send ?? sendText;
+  const send = deps.send ?? sendReply;
 
   if (!(await store.markMessageSeen(message.id))) return "duplicate";
 
@@ -35,7 +36,7 @@ export async function handleInboundMessage(message: InboundMessage, deps: Deps):
       return "handoff";
     }
 
-    const { reply } = await runAssistant({
+    const { reply, options, appointments } = await runAssistant({
       business,
       conversation,
       store,
@@ -43,7 +44,11 @@ export async function handleInboundMessage(message: InboundMessage, deps: Deps):
       createMessage: deps.createMessage,
     });
     await store.saveConversation(conversation);
-    await send({ phoneNumberId: message.phoneNumberId, to: message.from, text: reply });
+    // Oluşan randevu için takvime ekleme sayfasının bağlantısı yanıta eklenir.
+    const base = appUrl();
+    const links = base ? appointments.map((a) => `📅 Randevu ve takvime ekle: ${base}/randevu/${a.id}`) : [];
+    const text = [reply, ...links].join("\n\n");
+    await send({ phoneNumberId: message.phoneNumberId, to: message.from, text, options });
     return "replied";
   });
 }
