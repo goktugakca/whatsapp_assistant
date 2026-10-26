@@ -272,6 +272,9 @@ describe("araç girdisindeki kaçış kodları", () => {
     await executeTool("show_options", { options: ["Sal\\u0131 09:00", "Per\\u015fembe 12:00"] }, ctx);
     expect(effects.options).toEqual(["Salı 09:00", "Perşembe 12:00"]);
 
+    await executeTool("show_options", { options: ["Salu0131 09:00", "Peru015fembe", "menu ve bonus 1234"] }, ctx);
+    expect(effects.options).toEqual(["Salı 09:00", "Perşembe", "menu ve bonus 1234"]);
+
     await executeTool(
       "book_appointment",
       { customer_name: "Ay\\u015fe I\\u015f\\u0131k", service_id: "sac", staff_id: "any", start: "2026-10-26T10:00:00+03:00" },

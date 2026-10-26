@@ -156,11 +156,17 @@ export interface ToolOutcome {
   isError?: boolean;
 }
 
-// Model bazen Türkçe karakterleri araç girdisinde kaçış kodu olarak yazıyor ("Sal\\u0131").
-// Müşteriye ve veritabanına gerçek karakter gitsin diye tüm metin alanlarında çözülür.
+// Model bazen Türkçe karakterleri araç girdisinde kaçış kodu olarak yazıyor: "Sal\\u0131"
+// ya da ters eğik çizgiyi de atlayıp "Salu0131". Müşteriye ve veritabanına gerçek karakter
+// gitsin diye tüm metin alanlarında çözülür. Çizgisiz biçim sadece Türkçe harf kodları için
+// çözülür; normal metindeki "u" ile başlayan rastgele dizileri bozmamak için.
+const TURKISH_CODES = "00e7|00c7|011f|011e|0131|0130|00f6|00d6|015f|015e|00fc|00dc|00e2|00c2|00ee|00fb";
+const BARE_TURKISH_ESCAPE = new RegExp(`u(${TURKISH_CODES})`, "gi");
+
 export function decodeUnicodeEscapes<T>(value: T): T {
   if (typeof value === "string") {
-    return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16))) as T;
+    const fromHex = (_: string, hex: string) => String.fromCharCode(parseInt(hex, 16));
+    return value.replace(/\\u([0-9a-fA-F]{4})/g, fromHex).replace(BARE_TURKISH_ESCAPE, fromHex) as T;
   }
   if (Array.isArray(value)) return value.map(decodeUnicodeEscapes) as T;
   if (value && typeof value === "object") {
