@@ -17,7 +17,9 @@ if (!url) {
 }
 
 const sql = await readFile(new URL("../lib/db/schema.sql", import.meta.url), "utf8");
-const client = new pg.Client({ connectionString: url });
+const client = new pg.Client({
+  connectionString: url.replace(/([?&])sslmode=(prefer|require|verify-ca)(?=&|$)/, "$1sslmode=verify-full"),
+});
 await client.connect();
 try {
   await client.query(sql);

@@ -21,7 +21,14 @@ export interface Database {
   withLock<T>(key: string, fn: () => Promise<T>): Promise<T>;
 }
 
-export function createPgDatabase(connectionString: string): Database {
+// Neon adresleri sslmode=require ile gelir; pg bunu zaten verify-full gibi uygular ama her
+// bağlantıda uyarı basar. Aynı davranışı açıkça istemek uyarıyı susturur.
+export function withExplicitSslMode(url: string): string {
+  return url.replace(/([?&])sslmode=(prefer|require|verify-ca)(?=&|$)/, "$1sslmode=verify-full");
+}
+
+export function createPgDatabase(url: string): Database {
+  const connectionString = withExplicitSslMode(url);
   // Sunucusuz ortamda her örnek kendi havuzunu açar; Neon'un havuzlanmış (-pooler)
   // adresini (DATABASE_URL) kullanın.
   const pool = new Pool({ connectionString, max: 5 });
