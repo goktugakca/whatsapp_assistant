@@ -1,52 +1,57 @@
-Türkiye'deki kuaför, berber, tırnak salonu ve klinikler için 2 sayfalık A4 bir tanıtım broşürü tasarla. Bütün metinler Türkçe. Broşür salonlara elden bırakılacak ve WhatsApp'tan PDF olarak gönderilecek.
+İki ayrı A4 dikey çizim alanı (794×1123 px) kullan ve yan yana koy. Türkiye'deki kuaför, berber, tırnak salonu ve klinikler için 2 sayfalık bir tanıtım broşürü tasarla. Bütün metinler Türkçe. Broşür salonlara elden bırakılacak ve WhatsApp'tan PDF olarak gönderilecek.
 
 Ürün: "Sırada". Salonun WhatsApp'ına gelen mesajlara cevap veren, boş saati bulan ve randevuyu yazan bir asistan.
 
-GÖRSEL KİMLİK: "SIRA FİŞİ"
-Ürünün adından geliyor: bankada, fırında, noterde alınan sıra fişi.
-- Zemin: krem kâğıt #F3EDE3. Fiş ve kart zemini #FBF8F2.
-- Metin: siyah mürekkep #1B1714. İkincil metin #6E655B.
-- Tek vurgu rengi: domates kırmızısı #D93D26. Başka renk yok. Yeşil, mavi veya degrade kullanma.
+GÖRSEL KİMLİK: "RANDEVU DEFTERİ"
+Salonların tezgâhta tuttuğu çizgili randevu defteri.
+- Renkler:
+  - Zemin: soğuk beyaz #F5F7FB. Defter sayfası: beyaz #FFFFFF.
+  - Defter çizgileri: açık mavi #D3DDEF.
+  - Metin: koyu lacivert-gri #1C2333. İkincil metin: #5D6781.
+  - Ana renk: mavi tükenmez kalem #2346B8.
+  - Defterin kenar çizgisi: pembe #E8738A.
+  - Fosforlu kalem: sarı #FFF09A.
+  - Krem, siyah, kırmızı, yeşil ya da degrade KULLANMA.
 - Yazı tipleri:
-  - Başlıklar: Barlow Condensed Bold, hepsi büyük harf, sıkı satır aralığı.
-  - Gövde metni: IBM Plex Sans.
-  - Saatler, numaralar ve küçük etiketler: IBM Plex Mono, büyük harf, geniş harf aralığı.
-- Ayraçlar: bölümler arasında 2 pt siyah düz çizgi; liste satırları arasında kesik çizgi.
-- Ana görsel: iki yanı yarım daire çentikli, ortasından kesik çizgiyle ayrılmış, hafif eğik duran gerçekçi bir randevu fişi.
-- Buton: düz siyah dikdörtgen, mono büyük harf yazı, sağ altında 3 pt kırmızı ofset gölge.
-- Vurgu etiketi: kırmızı çerçeveli, hafif eğik bir damga ("ÖNERİLEN").
+  - Başlık ve metin: Rubik (yuvarlak hatlı sans). Başlıklar yarı kalın, normal yazım; büyük harf değil.
+  - El yazısı: Caveat, mavi tükenmez rengi. Sadece deftere "elle yazılmış" şeylerde kullan: logo, saatler, müşteri kaydı, notlar, fiyat rakamları.
+- İmza öğesi: çizgili defter sayfası.
+  - Açık mavi yatay çizgiler, solda dikey pembe kenar çizgisi.
+  - Saat, kenar çizgisinin solunda el yazısıyla. Kayıt, çizginin sağında el yazısıyla satıra oturmuş.
+- Vurgu: başlıktaki kelimelerin altı sarı fosforlu kalemle boyanmış gibi.
+- Buton: mavi dolgulu, tam yuvarlak uçlu, beyaz yazı.
 - YAPMA:
-  - Emoji, yuvarlak ikon kutuları, hap şeklinde etiketler, büyük yuvarlak köşeli kartlar
-  - Stok fotoğraf, yapay zekâ / robot / beyin görselleri
+  - Emoji, ikon kutuları, stok fotoğraf
+  - Yapay zekâ / robot görselleri
+  - Sert ofset gölge, kalın siyah çerçeve
   - Meta veya WhatsApp logosu
 
 SAYFA 1
-- Üstte "SIRADA" yazısı ve altında siyah çizgi. Sağda küçük mono yazı: "WHATSAPP RANDEVU ASİSTANI".
+- Üstte el yazısıyla mavi "Sırada" logosu ve ince çizgi. Sağda küçük yazı: "WhatsApp randevu asistanı".
 - Solda:
-  - Küçük mono etiket: "Kuaför · Berber · Tırnak salonu · Güzellik merkezi · Klinik"
-  - Dev başlık: "SİZ YOKKEN DE SIRANIZ İŞLİYOR." ("SIRANIZ" kırmızı)
+  - Küçük gri yazı: "Kuaför · Berber · Tırnak salonu · Güzellik merkezi · Klinik"
+  - Büyük başlık: "Randevu defteriniz siz yokken de doluyor." ("siz yokken de" sarı fosforlu kalemle vurgulu)
   - Metin: "Sırada, salonunuzun WhatsApp'ına gelen mesajlara cevap verir, boş saati bulur ve randevuyu deftere yazar. Gece de, bayramda da, eliniz boyadayken de."
-  - Buton: "30 GÜN ÜCRETSİZ"
-- Sağda fiş:
-  - Üstte: "SIRADA · RANDEVU FİŞİ" ve sağında "NO. 047"
-  - Büyük kırmızı saat: "19:00"
-  - Altında: "28 Ekim Çarşamba", "Saç + sakal", "Mehmet Usta"
-  - Kesik çizgi
-  - Satırlar: FİYAT 700 TL · AD Murat · BİTİŞ 19:45 · YER Ustura Berber, Tunalı Hilmi Cad. No:5, Çankaya
-  - Fişin altında küçük mono yazı: "Örnek fiş: salon kapandıktan sonra, 22:42'de kesildi."
-- Başlık "CEVAPSIZ MESAJ, KAÇAN MÜŞTERİ" ve kırmızı mono numaralı üç sütun:
-  - 01 Eliniz doluyken: Müşteri koltuktayken telefona bakamazsınız. Cevap alamayan kişi bir sonraki salona yazar.
-  - 02 Kapandıktan sonra: Randevu istekleri akşam, gece ve kapalı günlerde de gelir. Kimse sabaha kadar beklemez.
-  - 03 Her gün aynı sorular: Fiyat ne kadar, yarın yer var mı, adres nerede? Hepsine sizin bilgilerinizle cevap verir.
-- Başlık "BİR RANDEVU NASIL YAZILIR". Saatli, kesik çizgili bir kayıt listesi:
+  - Buton: "30 gün ücretsiz deneyin"
+- Sağda defter sayfası:
+  - Üst satır: "28 Ekim Çarşamba" ve sağda "Ustura Berber"
+  - Kenar çizgisinin solunda el yazısıyla "19:00"
+  - Sağında el yazısıyla üç satır: "Murat · Saç + sakal", "Mehmet Usta · 700 TL", "bitiş 19:45 ✓"
+  - Altında küçük gri yazı: "Tunalı Hilmi Cad. No:5, Çankaya"
+  - Sayfanın altında el yazısıyla not: "↑ salon kapandıktan sonra, 22:42'de yazıldı"
+- Başlık: "Cevapsız mesaj, kaçan müşteri". El yazısıyla 1. 2. 3. numaralı üç sütun:
+  - Eliniz doluyken: Müşteri koltuktayken telefona bakamazsınız. Cevap alamayan kişi bir sonraki salona yazar.
+  - Kapandıktan sonra: Randevu istekleri akşam, gece ve kapalı günlerde de gelir. Kimse sabaha kadar beklemez.
+  - Her gün aynı sorular: Fiyat ne kadar, yarın yer var mı, adres nerede? Hepsine sizin bilgilerinizle cevap verir.
+- Başlık: "Bir randevu nasıl yazılır". Yanında çizgili defter sayfası; saatler kenarda el yazısıyla:
   - 22:41 Müşteri yazar: "Yarın akşam saç sakal için yer var mı?"
-  - 22:41 Asistan ustayı sorar. Mehmet Usta mı, Can mı, fark etmez mi?
+  - 22:41 Asistan ustayı sorar: Mehmet Usta mı, Can mı, fark etmez mi?
   - 22:42 Sadece Mehmet Usta'nın gerçekten boş saatlerini gösterir.
-  - 22:42 Randevuyu yazar, müşteriye fişini gönderir. Panelinize düşer.
-  - Ertesi gün: Randevudan önce müşteriye hatırlatma gider.
+  - 22:42 Randevuyu deftere yazar, müşteriye onayını gönderir.
+  - ertesi gün: Randevudan önce müşteriye hatırlatma gider.
 
 SAYFA 2
-- Başlık "NELER YAPAR". İki sütun; ikonsuz, kesik çizgiyle ayrılmış satırlar:
+- Başlık: "Neler yapar". İki sütun, ince çizgiyle ayrılmış, ikonsuz satırlar:
   - Her ustanın kendi takvimi
   - Tek dokunuşla seçim
   - Hatırlatma
@@ -55,19 +60,19 @@ SAYFA 2
   - Aylık döküm
   - Telefon takviminize düşer
   - Birçok dilde
-- Başlık "FİYATLAR". Fiyat listesi menü gibi satır satır (kart değil):
-  - TEK: 1–2 çalışan, 990 TL/ay
-  - SALON: 6 çalışana kadar, 1.990 TL/ay (yanında kırmızı "ÖNERİLEN" damgası)
-  - PRO: büyük salon ve klinikler, 3.490 TL/ay
+- Başlık: "Fiyatlar". Beyaz bir kutuda üç satır; rakamlar el yazısıyla mavi:
+  - Tek: 1–2 çalışan, 990 TL/ay
+  - Salon: 6 çalışana kadar, 1.990 TL/ay. Satır sarı fosforlu zeminli, yanında pembe el yazısıyla "önerilen".
+  - Pro: büyük salon ve klinikler, 3.490 TL/ay
   - Not: "Fiyatlara KDV dahil değildir. Yıllık ödemede 2 ay ücretsiz."
-- En altta siyah bir blok:
-  - Küçük etiket: "PİLOT · İLK SALONLAR"
-  - Başlık: "SIRANIZI ALIN"
+- En altta mavi bir blok:
+  - Sarı el yazısıyla "ilk salonlar"
+  - Başlık: "Defterinizi bize verin"
   - Metin: "Hizmet, fiyat ve usta bilgilerinizi biz giriyoruz. 30 günün sonunda asistanın sizin için kaç randevu aldığını dökümüyle gösteriyoruz."
-  - "— Kurulum bizden — 30 gün ücretsiz — Taahhüt yok"
-  - Sağda iki boş kare QR alanı: "CANLI DEMO" ve "BAŞVURU". Kodları ben ekleyeceğim.
+  - "✓ Kurulum bizden ✓ 30 gün ücretsiz ✓ Taahhüt yok"
+  - Sağda iki boş beyaz kare QR alanı: "Canlı demo" ve "Başvuru". Kodları ben ekleyeceğim.
 - Dipnot: "WhatsApp, Meta Platforms, Inc.'in markasıdır. Sırada bağımsız bir üründür."
 
 KURALLAR
 - Gerçek olmayan müşteri sayısı, yüzde, yorum veya logo ekleme.
-- 3 mm taşma payı bırak; metinler kenarlardan en az 10 mm içeride olsun.
+- Metinler kenarlardan en az 10 mm içeride olsun.

@@ -3,154 +3,143 @@
 <head>
 <meta charset="utf-8">
 <title>Sırada Katalog</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Rubik:wght@400;500;600;700&display=block" rel="stylesheet">
 <style>
   @page { size: A4; margin: 0; }
-  :root { --paper: #f3ede3; --card: #fbf8f2; --ink: #1b1714; --muted: #6e655b; --line: #d8cebf; --red: #d93d26; --cream: #fff8f0; }
+  :root { --paper: #f5f7fb; --card: #ffffff; --ink: #1c2333; --muted: #5d6781; --line: #d3ddef; --blue: #2346b8; --pink: #e8738a; --hi: #fff09a; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "IBM Plex Sans", sans-serif; color: var(--ink); background: var(--paper); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: Rubik, sans-serif; color: var(--ink); background: var(--paper); -webkit-print-color-adjust: exact; print-color-adjust: exact; font-variant-numeric: tabular-nums; }
   .page { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; padding: 14mm 16mm; background: var(--paper); }
   .page:last-child { page-break-after: auto; }
-  .mono { font-family: "IBM Plex Mono", monospace; }
-  .display { font-family: "Barlow Condensed", sans-serif; font-weight: 700; text-transform: uppercase; line-height: .9; letter-spacing: -0.01em; }
-  .top { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--ink); padding-bottom: 3mm; }
-  .wordmark { font-family: "Barlow Condensed"; font-weight: 700; font-size: 26px; text-transform: uppercase; letter-spacing: .03em; }
-  .top .mono { font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
-  .rule { border-top: 2px solid var(--ink); margin: 9mm 0 6mm; }
-  .dash { border-top: 1.5px dashed var(--line); }
-  .kicker { font-family: "IBM Plex Mono"; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); }
-  .red { color: var(--red); }
+  .hand { font-family: Caveat, cursive; color: var(--blue); }
+  .marker { text-decoration: underline; text-decoration-color: var(--hi); text-decoration-thickness: .38em; text-underline-offset: -.2em; text-decoration-skip-ink: none; }
+  .top { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 3mm; }
+  .top .hand { font-size: 34px; font-weight: 700; line-height: 1; }
+  .top small { font-size: 10.5px; color: var(--muted); }
+  h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .muted { color: var(--muted); }
+  .hr { border-top: 1px solid var(--line); margin: 9mm 0 7mm; }
 
-  /* Kapak */
-  .hero { display: grid; grid-template-columns: 1.15fr 1fr; gap: 8mm; align-items: center; margin-top: 12mm; }
-  .hero h1 { font-size: 74px; margin-top: 4mm; }
-  .hero .lead { font-size: 14px; line-height: 1.6; margin-top: 7mm; max-width: 92mm; }
-  .cta-row { display: flex; align-items: center; gap: 5mm; margin-top: 8mm; }
-  .btn { display: inline-block; background: var(--ink); color: var(--paper); border: 1.5px solid var(--ink); padding: 3mm 5mm; font-family: "IBM Plex Mono"; font-weight: 600; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; box-shadow: 3px 3px 0 var(--red); }
-  .cta-row .link { font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+  .ruled { --l: 30px; --g: 70px; background-color: var(--card);
+    background-image: linear-gradient(90deg, transparent var(--g), var(--pink) var(--g), var(--pink) calc(var(--g) + 1.5px), transparent calc(var(--g) + 1.5px)),
+      repeating-linear-gradient(transparent 0, transparent calc(var(--l) - 1px), var(--line) calc(var(--l) - 1px), var(--line) var(--l)); }
 
-  .ticket { background: var(--card); border: 1px solid var(--line); border-radius: 4px; box-shadow: 0 1px 0 var(--line), 0 10px 26px -14px rgba(0,0,0,.35); transform: rotate(1.5deg); position: relative; }
-  .ticket .head { display: flex; justify-content: space-between; padding: 5mm 6mm 0; font-family: "IBM Plex Mono"; font-size: 9px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
-  .ticket .head b { color: var(--ink); font-weight: 500; }
-  .ticket .main { padding: 3mm 6mm 5mm; }
-  .ticket .time { font-family: "Barlow Condensed"; font-weight: 700; font-size: 64px; line-height: 1; color: var(--red); }
-  .ticket .date { font-weight: 500; font-size: 12px; margin-top: 1mm; }
-  .ticket .svc { font-weight: 600; font-size: 14px; margin-top: 4mm; }
-  .ticket .staff { color: var(--muted); font-size: 12px; }
-  .perf { position: relative; border-top: 1.5px dashed var(--line); }
-  .perf::before, .perf::after { content: ""; position: absolute; top: -9px; width: 18px; height: 18px; border-radius: 50%; background: var(--paper); border: 1px solid var(--line); }
-  .perf::before { left: -10px; clip-path: inset(0 0 0 50%); }
-  .perf::after { right: -10px; clip-path: inset(0 50% 0 0); }
-  .ticket dl { padding: 4mm 6mm 5mm; display: grid; gap: 1.5mm; font-size: 11px; }
-  .ticket dl div { display: flex; gap: 4mm; }
-  .ticket dt { width: 12mm; font-family: "IBM Plex Mono"; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); line-height: 15px; }
-  .caption { font-family: "IBM Plex Mono"; font-size: 9px; color: var(--muted); text-align: right; margin-top: 4mm; }
+  .hero { display: grid; grid-template-columns: 1.1fr 1fr; gap: 9mm; align-items: center; margin-top: 12mm; }
+  .hero .sectors { font-size: 11px; color: var(--muted); }
+  .hero h1 { font-size: 46px; line-height: 1.05; font-weight: 600; letter-spacing: -0.02em; margin-top: 4mm; }
+  .hero .lead { font-size: 13.5px; line-height: 1.6; color: var(--muted); margin-top: 6mm; }
+  .btn { display: inline-block; margin-top: 7mm; background: var(--blue); color: #fff; border-radius: 999px; padding: 3mm 6mm; font-size: 12.5px; font-weight: 500; }
 
-  .problems { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7mm; }
-  .problems h2, .flow h2, .p2 h2 { font-size: 34px; }
-  .problems .n { font-family: "IBM Plex Mono"; color: var(--red); font-size: 11px; }
-  .problems h3 { font-size: 14px; margin-top: 1mm; }
+  .card { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: 0 12px 30px -18px rgba(35,70,184,.5); }
+  .card .ruled { padding-bottom: var(--l); }
+  .card .row { height: var(--l); line-height: var(--l); padding-left: calc(var(--g) + 10px); padding-right: 12px; }
+  .card .head { display: flex; justify-content: space-between; font-size: 11.5px; }
+  .card .head b { font-weight: 500; }
+  .card .time { position: absolute; left: 0; width: var(--g); padding-right: 8px; text-align: right; font-size: 27px; }
+  .card .entry { position: relative; }
+  .card .hand.big { font-size: 22px; }
+  .card .hand.mid { font-size: 19px; opacity: .85; }
+  .card .addr { font-size: 10.5px; color: var(--muted); }
+  .note { font-size: 18px; text-align: right; margin-top: 3mm; }
+
+  .problems { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7mm; margin-top: 6mm; }
+  .problems .n { font-size: 26px; line-height: 1; }
+  .problems h3 { font-size: 13.5px; margin-top: 1.5mm; }
   .problems p { font-size: 11px; line-height: 1.55; color: var(--muted); margin-top: 1.5mm; }
 
-  .flow { display: grid; grid-template-columns: 1fr 1.25fr; gap: 8mm; }
-  .flow .sub { font-size: 11.5px; color: var(--muted); margin-top: 3mm; line-height: 1.55; }
-  .flow ol { list-style: none; font-size: 11px; }
-  .flow li { display: flex; gap: 4mm; border-bottom: 1.5px dashed var(--line); padding: 2.4mm 0; }
-  .flow li:first-child { padding-top: 0; }
-  .flow li span:first-child { width: 18mm; flex: none; font-family: "IBM Plex Mono"; color: var(--muted); }
-  .foot { position: absolute; left: 16mm; right: 16mm; bottom: 9mm; display: flex; justify-content: space-between; font-family: "IBM Plex Mono"; font-size: 8.5px; color: var(--muted); }
+  .flow { display: grid; grid-template-columns: 1fr 1.45fr; gap: 8mm; }
+  .flow p { font-size: 11.5px; line-height: 1.55; margin-top: 3mm; }
+  .flow ol { list-style: none; --l: 28px; --g: 80px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; padding: var(--l) 0; }
+  .flow li { display: flex; line-height: var(--l); font-size: 11px; }
+  .flow li .hand { width: var(--g); flex: none; text-align: right; padding-right: 8px; font-size: 19px; }
+  .flow li span:last-child { padding: 0 10px 0 12px; }
+  .foot { position: absolute; left: 16mm; right: 16mm; bottom: 9mm; display: flex; justify-content: space-between; font-size: 8.5px; color: var(--muted); }
 
-  /* Sayfa 2 */
   .features { display: grid; grid-template-columns: 1fr 1fr; column-gap: 10mm; margin-top: 4mm; }
-  .features div { border-bottom: 1.5px dashed var(--line); padding: 3.2mm 0; }
-  .features b { font-size: 12.5px; }
+  .features div { border-bottom: 1px solid var(--line); padding: 3.2mm 0; }
+  .features b { font-size: 12.5px; font-weight: 600; }
   .features p { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: .8mm; }
-  .prices { margin-top: 3mm; }
-  .prices .row { display: grid; grid-template-columns: 34mm 1fr auto; gap: 4mm; align-items: baseline; border-bottom: 1.5px dashed var(--line); padding: 3.2mm 0; }
-  .prices .row.pick { background: var(--card); margin: 0 -3mm; padding: 3.2mm 3mm; border-bottom-color: var(--ink); }
-  .prices .name { font-family: "Barlow Condensed"; font-weight: 700; font-size: 22px; text-transform: uppercase; line-height: 1; }
-  .prices .who { font-size: 11px; color: var(--muted); }
-  .prices .amt { font-family: "Barlow Condensed"; font-weight: 700; font-size: 26px; line-height: 1; }
-  .prices .amt small { font-family: "IBM Plex Mono"; font-size: 9px; font-weight: 400; color: var(--muted); }
-  .prices .stamp { display: inline-block; margin-left: 2mm; border: 1.5px solid var(--red); color: var(--red); font-family: "IBM Plex Mono"; font-size: 8px; font-weight: 600; letter-spacing: .08em; padding: 0 1.4mm; transform: rotate(-3deg); vertical-align: middle; }
-  .note { font-family: "IBM Plex Mono"; font-size: 8.5px; color: var(--muted); margin-top: 2.5mm; }
 
-  .pilot { position: absolute; left: 16mm; right: 16mm; bottom: 18mm; background: var(--ink); color: var(--paper); border-radius: 4px; padding: 7mm; display: grid; grid-template-columns: 1fr auto auto; gap: 7mm; align-items: center; }
-  .pilot .kicker { color: #a3988a; }
-  .pilot h2 { font-size: 40px; margin-top: 2mm; }
-  .pilot p { font-size: 11px; line-height: 1.55; color: #d9cfc1; margin-top: 3mm; max-width: 92mm; }
-  .pilot ul { list-style: none; font-family: "IBM Plex Mono"; font-size: 10px; margin-top: 4mm; display: flex; gap: 5mm; }
-  .pilot li::before { content: "— "; color: var(--red); }
-  .qr { text-align: center; font-family: "IBM Plex Mono"; font-size: 8.5px; color: #d9cfc1; text-transform: uppercase; letter-spacing: .06em; }
-  .qr div { width: 27mm; height: 27mm; background: var(--paper); padding: 2mm; margin-bottom: 2mm; }
+  .prices { margin-top: 4mm; --l: 34px; --g: 0px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
+  .prices .row { display: grid; grid-template-columns: 32mm 1fr auto; gap: 4mm; align-items: center; padding: 3mm 5mm; border-bottom: 1px solid var(--line); }
+  .prices .row:last-child { border-bottom: 0; }
+  .prices .name { font-size: 15px; font-weight: 600; }
+  .prices .who { font-size: 11px; color: var(--muted); }
+  .prices .amt { font-family: Caveat; color: var(--blue); font-size: 30px; font-weight: 700; line-height: 1; }
+  .prices .amt small { font-family: Rubik; font-size: 10px; font-weight: 400; color: var(--muted); }
+  .prices .pick { background: linear-gradient(90deg, rgba(255,240,154,.55), rgba(255,240,154,.15)); }
+  .prices .tag { margin-left: 2mm; font-family: Caveat; font-size: 17px; color: var(--pink); font-weight: 700; }
+  .small { font-size: 9px; color: var(--muted); margin-top: 2.5mm; }
+
+  .pilot { position: absolute; left: 16mm; right: 16mm; bottom: 18mm; background: var(--blue); color: #fff; border-radius: 14px; padding: 7mm; display: grid; grid-template-columns: 1fr auto auto; gap: 7mm; align-items: center; }
+  .pilot .hand { color: #fff09a; font-size: 22px; line-height: 1; }
+  .pilot h2 { font-size: 26px; margin-top: 1.5mm; }
+  .pilot p { font-size: 11px; line-height: 1.55; color: #dbe3ff; margin-top: 3mm; max-width: 92mm; }
+  .pilot ul { list-style: none; font-size: 10.5px; margin-top: 4mm; display: flex; gap: 5mm; }
+  .pilot li::before { content: "✓ "; color: #fff09a; }
+  .qr { text-align: center; font-size: 9px; color: #dbe3ff; }
+  .qr div { width: 27mm; height: 27mm; background: #fff; padding: 2mm; border-radius: 8px; margin-bottom: 2mm; }
   .qr svg { width: 100%; height: 100%; display: block; }
-  .qr b { display: block; color: var(--paper); font-size: 9.5px; font-weight: 600; }
+  .qr b { display: block; color: #fff; font-size: 10px; font-weight: 600; }
 </style>
 </head>
 <body>
 
 <section class="page">
-  <div class="top"><span class="wordmark">Sırada</span><span class="mono">WhatsApp randevu asistanı</span></div>
+  <div class="top"><span class="hand">Sırada</span><small>WhatsApp randevu asistanı</small></div>
 
   <div class="hero">
     <div>
-      <p class="kicker">Kuaför · Berber · Tırnak salonu · Güzellik merkezi · Klinik</p>
-      <h1 class="display">Siz yokken de <span class="red">sıranız</span> işliyor.</h1>
+      <p class="sectors">Kuaför · Berber · Tırnak salonu · Güzellik merkezi · Klinik</p>
+      <h1>Randevu defteriniz <span class="marker">siz yokken de</span> doluyor.</h1>
       <p class="lead">Sırada, salonunuzun WhatsApp'ına gelen mesajlara cevap verir, boş saati bulur ve randevuyu deftere yazar. Gece de, bayramda da, eliniz boyadayken de.</p>
-      <div class="cta-row"><span class="btn" style="white-space:nowrap">30 gün ücretsiz</span><span class="link">Arkadaki QR ile müşteri gibi yazıp görün</span></div>
+      <span class="btn">30 gün ücretsiz deneyin</span>
     </div>
     <div>
-      <div class="ticket">
-        <div class="head"><span>Sırada · Randevu fişi</span><b>No. 047</b></div>
-        <div class="main">
-          <div class="time">19:00</div>
-          <div class="date">28 Ekim Çarşamba</div>
-          <div class="svc">Saç + sakal</div>
-          <div class="staff">Mehmet Usta</div>
+      <div class="card"><div class="ruled">
+        <div class="row head"><b>28 Ekim Çarşamba</b><span class="muted">Ustura Berber</span></div>
+        <div class="entry">
+          <span class="hand time">19:00</span>
+          <div class="row hand big">Murat · Saç + sakal</div>
+          <div class="row hand mid">Mehmet Usta · 700 TL</div>
+          <div class="row hand mid">bitiş 19:45 ✓</div>
         </div>
-        <div class="perf"></div>
-        <dl>
-          <div><dt>Fiyat</dt><dd>700 TL</dd></div>
-          <div><dt>Ad</dt><dd>Murat</dd></div>
-          <div><dt>Bitiş</dt><dd>19:45</dd></div>
-          <div><dt>Yer</dt><dd>Ustura Berber, Tunalı Hilmi Cad. No:5, Çankaya</dd></div>
-        </dl>
-      </div>
-      <p class="caption">Örnek fiş: salon kapandıktan sonra, 22:42'de kesildi.</p>
+        <div class="row addr">Tunalı Hilmi Cad. No:5, Çankaya</div>
+      </div></div>
+      <p class="hand note">↑ salon kapandıktan sonra, 22:42'de yazıldı</p>
     </div>
   </div>
 
-  <div class="rule"></div>
-  <h2 class="display" style="font-size:34px">Cevapsız mesaj, kaçan müşteri</h2>
-  <div class="problems" style="margin-top:6mm">
-    <div><span class="n">01</span><h3>Eliniz doluyken</h3><p>Müşteri koltuktayken telefona bakamazsınız. Cevap alamayan kişi bir sonraki salona yazar.</p></div>
-    <div><span class="n">02</span><h3>Kapandıktan sonra</h3><p>Randevu istekleri akşam, gece ve kapalı günlerde de gelir. Kimse sabaha kadar beklemez.</p></div>
-    <div><span class="n">03</span><h3>Her gün aynı sorular</h3><p>Fiyat ne kadar, yarın yer var mı, adres nerede? Hepsine sizin bilgilerinizle cevap verir.</p></div>
+  <div class="hr"></div>
+  <h2>Cevapsız mesaj, kaçan müşteri</h2>
+  <div class="problems">
+    <div><span class="hand n">1.</span><h3>Eliniz doluyken</h3><p>Müşteri koltuktayken telefona bakamazsınız. Cevap alamayan kişi bir sonraki salona yazar.</p></div>
+    <div><span class="hand n">2.</span><h3>Kapandıktan sonra</h3><p>Randevu istekleri akşam, gece ve kapalı günlerde de gelir. Kimse sabaha kadar beklemez.</p></div>
+    <div><span class="hand n">3.</span><h3>Her gün aynı sorular</h3><p>Fiyat ne kadar, yarın yer var mı, adres nerede? Hepsine sizin bilgilerinizle cevap verir.</p></div>
   </div>
 
-  <div class="rule"></div>
+  <div class="hr"></div>
   <div class="flow">
     <div>
-      <h2 class="display">Bir randevu nasıl yazılır</h2>
-      <p class="sub">Müşteri uygulama indirmez, üye olmaz. Her zamanki gibi WhatsApp'tan yazar.</p>
+      <h2>Bir randevu nasıl yazılır</h2>
+      <p class="muted">Müşteri uygulama indirmez, üye olmaz. Her zamanki gibi WhatsApp'tan yazar; gerisini asistan deftere işler.</p>
     </div>
-    <ol>
-      <li><span>22:41</span><span>Müşteri yazar: “Yarın akşam saç sakal için yer var mı?”</span></li>
-      <li><span>22:41</span><span>Asistan ustayı sorar. Mehmet Usta mı, Can mı, fark etmez mi?</span></li>
-      <li><span>22:42</span><span>Sadece Mehmet Usta'nın gerçekten boş saatlerini gösterir.</span></li>
-      <li><span>22:42</span><span>Randevuyu yazar, müşteriye fişini gönderir. Panelinize düşer.</span></li>
-      <li><span>Ertesi gün</span><span>Randevudan önce müşteriye hatırlatma gider.</span></li>
+    <ol class="ruled">
+      <li><span class="hand">22:41</span><span>Müşteri yazar: “Yarın akşam saç sakal için yer var mı?”</span></li>
+      <li><span class="hand">22:41</span><span>Asistan ustayı sorar: Mehmet Usta mı, Can mı, fark etmez mi?</span></li>
+      <li><span class="hand">22:42</span><span>Sadece Mehmet Usta'nın gerçekten boş saatlerini gösterir.</span></li>
+      <li><span class="hand">22:42</span><span>Randevuyu deftere yazar, müşteriye onayını gönderir.</span></li>
+      <li><span class="hand">ertesi gün</span><span>Randevudan önce müşteriye hatırlatma gider.</span></li>
     </ol>
   </div>
 
   <div class="foot"><span>Sırada · WhatsApp randevu asistanı</span><span>1 / 2</span></div>
 </section>
 
-<section class="page p2">
-  <div class="top"><span class="wordmark">Sırada</span><span class="mono">Neler yapar · Fiyatlar</span></div>
+<section class="page">
+  <div class="top"><span class="hand">Sırada</span><small>Neler yapar · Fiyatlar</small></div>
 
-  <h2 class="display" style="margin-top:10mm">Neler yapar</h2>
+  <h2 style="margin-top:10mm">Neler yapar</h2>
   <div class="features">
     <div><b>Her ustanın kendi takvimi</b><p>Kim hangi gün çalışıyor, hangi hizmeti kaça yapıyor; asistan bilir.</p></div>
     <div><b>Tek dokunuşla seçim</b><p>Hizmet, usta ve saat WhatsApp'ta düğme olarak gelir. Müşteri yazmakla uğraşmaz.</p></div>
@@ -162,24 +151,24 @@
     <div><b>Birçok dilde</b><p>Türkçe'nin yanında İngilizce ve diğer dillerde yazan müşterilere de cevap verir.</p></div>
   </div>
 
-  <h2 class="display" style="margin-top:10mm">Fiyatlar</h2>
+  <h2 style="margin-top:10mm">Fiyatlar</h2>
   <div class="prices">
     <div class="row"><span class="name">Tek</span><span class="who">1–2 çalışan · sınırsız yanıt, randevu, hatırlatma, panel</span><span class="amt">990 TL <small>/ay</small></span></div>
-    <div class="row pick"><span class="name">Salon <span class="stamp">Önerilen</span></span><span class="who">6 çalışana kadar · ustaya özel takvim ve fiyat, aylık döküm</span><span class="amt">1.990 TL <small>/ay</small></span></div>
+    <div class="row pick"><span class="name">Salon <span class="tag">önerilen</span></span><span class="who">6 çalışana kadar · ustaya özel takvim ve fiyat, aylık döküm</span><span class="amt">1.990 TL <small>/ay</small></span></div>
     <div class="row"><span class="name">Pro</span><span class="who">Büyük salon ve klinikler · sınırsız çalışan, öncelikli destek</span><span class="amt">3.490 TL <small>/ay</small></span></div>
   </div>
-  <p class="note">Fiyatlara KDV dahil değildir. Yıllık ödemede 2 ay ücretsiz.</p>
+  <p class="small">Fiyatlara KDV dahil değildir. Yıllık ödemede 2 ay ücretsiz.</p>
 
   <div class="pilot">
     <div>
-      <p class="kicker">Pilot · İlk salonlar</p>
-      <h2 class="display">Sıranızı alın</h2>
+      <p class="hand">ilk salonlar</p>
+      <h2>Defterinizi bize verin</h2>
       <p>Hizmet, fiyat ve usta bilgilerinizi biz giriyoruz. 30 günün sonunda asistanın sizin için kaç randevu aldığını dökümüyle gösteriyoruz.</p>
       <ul><li>Kurulum bizden</li><li>30 gün ücretsiz</li><li>Taahhüt yok</li></ul>
     </div>
-    <div class="qr"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#f3ede3" d="M0 0h33v33H0z"/><path stroke="#1b1714" d="M0 0.5h7m2 0h1m6 0h1m2 0h3m1 0h1m2 0h7M0 1.5h1m5 0h1m3 0h1m4 0h1m2 0h1m1 0h2m4 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h1m2 0h2m1 0h2m5 0h1m1 0h2m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h5m5 0h2m2 0h1m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h4m1 0h4m3 0h4m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h2m1 0h1m5 0h3m1 0h1m4 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h1m1 0h2m2 0h1m1 0h1m2 0h4m1 0h1M0 8.5h1m1 0h5m5 0h2m3 0h1m1 0h1m2 0h1m3 0h5M0 9.5h1m2 0h2m2 0h1m2 0h1m2 0h1m2 0h2m1 0h5m2 0h2m1 0h4M1 10.5h2m1 0h1m1 0h1m1 0h1m4 0h3m1 0h1m2 0h2m2 0h1m3 0h1m1 0h2M0 11.5h1m6 0h2m1 0h1m1 0h2m1 0h1m1 0h3m1 0h1m4 0h1m1 0h5M1 12.5h3m1 0h2m2 0h1m4 0h3m7 0h2m2 0h2M1 13.5h1m5 0h4m2 0h1m1 0h1m2 0h1m2 0h1m1 0h1m2 0h1m3 0h3M0 14.5h1m1 0h1m1 0h1m1 0h2m1 0h2m4 0h2m3 0h2m2 0h3m4 0h1M0 15.5h1m1 0h1m2 0h1m3 0h1m3 0h1m1 0h1m2 0h4m1 0h1m1 0h2m2 0h2M2 16.5h1m1 0h1m1 0h2m1 0h1m1 0h7m1 0h2m1 0h2m1 0h1m1 0h3m2 0h1M0 17.5h1m6 0h1m2 0h4m2 0h1m1 0h3m1 0h2m1 0h3m1 0h2m1 0h1M0 18.5h2m1 0h2m1 0h1m3 0h1m4 0h2m1 0h1m1 0h1m1 0h1m4 0h2m1 0h2M1 19.5h3m1 0h1m1 0h4m1 0h1m1 0h3m2 0h1m1 0h2m1 0h8M1 20.5h1m1 0h7m2 0h2m4 0h1m3 0h1m1 0h2m1 0h3m1 0h1M0 21.5h1m2 0h1m1 0h1m2 0h3m4 0h2m2 0h3m1 0h2m1 0h1m2 0h2m1 0h1M0 22.5h1m1 0h1m3 0h4m1 0h2m1 0h1m3 0h1m1 0h2m2 0h2m1 0h5M0 23.5h1m1 0h2m1 0h1m3 0h2m1 0h1m3 0h1m3 0h2m3 0h2m3 0h3M0 24.5h1m2 0h1m1 0h2m1 0h3m6 0h1m1 0h2m2 0h6M8 25.5h2m1 0h1m1 0h1m3 0h5m2 0h1m3 0h1m1 0h1m1 0h1M0 26.5h7m7 0h2m1 0h1m2 0h5m1 0h1m1 0h1m1 0h2M0 27.5h1m5 0h1m1 0h2m3 0h1m1 0h4m2 0h1m1 0h2m3 0h4M0 28.5h1m1 0h3m1 0h1m1 0h4m3 0h2m5 0h1m1 0h6m1 0h2M0 29.5h1m1 0h3m1 0h1m1 0h1m1 0h1m4 0h1m1 0h4m3 0h2m2 0h2m1 0h2M0 30.5h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h5m2 0h3m3 0h2M0 31.5h1m5 0h1m4 0h2m1 0h2m2 0h1m1 0h3m2 0h1m2 0h3M0 32.5h7m1 0h1m1 0h8m4 0h4m1 0h1m1 0h1m1 0h1"/></svg>
+    <div class="qr"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#1c2333" d="M0 0.5h7m2 0h1m6 0h1m2 0h3m1 0h1m2 0h7M0 1.5h1m5 0h1m3 0h1m4 0h1m2 0h1m1 0h2m4 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h1m2 0h2m1 0h2m5 0h1m1 0h2m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h5m5 0h2m2 0h1m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h4m1 0h4m3 0h4m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h2m1 0h1m5 0h3m1 0h1m4 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h1m1 0h2m2 0h1m1 0h1m2 0h4m1 0h1M0 8.5h1m1 0h5m5 0h2m3 0h1m1 0h1m2 0h1m3 0h5M0 9.5h1m2 0h2m2 0h1m2 0h1m2 0h1m2 0h2m1 0h5m2 0h2m1 0h4M1 10.5h2m1 0h1m1 0h1m1 0h1m4 0h3m1 0h1m2 0h2m2 0h1m3 0h1m1 0h2M0 11.5h1m6 0h2m1 0h1m1 0h2m1 0h1m1 0h3m1 0h1m4 0h1m1 0h5M1 12.5h3m1 0h2m2 0h1m4 0h3m7 0h2m2 0h2M1 13.5h1m5 0h4m2 0h1m1 0h1m2 0h1m2 0h1m1 0h1m2 0h1m3 0h3M0 14.5h1m1 0h1m1 0h1m1 0h2m1 0h2m4 0h2m3 0h2m2 0h3m4 0h1M0 15.5h1m1 0h1m2 0h1m3 0h1m3 0h1m1 0h1m2 0h4m1 0h1m1 0h2m2 0h2M2 16.5h1m1 0h1m1 0h2m1 0h1m1 0h7m1 0h2m1 0h2m1 0h1m1 0h3m2 0h1M0 17.5h1m6 0h1m2 0h4m2 0h1m1 0h3m1 0h2m1 0h3m1 0h2m1 0h1M0 18.5h2m1 0h2m1 0h1m3 0h1m4 0h2m1 0h1m1 0h1m1 0h1m4 0h2m1 0h2M1 19.5h3m1 0h1m1 0h4m1 0h1m1 0h3m2 0h1m1 0h2m1 0h8M1 20.5h1m1 0h7m2 0h2m4 0h1m3 0h1m1 0h2m1 0h3m1 0h1M0 21.5h1m2 0h1m1 0h1m2 0h3m4 0h2m2 0h3m1 0h2m1 0h1m2 0h2m1 0h1M0 22.5h1m1 0h1m3 0h4m1 0h2m1 0h1m3 0h1m1 0h2m2 0h2m1 0h5M0 23.5h1m1 0h2m1 0h1m3 0h2m1 0h1m3 0h1m3 0h2m3 0h2m3 0h3M0 24.5h1m2 0h1m1 0h2m1 0h3m6 0h1m1 0h2m2 0h6M8 25.5h2m1 0h1m1 0h1m3 0h5m2 0h1m3 0h1m1 0h1m1 0h1M0 26.5h7m7 0h2m1 0h1m2 0h5m1 0h1m1 0h1m1 0h2M0 27.5h1m5 0h1m1 0h2m3 0h1m1 0h4m2 0h1m1 0h2m3 0h4M0 28.5h1m1 0h3m1 0h1m1 0h4m3 0h2m5 0h1m1 0h6m1 0h2M0 29.5h1m1 0h3m1 0h1m1 0h1m1 0h1m4 0h1m1 0h4m3 0h2m2 0h2m1 0h2M0 30.5h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h5m2 0h3m3 0h2M0 31.5h1m5 0h1m4 0h2m1 0h2m2 0h1m1 0h3m2 0h1m2 0h3M0 32.5h7m1 0h1m1 0h8m4 0h4m1 0h1m1 0h1m1 0h1"/></svg>
 </div><b>Canlı demo</b>Müşteri gibi yazın</div>
-    <div class="qr"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#f3ede3" d="M0 0h33v33H0z"/><path stroke="#1b1714" d="M0 0.5h7m2 0h1m1 0h1m4 0h1m2 0h3m1 0h1m2 0h7M0 1.5h1m5 0h1m4 0h1m3 0h1m4 0h2m4 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h2m1 0h2m1 0h2m2 0h1m2 0h1m1 0h2m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h1m1 0h2m6 0h3m1 0h1m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h2m2 0h5m1 0h6m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h1m1 0h1m6 0h2m1 0h2m4 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h5m1 0h1m1 0h1m2 0h4m1 0h1M0 8.5h1m1 0h5m2 0h3m1 0h1m3 0h1m1 0h1m2 0h1m3 0h5M1 9.5h1m1 0h1m3 0h4m2 0h1m2 0h2m1 0h5m2 0h2m1 0h4M0 10.5h1m1 0h1m2 0h2m2 0h1m3 0h3m1 0h1m2 0h2m2 0h1m3 0h1m1 0h2M2 11.5h1m1 0h1m5 0h4m1 0h1m1 0h3m1 0h1m4 0h1m1 0h5M1 12.5h1m4 0h3m2 0h1m2 0h3m7 0h2m2 0h2M0 13.5h3m1 0h1m2 0h2m1 0h1m2 0h1m1 0h1m2 0h4m1 0h1m2 0h1m3 0h3M0 14.5h1m1 0h2m2 0h1m1 0h1m1 0h2m1 0h4m4 0h1m2 0h3m4 0h1M0 15.5h1m4 0h1m1 0h7m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m2 0h2M1 16.5h1m2 0h3m1 0h1m1 0h1m1 0h2m1 0h3m1 0h2m1 0h2m1 0h1m1 0h3m2 0h1M3 17.5h1m1 0h1m1 0h1m1 0h3m1 0h1m2 0h1m1 0h3m1 0h2m1 0h3m1 0h2m1 0h1M1 18.5h1m4 0h1m2 0h8m1 0h1m1 0h1m1 0h1m4 0h2m1 0h2M0 19.5h2m1 0h2m2 0h3m2 0h5m2 0h1m1 0h2m1 0h8M3 20.5h2m1 0h3m1 0h2m1 0h1m4 0h1m5 0h2m1 0h3m1 0h1M0 21.5h3m1 0h2m1 0h2m6 0h2m2 0h3m1 0h2m1 0h1m2 0h2m1 0h1M0 22.5h1m1 0h1m3 0h1m2 0h1m1 0h4m3 0h1m1 0h2m2 0h2m1 0h5M0 23.5h1m2 0h1m1 0h1m1 0h3m4 0h1m1 0h1m4 0h1m3 0h2m3 0h2M0 24.5h1m2 0h1m1 0h2m1 0h1m2 0h4m2 0h1m1 0h2m2 0h6m2 0h1M8 25.5h1m1 0h2m5 0h5m2 0h1m3 0h1m1 0h1m1 0h1M0 26.5h7m2 0h3m2 0h2m1 0h1m2 0h1m2 0h2m1 0h1m1 0h1m1 0h2M0 27.5h1m5 0h1m1 0h5m1 0h5m2 0h4m3 0h4M0 28.5h1m1 0h3m1 0h1m1 0h1m1 0h3m2 0h2m5 0h1m1 0h6m1 0h2M0 29.5h1m1 0h3m1 0h1m1 0h1m4 0h1m1 0h1m1 0h4m1 0h1m1 0h2m2 0h2m1 0h2M0 30.5h1m1 0h3m1 0h1m1 0h3m2 0h1m1 0h3m3 0h2m3 0h2M0 31.5h1m5 0h1m2 0h1m2 0h4m2 0h1m2 0h2m2 0h1m2 0h3M0 32.5h7m1 0h1m2 0h2m2 0h3m4 0h4m1 0h1m1 0h1m1 0h1"/></svg>
+    <div class="qr"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#1c2333" d="M0 0.5h7m2 0h1m1 0h1m4 0h1m2 0h3m1 0h1m2 0h7M0 1.5h1m5 0h1m4 0h1m3 0h1m4 0h2m4 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h2m1 0h2m1 0h2m2 0h1m2 0h1m1 0h2m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h1m1 0h2m6 0h3m1 0h1m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h2m2 0h5m1 0h6m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h1m1 0h1m6 0h2m1 0h2m4 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h5m1 0h1m1 0h1m2 0h4m1 0h1M0 8.5h1m1 0h5m2 0h3m1 0h1m3 0h1m1 0h1m2 0h1m3 0h5M1 9.5h1m1 0h1m3 0h4m2 0h1m2 0h2m1 0h5m2 0h2m1 0h4M0 10.5h1m1 0h1m2 0h2m2 0h1m3 0h3m1 0h1m2 0h2m2 0h1m3 0h1m1 0h2M2 11.5h1m1 0h1m5 0h4m1 0h1m1 0h3m1 0h1m4 0h1m1 0h5M1 12.5h1m4 0h3m2 0h1m2 0h3m7 0h2m2 0h2M0 13.5h3m1 0h1m2 0h2m1 0h1m2 0h1m1 0h1m2 0h4m1 0h1m2 0h1m3 0h3M0 14.5h1m1 0h2m2 0h1m1 0h1m1 0h2m1 0h4m4 0h1m2 0h3m4 0h1M0 15.5h1m4 0h1m1 0h7m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m2 0h2M1 16.5h1m2 0h3m1 0h1m1 0h1m1 0h2m1 0h3m1 0h2m1 0h2m1 0h1m1 0h3m2 0h1M3 17.5h1m1 0h1m1 0h1m1 0h3m1 0h1m2 0h1m1 0h3m1 0h2m1 0h3m1 0h2m1 0h1M1 18.5h1m4 0h1m2 0h8m1 0h1m1 0h1m1 0h1m4 0h2m1 0h2M0 19.5h2m1 0h2m2 0h3m2 0h5m2 0h1m1 0h2m1 0h8M3 20.5h2m1 0h3m1 0h2m1 0h1m4 0h1m5 0h2m1 0h3m1 0h1M0 21.5h3m1 0h2m1 0h2m6 0h2m2 0h3m1 0h2m1 0h1m2 0h2m1 0h1M0 22.5h1m1 0h1m3 0h1m2 0h1m1 0h4m3 0h1m1 0h2m2 0h2m1 0h5M0 23.5h1m2 0h1m1 0h1m1 0h3m4 0h1m1 0h1m4 0h1m3 0h2m3 0h2M0 24.5h1m2 0h1m1 0h2m1 0h1m2 0h4m2 0h1m1 0h2m2 0h6m2 0h1M8 25.5h1m1 0h2m5 0h5m2 0h1m3 0h1m1 0h1m1 0h1M0 26.5h7m2 0h3m2 0h2m1 0h1m2 0h1m2 0h2m1 0h1m1 0h1m1 0h2M0 27.5h1m5 0h1m1 0h5m1 0h5m2 0h4m3 0h4M0 28.5h1m1 0h3m1 0h1m1 0h1m1 0h3m2 0h2m5 0h1m1 0h6m1 0h2M0 29.5h1m1 0h3m1 0h1m1 0h1m4 0h1m1 0h1m1 0h4m1 0h1m1 0h2m2 0h2m1 0h2M0 30.5h1m1 0h3m1 0h1m1 0h3m2 0h1m1 0h3m3 0h2m3 0h2M0 31.5h1m5 0h1m2 0h1m2 0h4m2 0h1m2 0h2m2 0h1m2 0h3M0 32.5h7m1 0h1m2 0h2m2 0h3m4 0h4m1 0h1m1 0h1m1 0h1"/></svg>
 </div><b>Başvuru</b>Sizi arayalım</div>
   </div>
   <div class="foot"><span>WhatsApp, Meta Platforms, Inc.'in markasıdır. Sırada bağımsız bir üründür.</span><span>2 / 2</span></div>
