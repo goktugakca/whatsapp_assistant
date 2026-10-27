@@ -3,7 +3,9 @@
 import { useActionState, useState } from "react";
 import type { Business, Service, Staff, Weekday, WorkingHours } from "@/lib/business";
 import { slugify } from "@/lib/business-schema";
+import { mergeServices, type ExtractedService } from "@/lib/service-merge";
 import { saveBusinessSettings, type SettingsState } from "../actions";
+import { PriceListImport } from "./price-list-import";
 
 // Haftanın Pazartesi'den başlayan sırası (0 = Pazar).
 const DAYS: { day: Weekday; label: string }[] = [
@@ -25,6 +27,32 @@ export function SettingsForm({ initial }: { initial: Business }) {
   const [b, setB] = useState<Business>(initial);
   const [state, action, pending] = useActionState<SettingsState, FormData>(saveBusinessSettings, null);
   const update = (patch: Partial<Business>) => setB((prev) => ({ ...prev, ...patch }));
+  // Fotoğraftan gelen ve süresi tahmin edilen hizmetler; sahibi kontrol etsin diye işaretlenir.
+  const [estimated, setEstimated] = useState<Set<string>>(new Set());
+
+  // Fotoğraftan çıkarılan hizmetleri ekler. Yeni hizmetler bütün çalışanlara atanır (sahibi
+  // istemediğini kaldırır); aynı adlı hizmetin sadece fiyatı güncellenir.
+  const importServices = (extracted: ExtractedService[], replace: boolean): string => {
+    const { services, addedIds, estimatedIds, updated, removed } = mergeServices(b.services, extracted, { replace });
+    const remaining = new Set(services.map((s) => s.id));
+    update({
+      services,
+      staff: b.staff.map((p) => ({
+        ...p,
+        serviceIds: [...p.serviceIds.filter((id) => remaining.has(id)), ...addedIds],
+        ...(p.prices && { prices: Object.fromEntries(Object.entries(p.prices).filter(([id]) => remaining.has(id))) }),
+      })),
+    });
+    setEstimated(new Set(estimatedIds));
+    const added = addedIds.length;
+    const parts = [
+      added > 0 && `${added} hizmet eklendi`,
+      updated > 0 && `${updated} fiyat güncellendi`,
+      removed > 0 && `${removed} eski hizmet çıkarıldı`,
+    ].filter(Boolean);
+    if (parts.length === 0) return "Listedeki hizmetler zaten kayıtlı, değişiklik yok.";
+    return `${parts.join(", ")}. Sarı işaretli süreler tahmini; kontrol edip sayfanın altından kaydedin.`;
+  };
 
   const setService = (i: number, patch: Partial<Service>) =>
     update({ services: b.services.map((s, j) => (j === i ? { ...s, ...patch } : s)) });
@@ -142,6 +170,7 @@ export function SettingsForm({ initial }: { initial: Business }) {
         hint="Asistan fiyat sorulduğunda sadece buraya yazdığınız fiyat bilgisini söyler."
       >
         <div className="space-y-3">
+          <PriceListImport businessId={b.id} existingNames={b.services.map((s) => s.name)} onImported={importServices} />
           {b.services.map((s, i) => (
             <div key={s.id} className="grid gap-2 rounded-lg border border-border p-3 sm:grid-cols-[2fr_1fr_2fr_auto]">
               <input
@@ -157,10 +186,18 @@ export function SettingsForm({ initial }: { initial: Business }) {
                   min={5}
                   max={600}
                   step={5}
-                  className={input}
+                  className={`${input} ${estimated.has(s.id) ? "bg-highlight" : ""}`}
                   aria-label="Süre (dakika)"
+                  title={estimated.has(s.id) ? "Tahmini süre, kontrol edin" : undefined}
                   value={s.durationMinutes}
-                  onChange={(e) => setService(i, { durationMinutes: Number(e.target.value) })}
+                  onChange={(e) => {
+                    setService(i, { durationMinutes: Number(e.target.value) });
+                    setEstimated((prev) => {
+                      const next = new Set(prev);
+                      next.delete(s.id);
+                      return next;
+                    });
+                  }}
                 />
                 <span className="text-muted">dk</span>
               </label>

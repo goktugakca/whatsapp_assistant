@@ -110,6 +110,16 @@ Notlar:
 - **Sadece metin.** Sesli mesaj ve görseller şimdilik okunmuyor; asistana kısa bir not olarak iletiliyor. Kuaför ve berber müşterileri sık sesli mesaj attığı için bu, yol haritasında öne alınmalı.
 - Model: varsayılan `claude-haiku-5-5` (hızlı ve ucuz), `low` efor. `ANTHROPIC_MODEL` ile değiştirilebilir (ör. `claude-sonnet-5-5`); Opus, Sonnet ve Fable modellerinde reddedilen isteklerde sunucu tarafı yedek model (`fallbacks: "default"`) otomatik açılır. Vercel loglarında her yanıtın süresi `asistan: ...ms` satırında görünür.
 
+## Fiyat listesini fotoğraftan alma
+
+Ayarlar → Hizmetler ve fiyatlar bölümünde işletme sahibi tabela, menü veya fiyat listesinin fotoğrafını (en fazla 5) yükler. Fotoğraflar tarayıcıda küçültülür, `ANTHROPIC_IMPORT_MODEL` (varsayılan `claude-opus-5-5`) hizmetleri, fiyatları ve tahmini süreleri çıkarır. Sonuç forma eklenir ve kaydedilmeden önce kontrol edilir:
+
+- Aynı hizmet (aynı ad ya da sektör sözlüğüne göre farklı adla aynı işlem) yeni kayıt açmaz, mevcut hizmetin fiyatı güncellenir.
+- Süresi listede yazmayan hizmetlerin süresi tahminidir ve sarıyla işaretlenir.
+- "Mevcut hizmetleri bu listeyle değiştir" seçilirse listede olmayan hizmetler çıkarılır.
+
+Sektör sözlüğü (`lib/glossary.ts`), müşterilerin aynı işlem için kullandığı farklı adları (ombre/balyaj, brezilya fönü/keratin, skin fade, jel tırnak…) içerir ve asistanın istemine de eklenir.
+
 ## Panel girişi
 
 - `/giris` sayfasından girilir. **Yönetici:** kullanıcı adı `admin`, şifre `PANEL_PASSWORD`. Tüm işletmeleri görür, **Kullanıcılar** sayfasından işletme kullanıcısı oluşturur ve siler.

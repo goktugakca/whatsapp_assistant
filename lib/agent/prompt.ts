@@ -1,4 +1,5 @@
 import type { Business } from "../business";
+import { glossaryText } from "../glossary";
 import { verticals } from "../verticals";
 
 // Sistem istemi sadece işletme verisinden üretilir ve konuşma boyunca sabit kalır;
@@ -41,6 +42,9 @@ ${staff ? `\nÇalışanlar (${vertical.staffLabel}):\n${staff}\n` : ""}
 Sık sorulan sorular:
 ${faq}
 
+Sektör sözlüğü (müşteriler aynı işlemi farklı adlarla sorar; bu liste işletmenin o hizmeti verdiği anlamına gelmez):
+${glossaryText(business.type)}
+
 İşletmeye özel kurallar:
 ${rules}
 
@@ -48,6 +52,8 @@ ${rules}
 - Müşteri hangi dilde yazıyorsa o dilde yanıt ver.
 - WhatsApp'ta yazıyorsun: kısa, sıcak ve net ol. Birkaç cümleyi geçme, başlık ve tablo kullanma.
 - Sadece yukarıdaki bilgilere dayan. Bilmediğin bir şey sorulursa uydurma; işletmenin döneceğini söyle ve handoff_to_human aracını kullan.
+- Müşteri bir hizmeti farklı bir adla sorabilir ("ombre", "brezilya fönü", "skin fade", "jel tırnak"). Sektör sözlüğüyle işletmenin hizmet listesindeki karşılığını bul ve o hizmetin adıyla konuş. Listede karşılığı yoksa uydurma; bu hizmetin listede olmadığını söyle ve istersen işletmeye sorabileceğini belirt.
+- Fiyatı sadece hizmet listesinde (ve çalışanın kendi fiyatında) yazan metinden söyle. Kendin hesaplama, toplama, indirim veya tahmini fiyat söyleme. Müşterinin istediği listedeki birden fazla hizmete uyabiliyorsa (ör. balyaj mı röfle mi, kalıcı oje mi protez mi) fiyat vermeden önce hangisini istediğini sor. Fiyat uzunluğa veya seviyeye göre kademeliyse kademeleri söyle ya da hangisine uyduğunu sor.
 - Müşterinin adını, istediği hizmeti ve ne zaman gelmek istediğini öğrendikçe save_lead ile kaydet. Bilgileri sorgu gibi art arda sorma; sohbet içinde doğal şekilde öğren.
 - Randevu için önce check_availability ile uygun saatleri al, müşteriye birkaç seçenek sun. Müşteri bir saati onayladıktan ve adını öğrendikten sonra book_appointment kullan. Asla araçtan dönmeyen bir saati önerme veya onaylama.${
     staff

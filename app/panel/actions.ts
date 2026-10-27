@@ -7,6 +7,8 @@ import { loadBusiness, phoneNumberIdFor } from "@/lib/business";
 import { validateBusiness } from "@/lib/business-schema";
 import { assertBusinessAccess } from "@/lib/dal";
 import { normalizePhone } from "@/lib/phone";
+import { extractServicesFromImages, IMAGE_TYPES, MAX_IMAGES, type ImageType } from "@/lib/price-list-import";
+import type { ExtractedService } from "@/lib/service-merge";
 import { getStore, type Conversation, type Store } from "@/lib/store";
 import { sendText } from "@/lib/whatsapp";
 
@@ -81,6 +83,54 @@ export async function saveBusinessSettings(_prev: SettingsState, formData: FormD
   revalidatePath("/panel", "layout");
   revalidatePath("/demo");
   return { ok: true, message: "Kaydedildi. Asistan bir sonraki mesajdan itibaren yeni bilgileri kullanır." };
+}
+
+export type PriceListImportResult =
+  | { ok: true; services: ExtractedService[]; notes: string }
+  | { ok: false; message: string };
+
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+
+function safeJson(value: FormDataEntryValue | null): unknown {
+  try {
+    return JSON.parse(String(value ?? ""));
+  } catch {
+    return undefined;
+  }
+}
+
+// Fiyat listesi fotoğraflarından hizmetleri çıkarır. Hiçbir şey kaydetmez: sonuç ayarlar
+// formuna eklenir, işletme sahibi kontrol edip kaydeder.
+export async function importPriceList(businessId: string, formData: FormData): Promise<PriceListImportResult> {
+  await assertBusinessAccess(businessId);
+  const business = await loadBusiness(await getStore(), businessId);
+  if (!business) return { ok: false, message: "İşletme bulunamadı." };
+
+  const files = formData.getAll("images").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return { ok: false, message: "Fotoğraf seçilmedi." };
+  if (files.length > MAX_IMAGES) return { ok: false, message: `En fazla ${MAX_IMAGES} fotoğraf yükleyebilirsiniz.` };
+  const images = [];
+  for (const file of files) {
+    if (!(IMAGE_TYPES as readonly string[]).includes(file.type)) {
+      return { ok: false, message: "Sadece JPG, PNG veya WEBP fotoğraf yükleyebilirsiniz." };
+    }
+    if (file.size > MAX_IMAGE_BYTES) return { ok: false, message: "Fotoğraflardan biri çok büyük." };
+    images.push({ mediaType: file.type as ImageType, data: Buffer.from(await file.arrayBuffer()).toString("base64") });
+  }
+
+  try {
+    // Formdaki güncel (henüz kaydedilmemiş olabilir) hizmet adları; aynı hizmeti farklı adla
+    // tekrar açmamak için modele verilir.
+    const existing = z.array(z.string().max(80)).max(100).catch([]).parse(safeJson(formData.get("existing")));
+    const result = await extractServicesFromImages({ businessType: business.type, images, existingServiceNames: existing });
+    if (result.services.length === 0) {
+      return { ok: false, message: result.notes || "Fotoğrafta hizmet ve fiyat bulunamadı." };
+    }
+    return { ok: true, services: result.services, notes: result.notes };
+  } catch (error) {
+    console.error("Fiyat listesi okunamadı:", error);
+    return { ok: false, message: "Fotoğraf şu an okunamadı, biraz sonra tekrar deneyin." };
+  }
 }
 
 export type ManualAppointmentState = {
