@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Sırada Katalog</title>
+<style>
+  @page { size: A4; margin: 0; }
+  :root {
+    --green: #128c5e; --green-dark: #0b3d2a; --green-soft: #e7f5ee; --ink: #14201b; --muted: #5b6b64;
+    --line: #dfe7e3; --bubble-out: #d9f4e5; --chat-bg: #efeae2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Inter, system-ui, sans-serif; color: var(--ink); background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .page { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  h1, h2, h3 { font-family: "Inter Display", Inter, sans-serif; letter-spacing: -0.02em; }
+
+  /* Sayfa 1 */
+  .hero { background: var(--green-dark); color: #fff; padding: 18mm 16mm 0; height: 150mm; position: relative; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
+  .brand .mark { width: 34px; height: 34px; border-radius: 9px; background: var(--green); display: flex; align-items: center; justify-content: center; }
+  .brand .mark i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #fff; margin: 0 1.5px; }
+  .brand .mark i:nth-child(2) { opacity: .65 } .brand .mark i:nth-child(3) { opacity: .35 }
+  .hero h1 { font-size: 40px; line-height: 1.08; font-weight: 800; margin-top: 16mm; max-width: 105mm; }
+  .hero h1 em { font-style: normal; color: #7fe0b2; }
+  .hero p.lead { margin-top: 7mm; font-size: 14px; line-height: 1.55; color: #cfe6dc; max-width: 98mm; }
+  .chips { margin-top: 7mm; display: flex; flex-wrap: wrap; gap: 6px; max-width: 100mm; }
+  .chips span { border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 4px 10px; font-size: 11px; color: #dff3ea; }
+
+  .phone { position: absolute; right: 14mm; top: 13mm; width: 70mm; height: 131mm; background: #111; border-radius: 30px; padding: 9px; box-shadow: 0 20px 40px rgba(0,0,0,.35); }
+  .screen { color: var(--ink); background: var(--chat-bg); border-radius: 22px; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+  .chat-head { background: #f6f6f6; padding: 10px 12px; display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; border-bottom: 1px solid #e5e5e5; }
+  .chat-head .av { width: 22px; height: 22px; border-radius: 50%; background: var(--green); }
+  .chat-head small { display: block; font-weight: 400; color: #777; font-size: 9px; }
+  .msgs { padding: 7px; display: flex; flex-direction: column; gap: 4px; font-size: 9px; line-height: 1.35; }
+  .b { max-width: 82%; padding: 6px 8px; border-radius: 9px; background: #fff; box-shadow: 0 1px 0 rgba(0,0,0,.06); }
+  .b.me { align-self: flex-end; background: var(--bubble-out); }
+  .b .t { display: block; text-align: right; font-size: 7.5px; color: #8a8a8a; margin-top: 2px; }
+  .opts { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; }
+  .opts span { text-align: center; border-top: 1px solid #eee; padding-top: 4px; color: var(--green); font-weight: 600; }
+  .card { margin-top: 5px; border-radius: 7px; background: var(--green-soft); padding: 6px; }
+  .card b { display: block; font-size: 9.5px; }
+  .card span { color: var(--muted); font-size: 8.5px; }
+
+  .body1 { padding: 12mm 16mm 0; }
+  .eyebrow { font-size: 11px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: .08em; }
+  .body1 h2 { font-size: 22px; margin-top: 2mm; }
+  .problems { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; margin-top: 6mm; }
+  .problem { border: 1px solid var(--line); border-radius: 12px; padding: 5mm; }
+  .problem .ic { font-size: 18px; }
+  .problem h3 { font-size: 13px; margin-top: 2mm; }
+  .problem p { font-size: 10.5px; line-height: 1.5; color: var(--muted); margin-top: 1.5mm; }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; margin-top: 9mm; }
+  .step { display: flex; gap: 3mm; }
+  .step .n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 700; font-size: 12px; display: grid; place-items: center; }
+  .step h3 { font-size: 12.5px; }
+  .step p { font-size: 10.5px; line-height: 1.5; color: var(--muted); margin-top: 1mm; }
+  .foot { position: absolute; bottom: 9mm; left: 16mm; right: 16mm; display: flex; justify-content: space-between; font-size: 9px; color: var(--muted); }
+
+  /* Sayfa 2 */
+  .p2 { padding: 16mm 16mm 0; }
+  .p2 h2 { font-size: 24px; margin-top: 2mm; }
+  .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4mm 8mm; margin-top: 7mm; }
+  .feature { display: flex; gap: 3.5mm; }
+  .feature .ic { flex: none; width: 30px; height: 30px; border-radius: 8px; background: var(--green-soft); display: grid; place-items: center; font-size: 15px; }
+  .feature h3 { font-size: 12.5px; }
+  .feature p { font-size: 10.5px; line-height: 1.5; color: var(--muted); margin-top: .8mm; }
+  .pricing { margin-top: 10mm; }
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 5mm; }
+  .plan { border: 1px solid var(--line); border-radius: 12px; padding: 5mm; }
+  .plan.pop { border: 2px solid var(--green); position: relative; }
+  .plan.pop::before { content: "Önerilen"; position: absolute; top: -9px; left: 5mm; background: var(--green); color: #fff; font-size: 8.5px; font-weight: 600; padding: 2px 7px; border-radius: 999px; }
+  .plan h3 { font-size: 13px; }
+  .plan .who { font-size: 10px; color: var(--muted); margin-top: .8mm; }
+  .plan .price { font-size: 22px; font-weight: 800; margin-top: 3mm; font-family: "Inter Display", Inter, sans-serif; }
+  .plan .price small { font-size: 10px; font-weight: 500; color: var(--muted); }
+  .plan ul { list-style: none; margin-top: 3mm; font-size: 10px; line-height: 1.7; }
+  .plan li::before { content: "✓ "; color: var(--green); font-weight: 700; }
+  .note { font-size: 9px; color: var(--muted); margin-top: 3mm; }
+  .why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; margin-top: 9mm; }
+  .why div { background: var(--green-soft); border-radius: 12px; padding: 4.5mm; font-size: 10.5px; line-height: 1.45; color: var(--muted); }
+  .why b { display: block; color: var(--ink); font-size: 12.5px; margin-bottom: 1mm; }
+  .cta { position: absolute; left: 16mm; right: 16mm; bottom: 18mm; background: var(--green-dark); color: #fff; border-radius: 16px; padding: 7mm; display: flex; align-items: center; gap: 7mm; }
+  .cta .txt { flex: 1; }
+  .cta h3 { font-size: 20px; }
+  .cta .txt p { font-size: 11px; line-height: 1.5; color: #cfe6dc; margin-top: 2mm; }
+  .cta .offer { display: inline-block; margin-top: 3mm; background: #7fe0b2; color: var(--green-dark); font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 999px; }
+  .qr { text-align: center; font-size: 9px; color: #cfe6dc; }
+  .qr div { width: 27mm; height: 27mm; background: #fff; padding: 2mm; border-radius: 8px; margin-bottom: 1.5mm; }
+  .qr svg { width: 100%; height: 100%; display: block; }
+  .qr b { display: block; color: #fff; font-size: 10px; }
+</style>
+</head>
+<body>
+
+<section class="page">
+  <div class="hero">
+    <div class="brand"><span class="mark"><i></i><i></i><i></i></span> Sırada</div>
+    <h1>Siz işinize bakın, randevuları <em>WhatsApp'ta</em> asistanınız alsın.</h1>
+    <p class="lead">Sırada, işletmenizin WhatsApp'ına gelen mesajları 7/24 yanıtlayan yapay zekâ asistanıdır. Müşterinin istediği hizmet ve çalışana göre boş saati bulur, randevuyu oluşturur, bir gün önce hatırlatır.</p>
+    <div class="chips"><span>Kuaför</span><span>Berber</span><span>Tırnak salonu</span><span>Güzellik merkezi</span><span>Klinik</span></div>
+
+    <div class="phone"><div class="screen">
+      <div class="chat-head"><span class="av"></span><div>Demo Berber<small>işletme hesabı</small></div></div>
+      <div class="msgs">
+        <div class="b me">Yarın akşam saç + sakal için yer var mı?<span class="t">22:41</span></div>
+        <div class="b">Tabii! Kiminle olsun? Mehmet Usta 700 TL, Can 550 TL.
+          <div class="opts"><span>Mehmet Usta</span><span>Can</span><span>Fark etmez</span></div><span class="t">22:41</span></div>
+        <div class="b me">Mehmet Usta<span class="t">22:42</span></div>
+        <div class="b">Mehmet Usta yarın 18:00 ve 19:00'da boş. Hangisi uyar?
+          <div class="opts"><span>18:00</span><span>19:00</span></div><span class="t">22:42</span></div>
+        <div class="b me">19:00, adım Göktuğ<span class="t">22:42</span></div>
+        <div class="b">Teşekkürler! Randevunuz oluşturuldu.
+          <div class="card"><b>📅 Saç + sakal · Mehmet Usta</b><span>28 Ekim Çarşamba 19:00 · Takvime ekle</span></div><span class="t">22:42</span></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="body1">
+    <p class="eyebrow">Tanıdık geldi mi?</p>
+    <h2>Cevapsız kalan her mesaj, kaçan bir müşteri.</h2>
+    <div class="problems">
+      <div class="problem"><div class="ic">✂️</div><h3>Eliniz doluyken gelen mesajlar</h3><p>Müşteri koltuktayken telefona bakamazsınız. Cevap alamayan kişi başka salona yazar.</p></div>
+      <div class="problem"><div class="ic">🌙</div><h3>Kapalıyken gelen talepler</h3><p>Randevu istekleri akşam, gece ve kapalı günlerde de gelir. Sabaha kadar iş kaçar.</p></div>
+      <div class="problem"><div class="ic">🔁</div><h3>Her gün aynı sorular</h3><p>"Fiyat ne kadar, yarın yer var mı, adres nerede?" Gününüz kopyala-yapıştırla geçer.</p></div>
+    </div>
+
+    <div class="steps">
+      <div class="step"><span class="n">1</span><div><h3>Müşteri WhatsApp'tan yazar</h3><p>Uygulama indirmez, üye olmaz. Her zamanki numaranıza yazar.</p></div></div>
+      <div class="step"><span class="n">2</span><div><h3>Asistan saati bulur</h3><p>Hizmeti ve çalışanı sorar, sadece gerçekten boş saatleri düğme olarak sunar.</p></div></div>
+      <div class="step"><span class="n">3</span><div><h3>Randevu panelinize düşer</h3><p>Haftalık takviminizde görünür, müşteriye bir gün önce hatırlatma gider.</p></div></div>
+    </div>
+  </div>
+  <div class="foot"><span>Sırada · WhatsApp randevu asistanı</span><span>1 / 2</span></div>
+</section>
+
+<section class="page">
+  <div class="p2">
+    <p class="eyebrow">Neler yapar?</p>
+    <h2>Resepsiyonistiniz gibi çalışır, hiç yorulmaz.</h2>
+    <div class="features">
+      <div class="feature"><span class="ic">💬</span><div><h3>7/24 anında yanıt</h3><p>Fiyat, adres, çalışma saati ve sık sorulan soruları sizin bilgilerinizle saniyeler içinde yanıtlar.</p></div></div>
+      <div class="feature"><span class="ic">👥</span><div><h3>Her çalışana ayrı takvim ve fiyat</h3><p>Kimin hangi gün çalıştığını ve hangi hizmeti kaça yaptığını bilir; müşteri istediği kişiyi seçer.</p></div></div>
+      <div class="feature"><span class="ic">👆</span><div><h3>Tek dokunuşla seçim</h3><p>Hizmetler, çalışanlar ve boş saatler WhatsApp'ta düğme olarak gelir; yazmaya gerek kalmaz.</p></div></div>
+      <div class="feature"><span class="ic">🔔</span><div><h3>Otomatik hatırlatma</h3><p>Randevudan bir gün önce müşteriye hatırlatma gider; unutulan randevular azalır.</p></div></div>
+      <div class="feature"><span class="ic">📅</span><div><h3>Takvim ve panel</h3><p>Randevular haftalık takvimde; isterseniz telefonunuzun takvimine de otomatik düşer. Elle randevu da eklersiniz.</p></div></div>
+      <div class="feature"><span class="ic">🔄</span><div><h3>İptal ve erteleme</h3><p>Müşteri randevusunu WhatsApp'tan kendisi iptal eder veya başka saate alır; saat başkasına açılır.</p></div></div>
+      <div class="feature"><span class="ic">🙋</span><div><h3>Gerektiğinde size devreder</h3><p>Emin olmadığı bir konuda veya müşteri isterse konuşmayı size bırakır, panelden siz devam edersiniz.</p></div></div>
+      <div class="feature"><span class="ic">📊</span><div><h3>Aylık rapor</h3><p>Kaç kişinin yazdığını, kapalıyken kaç randevu alındığını ve bunların değerini görürsünüz.</p></div></div>
+    </div>
+
+    <div class="pricing">
+      <p class="eyebrow">Fiyatlar</p>
+      <div class="plans">
+        <div class="plan"><h3>Tek</h3><p class="who">1–2 çalışanlı işletmeler</p><p class="price">990 TL <small>/ ay</small></p>
+          <ul><li>Sınırsız WhatsApp yanıtı</li><li>Randevu ve hatırlatma</li><li>Panel ve takvim</li></ul></div>
+        <div class="plan pop"><h3>Salon</h3><p class="who">6 çalışana kadar</p><p class="price">1.990 TL <small>/ ay</small></p>
+          <ul><li>Tek paketteki her şey</li><li>Çalışana özel takvim ve fiyat</li><li>Aylık rapor</li></ul></div>
+        <div class="plan"><h3>Pro / Klinik</h3><p class="who">Büyük salon ve klinikler</p><p class="price">3.490 TL <small>/ ay</small></p>
+          <ul><li>Sınırsız çalışan</li><li>Klinik kuralları</li><li>Öncelikli destek</li></ul></div>
+      </div>
+      <p class="note">Fiyatlara KDV dahil değildir. Yıllık ödemede 2 ay ücretsiz.</p>
+    </div>
+
+    <div class="why">
+      <div><b>Uygulama indirmek yok</b>Müşterileriniz zaten WhatsApp kullanıyor; yeni bir şey öğrenmeleri gerekmez.</div>
+      <div><b>Gece, hafta sonu, bayram</b>Siz kapalıyken de mesajlar yanıtlanır, randevular alınır.</div>
+      <div><b>Birçok dilde</b>Türkçe'nin yanında İngilizce ve diğer dillerde yazan müşterilere de yanıt verir.</div>
+    </div>
+  </div>
+
+  <div class="cta">
+    <div class="txt">
+      <h3>30 gün ücretsiz deneyin</h3>
+      <p>Hizmet, fiyat ve çalışan bilgilerinizi biz giriyoruz; siz hiçbir şey kurmuyorsunuz. 30 günün sonunda asistanın sizin için kaç randevu aldığını raporla gösteriyoruz.</p>
+      <span class="offer">Kurulum ücreti yok · Taahhüt yok</span>
+    </div>
+    <div class="qr"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#0b3d2a" d="M0 0.5h7m2 0h1m6 0h1m2 0h3m1 0h1m2 0h7M0 1.5h1m5 0h1m3 0h1m4 0h1m2 0h1m1 0h2m4 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h1m2 0h2m1 0h2m5 0h1m1 0h2m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h5m5 0h2m2 0h1m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h4m1 0h4m3 0h4m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h2m1 0h1m5 0h3m1 0h1m4 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h1m1 0h2m2 0h1m1 0h1m2 0h4m1 0h1M0 8.5h1m1 0h5m5 0h2m3 0h1m1 0h1m2 0h1m3 0h5M0 9.5h1m2 0h2m2 0h1m2 0h1m2 0h1m2 0h2m1 0h5m2 0h2m1 0h4M1 10.5h2m1 0h1m1 0h1m1 0h1m4 0h3m1 0h1m2 0h2m2 0h1m3 0h1m1 0h2M0 11.5h1m6 0h2m1 0h1m1 0h2m1 0h1m1 0h3m1 0h1m4 0h1m1 0h5M1 12.5h3m1 0h2m2 0h1m4 0h3m7 0h2m2 0h2M1 13.5h1m5 0h4m2 0h1m1 0h1m2 0h1m2 0h1m1 0h1m2 0h1m3 0h3M0 14.5h1m1 0h1m1 0h1m1 0h2m1 0h2m4 0h2m3 0h2m2 0h3m4 0h1M0 15.5h1m1 0h1m2 0h1m3 0h1m3 0h1m1 0h1m2 0h4m1 0h1m1 0h2m2 0h2M2 16.5h1m1 0h1m1 0h2m1 0h1m1 0h7m1 0h2m1 0h2m1 0h1m1 0h3m2 0h1M0 17.5h1m6 0h1m2 0h4m2 0h1m1 0h3m1 0h2m1 0h3m1 0h2m1 0h1M0 18.5h2m1 0h2m1 0h1m3 0h1m4 0h2m1 0h1m1 0h1m1 0h1m4 0h2m1 0h2M1 19.5h3m1 0h1m1 0h4m1 0h1m1 0h3m2 0h1m1 0h2m1 0h8M1 20.5h1m1 0h7m2 0h2m4 0h1m3 0h1m1 0h2m1 0h3m1 0h1M0 21.5h1m2 0h1m1 0h1m2 0h3m4 0h2m2 0h3m1 0h2m1 0h1m2 0h2m1 0h1M0 22.5h1m1 0h1m3 0h4m1 0h2m1 0h1m3 0h1m1 0h2m2 0h2m1 0h5M0 23.5h1m1 0h2m1 0h1m3 0h2m1 0h1m3 0h1m3 0h2m3 0h2m3 0h3M0 24.5h1m2 0h1m1 0h2m1 0h3m6 0h1m1 0h2m2 0h6M8 25.5h2m1 0h1m1 0h1m3 0h5m2 0h1m3 0h1m1 0h1m1 0h1M0 26.5h7m7 0h2m1 0h1m2 0h5m1 0h1m1 0h1m1 0h2M0 27.5h1m5 0h1m1 0h2m3 0h1m1 0h4m2 0h1m1 0h2m3 0h4M0 28.5h1m1 0h3m1 0h1m1 0h4m3 0h2m5 0h1m1 0h6m1 0h2M0 29.5h1m1 0h3m1 0h1m1 0h1m1 0h1m4 0h1m1 0h4m3 0h2m2 0h2m1 0h2M0 30.5h1m1 0h3m1 0h1m1 0h1m1 0h1m2 0h5m2 0h3m3 0h2M0 31.5h1m5 0h1m4 0h2m1 0h2m2 0h1m1 0h3m2 0h1m2 0h3M0 32.5h7m1 0h1m1 0h8m4 0h4m1 0h1m1 0h1m1 0h1"/></svg>
+</div><b>Canlı demo</b>Okutun, müşteri gibi yazın</div>
+    <div class="qr"><div><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 33 33" shape-rendering="crispEdges"><path fill="#ffffff" d="M0 0h33v33H0z"/><path stroke="#0b3d2a" d="M0 0.5h7m2 0h1m1 0h1m4 0h1m2 0h3m1 0h1m2 0h7M0 1.5h1m5 0h1m4 0h1m3 0h1m4 0h2m4 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h2m1 0h2m1 0h2m2 0h1m2 0h1m1 0h2m1 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h1m1 0h2m6 0h3m1 0h1m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h2m2 0h5m1 0h6m2 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h1m1 0h1m6 0h2m1 0h2m4 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h5m1 0h1m1 0h1m2 0h4m1 0h1M0 8.5h1m1 0h5m2 0h3m1 0h1m3 0h1m1 0h1m2 0h1m3 0h5M1 9.5h1m1 0h1m3 0h4m2 0h1m2 0h2m1 0h5m2 0h2m1 0h4M0 10.5h1m1 0h1m2 0h2m2 0h1m3 0h3m1 0h1m2 0h2m2 0h1m3 0h1m1 0h2M2 11.5h1m1 0h1m5 0h4m1 0h1m1 0h3m1 0h1m4 0h1m1 0h5M1 12.5h1m4 0h3m2 0h1m2 0h3m7 0h2m2 0h2M0 13.5h3m1 0h1m2 0h2m1 0h1m2 0h1m1 0h1m2 0h4m1 0h1m2 0h1m3 0h3M0 14.5h1m1 0h2m2 0h1m1 0h1m1 0h2m1 0h4m4 0h1m2 0h3m4 0h1M0 15.5h1m4 0h1m1 0h7m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m2 0h2M1 16.5h1m2 0h3m1 0h1m1 0h1m1 0h2m1 0h3m1 0h2m1 0h2m1 0h1m1 0h3m2 0h1M3 17.5h1m1 0h1m1 0h1m1 0h3m1 0h1m2 0h1m1 0h3m1 0h2m1 0h3m1 0h2m1 0h1M1 18.5h1m4 0h1m2 0h8m1 0h1m1 0h1m1 0h1m4 0h2m1 0h2M0 19.5h2m1 0h2m2 0h3m2 0h5m2 0h1m1 0h2m1 0h8M3 20.5h2m1 0h3m1 0h2m1 0h1m4 0h1m5 0h2m1 0h3m1 0h1M0 21.5h3m1 0h2m1 0h2m6 0h2m2 0h3m1 0h2m1 0h1m2 0h2m1 0h1M0 22.5h1m1 0h1m3 0h1m2 0h1m1 0h4m3 0h1m1 0h2m2 0h2m1 0h5M0 23.5h1m2 0h1m1 0h1m1 0h3m4 0h1m1 0h1m4 0h1m3 0h2m3 0h2M0 24.5h1m2 0h1m1 0h2m1 0h1m2 0h4m2 0h1m1 0h2m2 0h6m2 0h1M8 25.5h1m1 0h2m5 0h5m2 0h1m3 0h1m1 0h1m1 0h1M0 26.5h7m2 0h3m2 0h2m1 0h1m2 0h1m2 0h2m1 0h1m1 0h1m1 0h2M0 27.5h1m5 0h1m1 0h5m1 0h5m2 0h4m3 0h4M0 28.5h1m1 0h3m1 0h1m1 0h1m1 0h3m2 0h2m5 0h1m1 0h6m1 0h2M0 29.5h1m1 0h3m1 0h1m1 0h1m4 0h1m1 0h1m1 0h4m1 0h1m1 0h2m2 0h2m1 0h2M0 30.5h1m1 0h3m1 0h1m1 0h3m2 0h1m1 0h3m3 0h2m3 0h2M0 31.5h1m5 0h1m2 0h1m2 0h4m2 0h1m2 0h2m2 0h1m2 0h3M0 32.5h7m1 0h1m2 0h2m2 0h3m4 0h4m1 0h1m1 0h1m1 0h1"/></svg>
+</div><b>Pilota başvurun</b>Sizi arayalım</div>
+  </div>
+  <div class="foot"><span>WhatsApp, Meta Platforms, Inc.'in markasıdır. Sırada bağımsız bir üründür.</span><span>2 / 2</span></div>
+</section>
+
+</body>
+</html>
