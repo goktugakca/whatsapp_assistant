@@ -14,12 +14,17 @@ export default async function DemoPage(props: PageProps<"/demo">) {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-      <BusinessPicker basePath="/demo" currentId={business.id} />
+      <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b-2 border-foreground pb-3">
+        <Link href="/" className="font-display text-2xl font-bold uppercase tracking-wide">
+          Sırada
+        </Link>
+        <BusinessPicker basePath="/demo" currentId={business.id} />
+      </header>
       <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_320px]">
         <DemoChat key={business.id} businessId={business.id} businessName={business.name} />
         <aside className="space-y-6 text-sm">
           <div>
-            <h2 className="font-semibold">Bu bir demo</h2>
+            <h2 className="font-display text-2xl font-bold uppercase leading-none">Bu bir demo</h2>
             <p className="mt-2 text-muted">
               Sol taraf, müşterinin WhatsApp&apos;ta gördüğünün aynısı. Asistan &quot;{business.name}&quot; adlı örnek
               işletmenin hizmet, fiyat ve çalışan bilgileriyle çalışıyor. Konuşmalar ve randevular{" "}
@@ -32,14 +37,14 @@ export default async function DemoPage(props: PageProps<"/demo">) {
             </p>
           </div>
           <div>
-            <h2 className="font-semibold">Şunları deneyin</h2>
-            <ul className="mt-2 space-y-2 text-muted">
+            <h2 className="font-display text-2xl font-bold uppercase leading-none">Şunları deneyin</h2>
+            <ul className="mt-2">
               {demoExamples[business.type].map((e) => (
-                <li key={e} className="rounded-lg border border-border bg-card p-2" dir="auto">
+                <li key={e} className="border-b border-dashed border-border py-2.5" dir="auto">
                   {e}
                 </li>
               ))}
-              <li className="rounded-lg border border-border bg-card p-2">
+              <li className="py-2.5 text-muted">
                 Randevu alın, ardından &quot;bir insanla görüşmek istiyorum&quot; yazın.
               </li>
             </ul>

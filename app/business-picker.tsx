@@ -13,15 +13,13 @@ export function BusinessPicker({
   businesses?: Business[];
 }) {
   return (
-    <nav className="flex flex-wrap gap-2" aria-label="İşletme seç">
+    <nav className="flex flex-wrap gap-x-5 gap-y-1" aria-label="İşletme seç">
       {businesses.map((b) => (
         <Link
           key={b.id}
           href={`${basePath}?isletme=${b.id}`}
           aria-current={b.id === currentId ? "page" : undefined}
-          className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-            b.id === currentId ? "border-accent bg-accent text-accent-foreground" : "border-border text-muted"
-          }`}
+          className={`tab ${b.id === currentId ? "tab-active" : ""}`}
         >
           {verticals[b.type].label}
         </Link>

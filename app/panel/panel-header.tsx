@@ -14,12 +14,15 @@ export function PanelHeader({
   businessId: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      {session.isAdmin ? (
-        <BusinessPicker basePath={basePath} currentId={businessId} businesses={visibleBusinesses(session)} />
-      ) : (
-        <span />
-      )}
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-foreground pb-3">
+      <div className="flex flex-wrap items-center gap-4">
+        <Link href="/panel" className="font-display text-2xl font-bold uppercase tracking-wide">
+          Sırada
+        </Link>
+        {session.isAdmin && (
+          <BusinessPicker basePath={basePath} currentId={businessId} businesses={visibleBusinesses(session)} />
+        )}
+      </div>
       <div className="flex items-center gap-3 text-xs text-muted">
         {session.isAdmin && (
           <Link href="/panel/kullanicilar" className="underline">
@@ -28,7 +31,7 @@ export function PanelHeader({
         )}
         <span>{session.isAdmin ? "Yönetici" : session.name}</span>
         <form action={logout}>
-          <button className="rounded-lg border border-border px-2.5 py-1">Çıkış</button>
+          <button className="btn btn-line btn-sm">Çıkış</button>
         </form>
       </div>
     </div>

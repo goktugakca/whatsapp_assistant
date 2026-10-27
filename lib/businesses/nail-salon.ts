@@ -3,7 +3,7 @@ import type { Business } from "../business";
 export const nailSalon: Business = {
   id: "demo-tirnak",
   type: "nail_salon",
-  name: "Demo Nail Studio",
+  name: "Oje Stüdyo",
   city: "İzmir",
   address: "Kıbrıs Şehitleri Cad. No:20, Alsancak / İzmir",
   utcOffset: "+03:00",

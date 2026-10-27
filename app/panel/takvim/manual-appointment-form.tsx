@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { addManualAppointment, type ManualAppointmentState } from "../actions";
 
 const input =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+  "field";
 
 // Telefonla / yüz yüze gelen randevular için.
 export function ManualAppointmentForm(props: {
@@ -63,12 +63,12 @@ export function ManualAppointmentForm(props: {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-60"
+          className="btn"
         >
           {pending ? "Ekleniyor…" : "Randevu ekle"}
         </button>
         {state && (
-          <p className={`text-sm ${state.ok ? "text-accent" : "text-red-600"}`} role="status">
+          <p className={`text-sm ${state.ok ? "text-ok" : "text-red-600"}`} role="status">
             {state.message} {state.suggestions?.join(", ")}
           </p>
         )}

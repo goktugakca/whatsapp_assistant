@@ -120,7 +120,7 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
                       key={option}
                       type="button"
                       onClick={() => void sendMessage(option)}
-                      className="rounded-full border border-accent/60 bg-card px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent hover:text-accent-foreground"
+                      className="btn btn-line btn-sm"
                     >
                       {option}
                     </button>
@@ -139,12 +139,12 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
           onChange={(e) => setText(e.target.value)}
           placeholder="Mesaj yazın"
           dir="auto"
-          className="flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-accent"
+          className="field flex-1"
         />
         <button
           type="submit"
           disabled={pending || !text.trim()}
-          className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-50"
+          className="btn"
         >
           Gönder
         </button>

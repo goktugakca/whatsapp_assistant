@@ -5,7 +5,7 @@ export function PrintButton() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground print:hidden"
+      className="btn print:hidden"
     >
       Yazdır / PDF olarak kaydet
     </button>

@@ -45,7 +45,7 @@ describe("yarınki randevu hatırlatmaları", () => {
       to: "905551112233",
       name: "randevu_hatirlatma",
       language: "tr",
-      bodyParams: ["Ali", "Saç kesimi", "27 Ekim Salı 10:00", "Demo Berber"],
+      bodyParams: ["Ali", "Saç kesimi", "27 Ekim Salı 10:00", "Ustura Berber"],
     });
 
     expect((await sendTomorrowReminders({ store, now, send })).sent).toBe(0);

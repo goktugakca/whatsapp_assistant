@@ -61,7 +61,7 @@ describe("slugify", () => {
 describe("kaydedilen ayarlar asistana ulaşır", () => {
   it("kayıt yoksa başlangıç değeri, kayıt varsa güncel hali kullanılır", async () => {
     const store = new InMemoryStore();
-    expect((await loadBusiness(store, barber.id))?.name).toBe("Demo Berber");
+    expect((await loadBusiness(store, barber.id))?.name).toBe("Ustura Berber");
 
     const updated = clone(barber);
     updated.name = "Usta Berber";

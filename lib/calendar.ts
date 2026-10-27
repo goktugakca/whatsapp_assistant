@@ -31,6 +31,12 @@ export function toCard(business: Business, appointment: Appointment): Appointmen
   };
 }
 
+// Fişin üstündeki sıra numarası: kimlikten türetilir, her zaman aynı çıkar (No. 047 gibi).
+export function ticketNumber(id: string): string {
+  const n = parseInt(id.replace(/[^0-9a-f]/gi, "").slice(0, 6) || "0", 16) % 1000;
+  return String(n).padStart(3, "0");
+}
+
 // Uygulamanın herkese açık adresi: WhatsApp mesajlarına ve takvim etkinliklerine konan
 // bağlantılar için. Vercel bunu VERCEL_PROJECT_PRODUCTION_URL olarak kendisi verir.
 export function appUrl(): string | undefined {

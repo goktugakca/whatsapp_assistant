@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { createPanelUser, type CreateUserState } from "./actions";
 
 const input =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+  "field";
 
 export function CreateUserForm({ businesses }: { businesses: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState<CreateUserState, FormData>(createPanelUser, null);
@@ -32,12 +32,12 @@ export function CreateUserForm({ businesses }: { businesses: { id: string; name:
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground disabled:opacity-60"
+          className="btn"
         >
           {pending ? "Oluşturuluyor…" : "Kullanıcı oluştur"}
         </button>
         {state && (
-          <p className={`text-sm ${state.ok ? "text-accent" : "text-red-600"}`} role="status">
+          <p className={`text-sm ${state.ok ? "text-ok" : "text-red-600"}`} role="status">
             {state.message}
           </p>
         )}

@@ -4,7 +4,7 @@ import { buildInteractive } from "@/lib/whatsapp";
 
 const card: AppointmentCard = {
   id: "11111111-2222-3333-4444-555555555555",
-  businessName: "Demo Berber",
+  businessName: "Ustura Berber",
   serviceName: "Saç + sakal",
   staffName: "Mehmet Usta",
   customerName: "Ali",
@@ -19,13 +19,13 @@ describe("takvim", () => {
     const url = new URL(googleCalendarUrl(card));
     expect(url.hostname).toBe("calendar.google.com");
     expect(url.searchParams.get("dates")).toBe("20261026T150000Z/20261026T154500Z");
-    expect(url.searchParams.get("text")).toBe("Saç + sakal · Demo Berber");
+    expect(url.searchParams.get("text")).toBe("Saç + sakal · Ustura Berber");
     expect(url.searchParams.get("details")).toContain("Mehmet Usta");
     expect(url.searchParams.get("location")).toBe(card.address);
   });
 
   it("ICS dosyası RFC 5545'e uygun: CRLF, kaçış ve 75 baytlık katlama", () => {
-    const ics = toIcs("Demo Berber", [cardToEvent(card)], new Date("2026-10-25T00:00:00Z"));
+    const ics = toIcs("Ustura Berber", [cardToEvent(card)], new Date("2026-10-25T00:00:00Z"));
     expect(ics.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
     expect(ics).toContain("DTSTART:20261026T150000Z");

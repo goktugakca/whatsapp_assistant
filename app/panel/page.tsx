@@ -42,23 +42,23 @@ export default async function PanelPage(props: PageProps<"/panel">) {
       <PanelHeader session={session} basePath="/panel" businessId={business.id} />
       <header className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{business.name}</h1>
+          <h1 className="font-display text-4xl font-bold uppercase leading-none">{business.name}</h1>
           <p className="text-sm text-muted">{verticals[business.type].label} · İşletme paneli</p>
           <Link
             href={`/panel/ayarlar?isletme=${business.id}`}
-            className="mt-2 inline-block rounded-lg border border-border px-3 py-1.5 text-xs font-medium"
+            className="mt-2 btn btn-line btn-sm"
           >
             Ayarlar: saatler, hizmetler, çalışanlar
           </Link>
           <Link
             href={`/panel/takvim?isletme=${business.id}`}
-            className="mt-2 ml-2 inline-block rounded-lg border border-border px-3 py-1.5 text-xs font-medium"
+            className="mt-2 ml-2 btn btn-line btn-sm"
           >
             Haftalık takvim
           </Link>
           <Link
             href={`/panel/rapor?isletme=${business.id}`}
-            className="mt-2 ml-2 inline-block rounded-lg border border-border px-3 py-1.5 text-xs font-medium"
+            className="mt-2 ml-2 btn btn-line btn-sm"
           >
             Pilot raporu
           </Link>
@@ -136,7 +136,7 @@ function Stat({ label, value, highlight }: { label: string; value: number; highl
   return (
     <div>
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className={`text-xl font-bold ${highlight ? "text-orange-600" : ""}`}>{value}</dd>
+      <dd className={`font-display text-3xl font-bold leading-none ${highlight ? "text-accent" : ""}`}>{value}</dd>
     </div>
   );
 }
@@ -154,7 +154,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
 
   return (
     <article
-      className={`flex flex-col rounded-xl border bg-card ${c.status === "handoff" ? "border-orange-400" : "border-border"}`}
+      className={`flex flex-col rounded-xl border bg-card ${c.status === "handoff" ? "border-accent" : "border-border"}`}
     >
       <header className="flex items-start justify-between gap-2 border-b border-border px-4 py-3">
         <div>
@@ -164,16 +164,16 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
           </p>
         </div>
         {c.status === "handoff" ? (
-          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800">
+          <span className="stamp text-accent">
             Sizi bekliyor
           </span>
         ) : (
-          <span className="rounded-full bg-bubble-out px-2 py-0.5 text-xs font-medium">Asistan yanıtlıyor</span>
+          <span className="stamp text-muted">Asistan yanıtlıyor</span>
         )}
       </header>
 
       {c.status === "handoff" && c.handoffReason && (
-        <p className="border-b border-border bg-orange-50 px-4 py-2 text-xs text-orange-900">
+        <p className="border-b border-dashed border-border bg-bubble-out px-4 py-2 text-xs">
           Devretme nedeni: {c.handoffReason}
         </p>
       )}
@@ -212,9 +212,9 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
             name="text"
             placeholder="Personel olarak yanıt yaz"
             required
-            className="flex-1 rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+            className="field flex-1"
           />
-          <button className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground">
+          <button className="btn">
             Gönder
           </button>
         </form>

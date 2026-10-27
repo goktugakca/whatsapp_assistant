@@ -17,8 +17,8 @@ const DAYS: { day: Weekday; label: string }[] = [
 ];
 
 const input =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
-const smallButton = "rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-background";
+  "field";
+const smallButton = "btn btn-line btn-sm";
 const removeButton = "text-xs text-red-600 hover:underline";
 
 export function SettingsForm({ initial }: { initial: Business }) {
@@ -216,7 +216,7 @@ export function SettingsForm({ initial }: { initial: Business }) {
                 <legend className="mb-1 text-xs text-muted">Yaptığı hizmetler</legend>
                 <div className="flex flex-wrap gap-2">
                   {b.services.map((s) => (
-                    <label key={s.id} className="flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-xs">
+                    <label key={s.id} className="flex items-center gap-1.5 rounded-sm border border-border px-2.5 py-1 text-xs">
                       <input
                         type="checkbox"
                         checked={p.serviceIds.includes(s.id)}
@@ -325,7 +325,7 @@ export function SettingsForm({ initial }: { initial: Business }) {
 
       <div className="sticky bottom-0 -mx-4 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
         {state && (
-          <div className={`mb-2 text-sm ${state.ok ? "text-accent" : "text-red-600"}`} role="status">
+          <div className={`mb-2 text-sm ${state.ok ? "text-ok" : "text-red-600"}`} role="status">
             {state.message}
             {state.errors && (
               <ul className="mt-1 list-disc pl-5">
@@ -339,7 +339,7 @@ export function SettingsForm({ initial }: { initial: Business }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-accent px-5 py-2.5 text-sm font-semibold text-accent-foreground disabled:opacity-60"
+          className="btn"
         >
           {pending ? "Kaydediliyor…" : "Kaydet"}
         </button>

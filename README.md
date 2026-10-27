@@ -128,7 +128,7 @@ WhatsApp, son 24 saatte yazmamış bir müşteriye sadece **Meta'nın onayladı�
    Merhaba {{1}}, yarın {{3}} için {{2}} randevunuzu hatırlatırız. Görüşmek üzere, {{4}}.
    Değişiklik veya iptal için bu mesaja yanıt verebilirsiniz.
    ```
-   Örnek değerler: `Ali`, `Saç kesimi`, `27 Ekim Salı 10:00`, `Demo Berber`.
+   Örnek değerler: `Ali`, `Saç kesimi`, `27 Ekim Salı 10:00`, `Ustura Berber`.
 2. Onaylanınca Vercel'e: `WHATSAPP_REMINDER_TEMPLATE=randevu_hatirlatma` (dil kodu farklıysa `WHATSAPP_REMINDER_LANGUAGE`, varsayılan `tr`).
 3. Vercel'e `CRON_SECRET` ekleyin (rastgele uzun bir metin); Vercel cron isteklerine bunu kendisi ekler.
 

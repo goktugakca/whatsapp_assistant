@@ -69,7 +69,7 @@ export default async function ReportPage(props: PageProps<"/panel/rapor">) {
       <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-accent">Sırada · Pilot raporu</p>
-          <h1 className="mt-1 text-2xl font-bold">{business.name}</h1>
+          <h1 className="mt-1 font-display text-4xl font-bold uppercase leading-none">{business.name}</h1>
           <p className="text-sm text-muted">
             {verticals[business.type].label} · {dayFmt.format(from)} – {dayFmt.format(to)} ({days} gün)
             {includeDemo && " · demo sohbetleri dahil"}
@@ -188,7 +188,7 @@ function Metric({
   return (
     <div className="break-inside-avoid rounded-xl border border-border bg-card p-4">
       <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${highlight ? "text-accent" : ""}`}>{value}</p>
+      <p className={`mt-1 font-display text-4xl font-bold leading-none ${highlight ? "text-accent" : ""}`}>{value}</p>
       {note && <p className="text-xs text-muted">{note}</p>}
     </div>
   );
@@ -209,8 +209,8 @@ function Breakdown({ title, rows }: { title: string; rows: { name: string; count
                 <span>{row.name}</span>
                 <span className="font-semibold">{row.count}</span>
               </div>
-              <div className="mt-1 h-1.5 rounded-full bg-border">
-                <div className="h-1.5 rounded-full bg-accent" style={{ width: `${(row.count / max) * 100}%` }} />
+              <div className="mt-1 h-1.5 bg-border">
+                <div className="h-1.5 bg-accent" style={{ width: `${(row.count / max) * 100}%` }} />
               </div>
             </li>
           ))}

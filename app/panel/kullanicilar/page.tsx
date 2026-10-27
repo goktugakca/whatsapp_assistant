@@ -27,7 +27,7 @@ export default async function UsersPage() {
       <PanelHeader session={session} basePath="/panel" businessId={businesses[0].id} />
       <header className="mt-6 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Kullanıcılar</h1>
+          <h1 className="font-display text-4xl font-bold uppercase leading-none">Kullanıcılar</h1>
           <p className="text-sm text-muted">Her işletme sadece kendi panelini, takvimini ve ayarlarını görür.</p>
         </div>
         <Link href="/panel" className="text-sm underline">

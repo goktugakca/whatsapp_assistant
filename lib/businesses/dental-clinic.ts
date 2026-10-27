@@ -3,7 +3,7 @@ import type { Business } from "../business";
 export const dentalClinic: Business = {
   id: "demo-dis",
   type: "dental_clinic",
-  name: "Demo Diş Kliniği",
+  name: "Gülüş Diş Kliniği",
   city: "İstanbul",
   address: "Halaskargazi Cad. No:1, Şişli / İstanbul",
   mapsUrl: "https://maps.google.com/?q=Şişli+İstanbul",

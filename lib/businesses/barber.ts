@@ -3,7 +3,7 @@ import type { Business } from "../business";
 export const barber: Business = {
   id: "demo-berber",
   type: "barber",
-  name: "Demo Berber",
+  name: "Ustura Berber",
   city: "Ankara",
   address: "Tunalı Hilmi Cad. No:5, Çankaya / Ankara",
   utcOffset: "+03:00",

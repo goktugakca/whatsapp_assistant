@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Sırada: iki yanı çentikli sıra fişi -->
+  <path fill="#d93d26" d="M10 8h44a4 4 0 0 1 4 4v14a6 6 0 0 0 0 12v14a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4V38a6 6 0 0 0 0-12V12a4 4 0 0 1 4-4z"/>
+  <path stroke="#fff8f0" stroke-width="3" stroke-dasharray="4 4" d="M12 32h40"/>
+  <rect x="15" y="15" width="22" height="5" rx="1" fill="#fff8f0"/>
+  <rect x="15" y="42" width="14" height="5" rx="1" fill="#fff8f0"/>
+  <rect x="36" y="42" width="13" height="5" rx="1" fill="#fff8f0" opacity=".6"/>
+</svg>

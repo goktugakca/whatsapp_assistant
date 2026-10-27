@@ -1,15 +1,18 @@
 @import "tailwindcss";
 
+/* Sırada görsel kimliği: sıra fişi. Krem kâğıt, siyah mürekkep, tek vurgu rengi
+   (domates kırmızısı). Köşeler küçük, ayraçlar kesik çizgi; sayılar dar ve büyük. */
 :root {
-  --background: #f8faf9;
-  --foreground: #14201b;
-  --muted: #5b6b64;
-  --card: #ffffff;
-  --border: #dfe7e3;
-  --accent: #128c5e;
-  --accent-foreground: #ffffff;
-  --bubble-in: #ffffff;
-  --bubble-out: #d9f4e5;
+  --background: #f3ede3;
+  --foreground: #1b1714;
+  --muted: #6e655b;
+  --card: #fbf8f2;
+  --border: #d8cebf;
+  --accent: #d93d26;
+  --accent-foreground: #fff8f0;
+  --bubble-in: #fbf8f2;
+  --bubble-out: #f7dccf;
+  --ok: #3f6b2e;
 }
 
 @theme inline {
@@ -22,22 +25,30 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-bubble-in: var(--bubble-in);
   --color-bubble-out: var(--bubble-out);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ok: var(--ok);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-display: var(--font-barlow);
+  /* Fiş gibi: yumuşak ama belirgin köşeler. */
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
+  --radius-2xl: 8px;
 }
 
 /* Yazdırırken (pilot raporu PDF'i) her zaman açık tema. */
 @media screen and (prefers-color-scheme: dark) {
   :root {
-    --background: #0d1411;
-    --foreground: #e6efe9;
-    --muted: #94a69d;
-    --card: #141d19;
-    --border: #24322b;
-    --accent: #25b37a;
-    --accent-foreground: #04110b;
-    --bubble-in: #1b2621;
-    --bubble-out: #12402d;
+    --background: #171411;
+    --foreground: #f1e9dd;
+    --muted: #a3988a;
+    --card: #211c18;
+    --border: #3a322b;
+    --accent: #f0583d;
+    --accent-foreground: #1b1714;
+    --bubble-in: #2a241f;
+    --bubble-out: #4a241b;
+    --ok: #a9cf8f;
   }
 }
 
@@ -45,6 +56,136 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Ortak parçalar. Butonlar matbaa işi gibi: düz mürekkep, kırmızı baskı gölgesi, dar büyük harf. */
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1.5px solid var(--foreground);
+    border-radius: 2px;
+    background: var(--foreground);
+    color: var(--background);
+    padding: 0.6rem 1.1rem;
+    font-family: var(--font-plex-mono), monospace;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    box-shadow: 3px 3px 0 var(--accent);
+    transition: transform 80ms, box-shadow 80ms;
+    cursor: pointer;
+  }
+  .btn:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 var(--accent);
+  }
+  .btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 var(--accent);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+    transform: none;
+  }
+  /* İkincil: sadece çerçeve. */
+  .btn-line {
+    background: transparent;
+    color: var(--foreground);
+    box-shadow: none;
+  }
+  .btn-line:hover {
+    background: var(--foreground);
+    color: var(--background);
+    box-shadow: none;
+    transform: none;
+  }
+  .btn-sm {
+    padding: 0.3rem 0.65rem;
+    font-size: 11px;
+  }
+  /* Sekme: altı çizili büyük harf; seçili olan kırmızı çizgiyle. */
+  .tab {
+    display: inline-block;
+    border-bottom: 2px solid transparent;
+    padding: 0.25rem 0;
+    font-family: var(--font-plex-mono), monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .tab:hover {
+    color: var(--foreground);
+  }
+  .tab-active {
+    border-color: var(--accent);
+    color: var(--foreground);
+    font-weight: 600;
+  }
+  /* Durum etiketi: kâğıda basılmış damga. */
+  .stamp {
+    display: inline-block;
+    border: 1.5px solid currentColor;
+    border-radius: 2px;
+    padding: 0 0.4rem;
+    font-family: var(--font-plex-mono), monospace;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.6;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transform: rotate(-2deg);
+  }
+  /* Form alanı. */
+  .field {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 2px;
+    background: var(--card);
+    padding: 0.55rem 0.75rem;
+    font-size: 14px;
+    outline: none;
+  }
+  .field:focus {
+    border-color: var(--foreground);
+  }
+}
+
+/* Fişin kesik çizgili ayracı. */
+.perforation {
+  border: 0;
+  border-top: 1.5px dashed var(--border);
+}
+
+/* Fişin iki yanındaki yarım daire kesikler; kartın içinde bir .perforation ile kullanılır. */
+.ticket {
+  position: relative;
+}
+.ticket-notch::before,
+.ticket-notch::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin-top: -9px;
+  border-radius: 9999px;
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+.ticket-notch::before {
+  left: -10px;
+  clip-path: inset(0 0 0 50%);
+}
+.ticket-notch::after {
+  right: -10px;
+  clip-path: inset(0 50% 0 0);
 }
 
 @page {
