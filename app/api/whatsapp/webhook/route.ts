@@ -22,10 +22,14 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const appSecret = process.env.WHATSAPP_APP_SECRET;
-  if (!appSecret) return new Response("WHATSAPP_APP_SECRET tanımlı değil", { status: 500 });
+  if (!appSecret) {
+    console.error("WhatsApp webhook: WHATSAPP_APP_SECRET tanımlı değil");
+    return new Response("WHATSAPP_APP_SECRET tanımlı değil", { status: 500 });
+  }
 
   const rawBody = await request.text();
   if (!verifySignature(rawBody, request.headers.get("x-hub-signature-256"), appSecret)) {
+    console.warn("WhatsApp webhook: imza geçersiz; WHATSAPP_APP_SECRET Meta'daki App secret ile aynı mı?");
     return new Response("Invalid signature", { status: 401 });
   }
 
@@ -37,6 +41,7 @@ export async function POST(request: Request) {
   }
 
   const messages = parseInboundMessages(payload);
+  console.log(`WhatsApp webhook: ${messages.length} mesaj`);
   after(async () => {
     const store = await getStore();
     for (const message of messages) {

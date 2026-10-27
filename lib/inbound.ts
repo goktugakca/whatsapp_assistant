@@ -19,7 +19,7 @@ export async function handleInboundMessage(message: InboundMessage, deps: Deps):
   const businessId = businessIdForPhoneNumber(message.phoneNumberId);
   const business = businessId && (await loadBusiness(store, businessId));
   if (!business) {
-    console.warn("Bilinmeyen phone_number_id:", message.phoneNumberId);
+    console.warn("Bilinmeyen phone_number_id; WHATSAPP_PHONE_NUMBER_ID ile aynı mı?", message.phoneNumberId);
     return "unknown-business";
   }
 
