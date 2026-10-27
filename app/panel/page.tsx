@@ -42,7 +42,7 @@ export default async function PanelPage(props: PageProps<"/panel">) {
       <PanelHeader session={session} basePath="/panel" businessId={business.id} />
       <header className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl font-bold uppercase leading-none">{business.name}</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{business.name}</h1>
           <p className="text-sm text-muted">{verticals[business.type].label} · İşletme paneli</p>
           <Link
             href={`/panel/ayarlar?isletme=${business.id}`}
@@ -136,7 +136,7 @@ function Stat({ label, value, highlight }: { label: string; value: number; highl
   return (
     <div>
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className={`font-display text-3xl font-bold leading-none ${highlight ? "text-accent" : ""}`}>{value}</dd>
+      <dd className={`font-display text-3xl font-semibold leading-none ${highlight ? "text-accent" : ""}`}>{value}</dd>
     </div>
   );
 }
@@ -164,7 +164,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
           </p>
         </div>
         {c.status === "handoff" ? (
-          <span className="stamp text-accent">
+          <span className="stamp stamp-alert">
             Sizi bekliyor
           </span>
         ) : (

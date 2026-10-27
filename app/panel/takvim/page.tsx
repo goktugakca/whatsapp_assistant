@@ -18,12 +18,12 @@ const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const HOUR_HEIGHT = 64; // px
 // Çalışan renkleri (açık ve koyu temada okunur).
 const STAFF_COLORS = [
-  "bg-[#d93d26]/15 border-[#d93d26] text-[#7a1f12] dark:text-[#ffd2c7]", // domates
-  "bg-[#1b1714]/10 border-[#1b1714] text-[#1b1714] dark:border-[#f1e9dd] dark:bg-[#f1e9dd]/10 dark:text-[#f1e9dd]", // mürekkep
-  "bg-[#c8901e]/20 border-[#c8901e] text-[#5c3f05] dark:text-[#f6dca3]", // hardal
-  "bg-[#4f6b3a]/20 border-[#4f6b3a] text-[#2b3d1e] dark:text-[#d3e4c2]", // zeytin
-  "bg-[#7b3f61]/20 border-[#7b3f61] text-[#47203a] dark:text-[#f0cfe2]", // mürdüm
-  "bg-[#3d5a73]/20 border-[#3d5a73] text-[#1f3346] dark:text-[#cfe0ef]", // arduvaz
+  "bg-[#2346b8]/12 border-[#2346b8] text-[#1a3388] dark:text-[#c9d7ff]", // tükenmez mavisi
+  "bg-[#e8738a]/18 border-[#e8738a] text-[#8f2a40] dark:text-[#ffd0da]", // kenar pembesi
+  "bg-[#2f7a4b]/15 border-[#2f7a4b] text-[#1d4d2f] dark:text-[#c5ebd2]", // yeşil kalem
+  "bg-[#7a4bc2]/15 border-[#7a4bc2] text-[#46287a] dark:text-[#e0d0ff]", // mor kalem
+  "bg-[#d98a1c]/18 border-[#d98a1c] text-[#6b4108] dark:text-[#f7ddb0]", // turuncu fosforlu
+  "bg-[#1c2333]/10 border-[#1c2333] text-[#1c2333] dark:border-[#e6ebf7] dark:bg-[#e6ebf7]/10 dark:text-[#e6ebf7]", // kurşun kalem
 ];
 
 const toHm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
@@ -65,7 +65,7 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
       <PanelHeader session={session} basePath="/panel/takvim" businessId={business.id} />
       <header className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-4xl font-bold uppercase leading-none">{business.name}</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{business.name}</h1>
           <p className="text-sm text-muted">{verticals[business.type].label} · Takvim</p>
         </div>
         <nav className="flex items-center gap-2 text-sm">

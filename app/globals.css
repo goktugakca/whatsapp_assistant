@@ -1,18 +1,21 @@
 @import "tailwindcss";
 
-/* Sırada görsel kimliği: sıra fişi. Krem kâğıt, siyah mürekkep, tek vurgu rengi
-   (domates kırmızısı). Köşeler küçük, ayraçlar kesik çizgi; sayılar dar ve büyük. */
+/* Sırada görsel kimliği: randevu defteri. Salonların tezgâhtaki çizgili defteri;
+   soğuk beyaz kâğıt, mavi tükenmez mürekkep, pembe kenar çizgisi, sarı fosforlu kalem.
+   Yazı: Rubik (yuvarlak hatlı) ve el yazısı (Caveat) — sadece deftere "yazılan" şeylerde. */
 :root {
-  --background: #f3ede3;
-  --foreground: #1b1714;
-  --muted: #6e655b;
-  --card: #fbf8f2;
-  --border: #d8cebf;
-  --accent: #d93d26;
-  --accent-foreground: #fff8f0;
-  --bubble-in: #fbf8f2;
-  --bubble-out: #f7dccf;
-  --ok: #3f6b2e;
+  --background: #f5f7fb;
+  --foreground: #1c2333;
+  --muted: #5d6781;
+  --card: #ffffff;
+  --border: #d3ddef; /* defter çizgisi */
+  --accent: #2346b8; /* tükenmez mavisi */
+  --accent-foreground: #ffffff;
+  --margin: #e8738a; /* defterin pembe kenar çizgisi */
+  --highlight: #fff09a; /* fosforlu kalem */
+  --bubble-in: #ffffff;
+  --bubble-out: #e3eafb;
+  --ok: #2f7a4b;
 }
 
 @theme inline {
@@ -23,32 +26,36 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-margin: var(--margin);
+  --color-highlight: var(--highlight);
   --color-bubble-in: var(--bubble-in);
   --color-bubble-out: var(--bubble-out);
   --color-ok: var(--ok);
-  --font-sans: var(--font-plex-sans);
-  --font-mono: var(--font-plex-mono);
-  --font-display: var(--font-barlow);
-  /* Fiş gibi: yumuşak ama belirgin köşeler. */
-  --radius-md: 3px;
-  --radius-lg: 4px;
-  --radius-xl: 6px;
-  --radius-2xl: 8px;
+  --font-sans: var(--font-rubik);
+  --font-display: var(--font-rubik);
+  --font-mono: var(--font-rubik);
+  --font-hand: var(--font-caveat);
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 14px;
 }
 
 /* Yazdırırken (pilot raporu PDF'i) her zaman açık tema. */
 @media screen and (prefers-color-scheme: dark) {
   :root {
-    --background: #171411;
-    --foreground: #f1e9dd;
-    --muted: #a3988a;
-    --card: #211c18;
-    --border: #3a322b;
-    --accent: #f0583d;
-    --accent-foreground: #1b1714;
-    --bubble-in: #2a241f;
-    --bubble-out: #4a241b;
-    --ok: #a9cf8f;
+    --background: #0f1526;
+    --foreground: #e6ebf7;
+    --muted: #97a2bf;
+    --card: #161e33;
+    --border: #27324f;
+    --accent: #8fb0ff;
+    --accent-foreground: #0f1526;
+    --margin: #ec7d94;
+    --highlight: #5c5420;
+    --bubble-in: #1b2440;
+    --bubble-out: #23356b;
+    --ok: #8fd3a6;
   }
 }
 
@@ -56,136 +63,109 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Ortak parçalar. Butonlar matbaa işi gibi: düz mürekkep, kırmızı baskı gölgesi, dar büyük harf. */
 @layer components {
+  /* Birincil buton: tükenmez mavisiyle dolu. */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    border: 1.5px solid var(--foreground);
-    border-radius: 2px;
-    background: var(--foreground);
-    color: var(--background);
-    padding: 0.6rem 1.1rem;
-    font-family: var(--font-plex-mono), monospace;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    border: 1.5px solid var(--accent);
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-foreground);
+    padding: 0.6rem 1.25rem;
+    font-size: 14px;
+    font-weight: 500;
     white-space: nowrap;
-    box-shadow: 3px 3px 0 var(--accent);
-    transition: transform 80ms, box-shadow 80ms;
     cursor: pointer;
+    transition: background 120ms, color 120ms;
   }
   .btn:hover {
-    transform: translate(-1px, -1px);
-    box-shadow: 4px 4px 0 var(--accent);
-  }
-  .btn:active {
-    transform: translate(3px, 3px);
-    box-shadow: 0 0 0 var(--accent);
+    background: color-mix(in srgb, var(--accent) 85%, black);
   }
   .btn:disabled {
     opacity: 0.5;
     cursor: default;
-    transform: none;
   }
-  /* İkincil: sadece çerçeve. */
+  /* İkincil: mavi çerçeve. */
   .btn-line {
     background: transparent;
-    color: var(--foreground);
-    box-shadow: none;
+    color: var(--accent);
   }
   .btn-line:hover {
-    background: var(--foreground);
-    color: var(--background);
-    box-shadow: none;
-    transform: none;
+    background: var(--bubble-out);
   }
   .btn-sm {
-    padding: 0.3rem 0.65rem;
-    font-size: 11px;
+    padding: 0.3rem 0.8rem;
+    font-size: 13px;
   }
-  /* Sekme: altı çizili büyük harf; seçili olan kırmızı çizgiyle. */
+  /* Sekme: defterin ayraç kulakçıkları. */
   .tab {
     display: inline-block;
-    border-bottom: 2px solid transparent;
-    padding: 0.25rem 0;
-    font-family: var(--font-plex-mono), monospace;
-    font-size: 12px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+    border: 1px solid var(--border);
+    border-bottom: 0;
+    border-radius: 8px 8px 0 0;
+    background: var(--background);
+    padding: 0.35rem 0.9rem;
+    font-size: 13px;
     color: var(--muted);
   }
   .tab:hover {
     color: var(--foreground);
   }
   .tab-active {
-    border-color: var(--accent);
-    color: var(--foreground);
+    background: var(--card);
+    color: var(--accent);
     font-weight: 600;
+    box-shadow: inset 0 3px 0 var(--margin);
   }
-  /* Durum etiketi: kâğıda basılmış damga. */
+  /* Durum: fosforlu kalemle üstü çizilmiş yazı. */
   .stamp {
     display: inline-block;
-    border: 1.5px solid currentColor;
-    border-radius: 2px;
-    padding: 0 0.4rem;
-    font-family: var(--font-plex-mono), monospace;
-    font-size: 10px;
-    font-weight: 600;
-    line-height: 1.6;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    transform: rotate(-2deg);
+    padding: 0 0.35rem;
+    font-size: 12px;
+    font-weight: 500;
+    background: linear-gradient(transparent 35%, var(--highlight) 35%, var(--highlight) 88%, transparent 88%);
   }
-  /* Form alanı. */
+  .stamp-alert {
+    color: var(--foreground);
+    font-weight: 600;
+    background: linear-gradient(transparent 35%, color-mix(in srgb, var(--margin) 40%, transparent) 35%, color-mix(in srgb, var(--margin) 40%, transparent) 88%, transparent 88%);
+  }
   .field {
     width: 100%;
     border: 1.5px solid var(--border);
-    border-radius: 2px;
+    border-radius: 8px;
     background: var(--card);
-    padding: 0.55rem 0.75rem;
+    padding: 0.55rem 0.8rem;
     font-size: 14px;
     outline: none;
   }
   .field:focus {
-    border-color: var(--foreground);
+    border-color: var(--accent);
   }
-}
-
-/* Fişin kesik çizgili ayracı. */
-.perforation {
-  border: 0;
-  border-top: 1.5px dashed var(--border);
-}
-
-/* Fişin iki yanındaki yarım daire kesikler; kartın içinde bir .perforation ile kullanılır. */
-.ticket {
-  position: relative;
-}
-.ticket-notch::before,
-.ticket-notch::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  margin-top: -9px;
-  border-radius: 9999px;
-  background: var(--background);
-  border: 1px solid var(--border);
-}
-.ticket-notch::before {
-  left: -10px;
-  clip-path: inset(0 0 0 50%);
-}
-.ticket-notch::after {
-  right: -10px;
-  clip-path: inset(0 50% 0 0);
+  /* Fosforlu kalem vurgusu (başlıklarda). */
+  .marker {
+    background: linear-gradient(transparent 55%, var(--highlight) 55%, var(--highlight) 92%, transparent 92%);
+    padding: 0 0.1em;
+  }
+  /* Çizgili defter sayfası: mavi satır çizgileri ve pembe kenar çizgisi. --line satır yüksekliği. */
+  .ruled {
+    --line: 32px;
+    --gutter: 72px;
+    background-color: var(--card);
+    background-image:
+      linear-gradient(90deg, transparent var(--gutter), var(--margin) var(--gutter), var(--margin) calc(var(--gutter) + 1.5px), transparent calc(var(--gutter) + 1.5px)),
+      repeating-linear-gradient(transparent 0, transparent calc(var(--line) - 1px), var(--border) calc(var(--line) - 1px), var(--border) var(--line));
+  }
+  .hand {
+    font-family: var(--font-hand), cursive;
+    color: var(--accent);
+  }
 }
 
 @page {

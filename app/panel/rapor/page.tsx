@@ -55,7 +55,7 @@ export default async function ReportPage(props: PageProps<"/panel/rapor">) {
   };
   const maxHour = Math.max(1, ...r.messagesByHour);
   const pill = (active: boolean) =>
-    `rounded-full border px-3 py-1 text-xs ${active ? "border-accent bg-accent text-accent-foreground" : "border-border"}`;
+    `btn btn-sm ${active ? "" : "btn-line"}`;
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 print:max-w-none print:px-0 print:py-0">
@@ -68,8 +68,8 @@ export default async function ReportPage(props: PageProps<"/panel/rapor">) {
 
       <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-accent">Sırada · Pilot raporu</p>
-          <h1 className="mt-1 font-display text-4xl font-bold uppercase leading-none">{business.name}</h1>
+          <p className="hand text-2xl">Sırada · pilot raporu</p>
+          <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">{business.name}</h1>
           <p className="text-sm text-muted">
             {verticals[business.type].label} · {dayFmt.format(from)} – {dayFmt.format(to)} ({days} gün)
             {includeDemo && " · demo sohbetleri dahil"}
@@ -188,7 +188,7 @@ function Metric({
   return (
     <div className="break-inside-avoid rounded-xl border border-border bg-card p-4">
       <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 font-display text-4xl font-bold leading-none ${highlight ? "text-accent" : ""}`}>{value}</p>
+      <p className={`mt-1 font-display text-4xl font-semibold leading-none ${highlight ? "text-accent" : ""}`}>{value}</p>
       {note && <p className="text-xs text-muted">{note}</p>}
     </div>
   );

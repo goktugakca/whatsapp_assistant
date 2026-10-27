@@ -14,9 +14,9 @@ export function PanelHeader({
   businessId: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-foreground pb-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
       <div className="flex flex-wrap items-center gap-4">
-        <Link href="/panel" className="font-display text-2xl font-bold uppercase tracking-wide">
+        <Link href="/panel" className="hand text-[34px] font-bold leading-none">
           Sırada
         </Link>
         {session.isAdmin && (

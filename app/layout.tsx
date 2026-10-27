@@ -1,24 +1,16 @@
 import type { Metadata } from "next";
-import { Barlow_Condensed, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Caveat, Rubik } from "next/font/google";
 import "./globals.css";
 
-// Gövde metni, fişteki saat ve numaralar, büyük başlıklar.
-const plexSans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
+// Gövde ve başlıklar Rubik; deftere elle "yazılan" şeyler (saat, müşteri adı, logo) Caveat.
+const rubik = Rubik({
+  variable: "--font-rubik",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700"],
 });
 
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
+const caveat = Caveat({
+  variable: "--font-caveat",
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600"],
-});
-
-const barlow = Barlow_Condensed({
-  variable: "--font-barlow",
-  subsets: ["latin", "latin-ext"],
-  weight: ["600", "700", "800"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +27,7 @@ export default function RootLayout({
   return (
     <html
       lang="tr"
-      className={`${plexSans.variable} ${plexMono.variable} ${barlow.variable} h-full antialiased`}
+      className={`${rubik.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -14,8 +14,8 @@ export default async function DemoPage(props: PageProps<"/demo">) {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
-      <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b-2 border-foreground pb-3">
-        <Link href="/" className="font-display text-2xl font-bold uppercase tracking-wide">
+      <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-border pb-3">
+        <Link href="/" className="hand text-[34px] font-bold leading-none">
           Sırada
         </Link>
         <BusinessPicker basePath="/demo" currentId={business.id} />
@@ -24,7 +24,7 @@ export default async function DemoPage(props: PageProps<"/demo">) {
         <DemoChat key={business.id} businessId={business.id} businessName={business.name} />
         <aside className="space-y-6 text-sm">
           <div>
-            <h2 className="font-display text-2xl font-bold uppercase leading-none">Bu bir demo</h2>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Bu bir demo</h2>
             <p className="mt-2 text-muted">
               Sol taraf, müşterinin WhatsApp&apos;ta gördüğünün aynısı. Asistan &quot;{business.name}&quot; adlı örnek
               işletmenin hizmet, fiyat ve çalışan bilgileriyle çalışıyor. Konuşmalar ve randevular{" "}
@@ -37,7 +37,7 @@ export default async function DemoPage(props: PageProps<"/demo">) {
             </p>
           </div>
           <div>
-            <h2 className="font-display text-2xl font-bold uppercase leading-none">Şunları deneyin</h2>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Şunları deneyin</h2>
             <ul className="mt-2">
               {demoExamples[business.type].map((e) => (
                 <li key={e} className="border-b border-dashed border-border py-2.5" dir="auto">
