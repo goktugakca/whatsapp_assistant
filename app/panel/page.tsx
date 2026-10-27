@@ -199,6 +199,16 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
               }`}
             >
               {m.from === "staff" && <span className="block text-[10px] font-semibold text-muted">Personel</span>}
+              {m.mediaId && (
+                <a href={`/api/media/${m.mediaId}`} target="_blank" rel="noopener noreferrer" className="mb-1 block">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- yetki kontrollü, önbelleklenmeyen kullanıcı görseli */}
+                  <img
+                    src={`/api/media/${m.mediaId}`}
+                    alt="Müşterinin gönderdiği fotoğraf"
+                    className="max-h-48 rounded-lg border border-border object-cover"
+                  />
+                </a>
+              )}
               {m.text}
             </p>
           </div>

@@ -8,7 +8,8 @@ export interface InboundMessage {
   phoneNumberId: string; // Mesajın geldiği işletme numarası
   from: string; // Müşterinin numarası
   contactName?: string;
-  text: string;
+  text: string; // Fotoğrafta açıklama yazısı (caption); yoksa boş
+  image?: { mediaId: string; mimeType: string };
   timestamp: number;
 }
 
@@ -34,6 +35,7 @@ interface WebhookPayload {
           timestamp: string;
           type: string;
           text?: { body?: string };
+          image?: { id?: string; mime_type?: string; caption?: string };
           button?: { text?: string };
           interactive?: { button_reply?: { title?: string }; list_reply?: { title?: string } };
         }[];
@@ -42,8 +44,9 @@ interface WebhookPayload {
   }[];
 }
 
-// Webhook gövdesinden metin mesajlarını çıkarır. Durum bildirimleri (okundu, iletildi) atlanır.
-// Metin dışı mesajlar (ses, görsel) şimdilik kısa bir açıklama metnine dönüştürülür.
+// Webhook gövdesinden mesajları çıkarır. Durum bildirimleri (okundu, iletildi) atlanır.
+// Fotoğraflar kimliğiyle gelir (indirme lib/inbound.ts'de); diğer metin dışı mesajlar (ses,
+// video, belge) şimdilik kısa bir açıklama metnine dönüştürülür.
 export function parseInboundMessages(payload: unknown): InboundMessage[] {
   const body = payload as WebhookPayload;
   if (body?.object !== "whatsapp_business_account") return [];
@@ -57,6 +60,18 @@ export function parseInboundMessages(payload: unknown): InboundMessage[] {
 
       for (const message of value?.messages ?? []) {
         const contact = value?.contacts?.find((c) => c.wa_id === message.from);
+        if (message.type === "image" && message.image?.id) {
+          result.push({
+            id: message.id,
+            phoneNumberId,
+            from: message.from,
+            contactName: contact?.profile?.name,
+            text: message.image.caption?.trim() ?? "",
+            image: { mediaId: message.image.id, mimeType: message.image.mime_type ?? "image/jpeg" },
+            timestamp: Number(message.timestamp),
+          });
+          continue;
+        }
         const text =
           message.text?.body ??
           message.button?.text ??
@@ -75,6 +90,28 @@ export function parseInboundMessages(payload: unknown): InboundMessage[] {
     }
   }
   return result;
+}
+
+// Gelen bir fotoğrafı indirir: önce kimlikten geçici adresi alır, sonra baytları (ikisi de
+// erişim anahtarıyla). Çok büyük dosyalar indirilmez.
+export async function downloadMedia(
+  mediaId: string,
+  maxBytes: number,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ data: Buffer; mimeType: string }> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  if (!token) throw new Error("WHATSAPP_ACCESS_TOKEN tanımlı değil");
+  const headers = { Authorization: `Bearer ${token}` };
+  const meta = await fetchImpl(`https://graph.facebook.com/${GRAPH_VERSION}/${encodeURIComponent(mediaId)}`, { headers });
+  if (!meta.ok) throw new Error(`Medya bilgisi alınamadı (${meta.status})`);
+  const info = (await meta.json()) as { url?: string; mime_type?: string; file_size?: number };
+  if (!info.url) throw new Error("Medya adresi yok");
+  if (info.file_size && info.file_size > maxBytes) throw new Error("Medya çok büyük");
+  const file = await fetchImpl(info.url, { headers });
+  if (!file.ok) throw new Error(`Medya indirilemedi (${file.status})`);
+  const data = Buffer.from(await file.arrayBuffer());
+  if (data.length > maxBytes) throw new Error("Medya çok büyük");
+  return { data, mimeType: info.mime_type?.split(";")[0] ?? "image/jpeg" };
 }
 
 async function postMessage(phoneNumberId: string, message: Record<string, unknown>): Promise<void> {

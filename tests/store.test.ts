@@ -14,7 +14,7 @@ const implementations: [string, () => Promise<Store>][] = [
   [
     "PostgresStore",
     async () => {
-      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users cascade");
+      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media cascade");
       return new PostgresStore(pglite);
     },
   ],
@@ -213,7 +213,17 @@ describe.each(implementations)("%s", (_name, create) => {
     expect((await store.getBusinessSettings(barber.id))?.services.at(-1)?.name).toBe("Yıkama");
   });
 
-    it("aynı konuşmadaki işleri sırayla çalıştırır", async () => {
+    it("fotoğrafı kaydeder ve baytlarıyla aynen geri okur", async () => {
+    const c = await conversation();
+    const data = Buffer.from([0xff, 0xd8, 0xff, 0x00, 0x01, 0x02]);
+    const saved = await store.saveMedia({ businessId: key.businessId, conversationId: c.id, mimeType: "image/jpeg", data });
+    const loaded = await store.getMedia(saved.id);
+    expect(loaded).toMatchObject({ businessId: key.businessId, conversationId: c.id, mimeType: "image/jpeg" });
+    expect(Buffer.compare(loaded!.data, data)).toBe(0);
+    expect(await store.getMedia("olmayan")).toBeUndefined();
+  });
+
+  it("aynı konuşmadaki işleri sırayla çalıştırır", async () => {
     const order: string[] = [];
     const slow = store.withConversationLock(key, async () => {
       order.push("a-start");

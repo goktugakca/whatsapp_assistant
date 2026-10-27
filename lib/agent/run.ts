@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { describeNow } from "../availability";
 import type { Business } from "../business";
 import { toCard, type AppointmentCard } from "../calendar";
+import { hydrateMedia, mediaMarker } from "../media";
 import type { Conversation, Store } from "../store";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools, executeTool, type TurnEffects } from "./tools";
@@ -43,6 +44,8 @@ export async function runAssistant(params: {
   conversation: Conversation;
   store: Store;
   text: string;
+  // Müşterinin bu mesajla gönderdiği fotoğraf (media tablosunda kayıtlı). Model görür.
+  mediaId?: string;
   now?: Date;
   createMessage?: CreateMessage;
 }): Promise<RunResult> {
@@ -50,11 +53,13 @@ export async function runAssistant(params: {
   const createMessage = params.createMessage ?? defaultCreateMessage;
   const now = params.now ?? new Date();
 
-  conversation.transcript.push({ from: "customer", text, at: now.toISOString() });
+  conversation.transcript.push({ from: "customer", text, at: now.toISOString(), mediaId: params.mediaId });
+  const message = `[Şu an: ${describeNow(business, now)}]\n${text || (params.mediaId ? "(Müşteri sadece fotoğraf gönderdi.)" : "")}`;
   conversation.history.push({
     role: "user",
-    content: `[Şu an: ${describeNow(business, now)}]\n${text}`,
+    content: params.mediaId ? [mediaMarker(params.mediaId), { type: "text", text: message }] : message,
   });
+  const mediaCache = new Map();
 
   const system = buildSystemPrompt(business);
   const tools = buildTools(business);
@@ -77,7 +82,7 @@ export async function runAssistant(params: {
         cache_control: { type: "ephemeral" },
         system,
         tools,
-        messages: conversation.history,
+        messages: await hydrateMedia(conversation.history, store, mediaCache),
       });
 
       roundTimes.push(Date.now() - roundStart);

@@ -31,7 +31,7 @@ export interface Conversation {
   // Modele gönderilen geçmiş. Sadece sona eklenir (append-only); düşünme blokları korunur.
   history: Anthropic.Beta.Messages.BetaMessageParam[];
   // Panelde gösterilen sade metin akışı.
-  transcript: { from: "customer" | "assistant" | "staff"; text: string; at: string }[];
+  transcript: { from: "customer" | "assistant" | "staff"; text: string; at: string; mediaId?: string }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -69,6 +69,16 @@ export interface PanelUser {
   username: string; // küçük harf, benzersiz
   passwordHash: string;
   businessId: string;
+  createdAt: string;
+}
+
+// Müşterinin gönderdiği fotoğraf. Konuşma geçmişinde sadece kimliği tutulur (bkz. lib/media.ts).
+export interface Media {
+  id: string;
+  businessId: string;
+  conversationId: string;
+  mimeType: string;
+  data: Buffer;
   createdAt: string;
 }
 
@@ -111,6 +121,8 @@ export interface Store {
   getPanelUser(id: string): Promise<PanelUser | undefined>;
   listPanelUsers(): Promise<PanelUser[]>;
   deletePanelUser(id: string): Promise<void>;
+  saveMedia(input: Omit<Media, "id" | "createdAt">): Promise<Media>;
+  getMedia(id: string): Promise<Media | undefined>;
 }
 
 export function conversationLockKey(key: ConversationKey): string {
@@ -129,6 +141,7 @@ export class InMemoryStore implements Store {
   private locks = new KeyedQueue();
   private businessSettings = new Map<string, Business>();
   private panelUsers: PanelUser[] = [];
+  private media = new Map<string, Media>();
 
   async findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
@@ -277,6 +290,16 @@ export class InMemoryStore implements Store {
 
   async deletePanelUser(id: string) {
     this.panelUsers = this.panelUsers.filter((u) => u.id !== id);
+  }
+
+  async saveMedia(input: Omit<Media, "id" | "createdAt">) {
+    const media: Media = { id: randomUUID(), createdAt: new Date().toISOString(), ...input };
+    this.media.set(media.id, media);
+    return media;
+  }
+
+  async getMedia(id: string) {
+    return this.media.get(id);
   }
 }
 

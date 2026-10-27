@@ -46,6 +46,10 @@ export default function PrivacyPage() {
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>WhatsApp telefon numarası ve WhatsApp profil adı</li>
             <li>Asistana gönderilen mesajların içeriği ve asistanın yanıtları</li>
+            <li>
+              Müşterinin gönderdiği fotoğraflar (ör. fiyat sormak için saç veya tırnak fotoğrafı). Sadece istenen
+              işlemi değerlendirmek için kullanılır ve yalnızca ilgili işletmenin panelinde görünür.
+            </li>
             <li>Randevu bilgileri: ad, hizmet, çalışan, tarih ve saat</li>
             <li>Pilot başvuru formunda bırakılan işletme adı, ad, telefon ve şehir</li>
             <li>Panel kullanıcılarının kullanıcı adı ve şifrenin geri döndürülemez özeti (şifrenin kendisi saklanmaz)</li>
@@ -78,7 +82,8 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-lg font-semibold">Saklama süresi</h2>
           <p className="mt-2">
-            Konuşma ve randevu kayıtları, işletme hizmeti kullandığı sürece ya da silme talebi gelene kadar saklanır.
+            Konuşma, fotoğraf ve randevu kayıtları, işletme hizmeti kullandığı sürece ya da silme talebi gelene kadar
+            saklanır.
             İşletme hizmetten ayrıldığında ilgili veriler silinir.
           </p>
         </section>

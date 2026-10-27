@@ -226,6 +226,36 @@ export function SettingsForm({ initial }: { initial: Business }) {
         </div>
       </Section>
 
+      {b.type !== "dental_clinic" && (
+        <Section
+          title="Müşteri fotoğraf gönderip fiyat sorarsa"
+          hint="Ör. saçının fotoğrafını atıp “bu boya kaç para olur?” diye sorduğunda."
+        >
+          <div className="space-y-2 text-sm">
+            {(
+              [
+                ["staff", "Fotoğraf bize gelsin, fiyatı biz yazalım", "Asistan fotoğrafın iletildiğini söyler; konuşma panelde sizi bekler."],
+                ["assistant", "Asistan ön fiyat versin", "Fotoğrafa bakıp listenizdeki kademelerden (kısa, orta, uzun gibi) ön fiyat söyler; kesin fiyatın salonda belirleneceğini belirtir."],
+              ] as const
+            ).map(([value, label, hint]) => (
+              <label key={value} className="flex gap-3 rounded-lg border border-border p-3">
+                <input
+                  type="radio"
+                  name="photoQuotes"
+                  className="mt-1"
+                  checked={(b.photoQuotes ?? "staff") === value}
+                  onChange={() => update({ photoQuotes: value })}
+                />
+                <span>
+                  <span className="font-medium">{label}</span>
+                  <span className="block text-[13px] text-muted">{hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </Section>
+      )}
+
       <Section
         title="Çalışanlar"
         hint="Müşteri belirli bir kişiyi isteyebilir. Hiç çalışan eklemezseniz aynı saate tek randevu verilir."

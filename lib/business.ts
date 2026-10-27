@@ -53,6 +53,14 @@ export interface Business {
   slotMinutes: number;
   faq: { q: string; a: string }[];
   policies: string[]; // Asistanın uyması gereken işletmeye özel kurallar
+  // Müşteri fotoğraf gönderip fiyat sorduğunda: "staff" fotoğraf ustaya gider, fiyatı o yazar
+  // (varsayılan); "assistant" asistan fotoğrafa bakıp listedeki kademelerden ön fiyat söyler.
+  photoQuotes?: "staff" | "assistant";
+}
+
+// Diş kliniğinde fotoğraftan değerlendirme teşhis sayılır; her zaman hekime gider.
+export function photoQuotePolicy(business: Business): "staff" | "assistant" {
+  return business.type === "dental_clinic" ? "staff" : (business.photoQuotes ?? "staff");
 }
 
 // Hizmetin fiyatı; çalışan belliyse ve ona özel fiyat girilmişse o.

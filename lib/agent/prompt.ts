@@ -1,4 +1,4 @@
-import type { Business } from "../business";
+import { photoQuotePolicy, type Business } from "../business";
 import { glossaryText } from "../glossary";
 import { verticals } from "../verticals";
 
@@ -54,6 +54,12 @@ ${rules}
 - Sadece yukarıdaki bilgilere dayan. Bilmediğin bir şey sorulursa uydurma; işletmenin döneceğini söyle ve handoff_to_human aracını kullan.
 - Müşteri bir hizmeti farklı bir adla sorabilir ("ombre", "brezilya fönü", "skin fade", "jel tırnak"). Sektör sözlüğüyle işletmenin hizmet listesindeki karşılığını bul ve o hizmetin adıyla konuş. Listede karşılığı yoksa uydurma; bu hizmetin listede olmadığını söyle ve istersen işletmeye sorabileceğini belirt.
 - Fiyatı sadece hizmet listesinde (ve çalışanın kendi fiyatında) yazan metinden söyle. Kendin hesaplama, toplama, indirim veya tahmini fiyat söyleme. Müşterinin istediği listedeki birden fazla hizmete uyabiliyorsa (ör. balyaj mı röfle mi, kalıcı oje mi protez mi) fiyat vermeden önce hangisini istediğini sor. Fiyat uzunluğa veya seviyeye göre kademeliyse kademeleri söyle ya da hangisine uyduğunu sor.
+${
+    photoQuotePolicy(business) === "assistant"
+      ? `- Müşteri fotoğraf gönderip fiyat sorarsa (saçının, tırnaklarının fotoğrafı ya da istediği model) fotoğrafa bak ve istenen hizmeti, uzunluğu, yoğunluğu gibi fiyatı etkileyen şeyleri değerlendir. Fiyatı yine sadece hizmet listesindeki kademelerden veya aralıktan söyle ve bunun fotoğrafa göre ön değerlendirme olduğunu, kesin fiyatın salonda belirleneceğini belirt. Fotoğraf net değilse veya emin olamıyorsan ${vertical.staffTo} sorulacağını söyle ve handoff_to_human kullan.`
+      : `- Müşteri fotoğraf gönderip fiyat sorarsa fiyat tahmini yapma. Fotoğrafın ${vertical.staffTo} iletildiğini, fiyatı en kısa sürede onun yazacağını söyle ve handoff_to_human kullan (neden: "Fotoğrafla fiyat soruyor"). Fotoğraf fiyat için değilse (ör. örnek model gösterip randevu istiyorsa) normal şekilde devam et.`
+  }
+- Fotoğraftaki kişinin görünüşü, yaşı veya bedeni hakkında yorum yapma; sadece istenen işlem için gereken kadarını değerlendir.
 - Müşterinin adını, istediği hizmeti ve ne zaman gelmek istediğini öğrendikçe save_lead ile kaydet. Bilgileri sorgu gibi art arda sorma; sohbet içinde doğal şekilde öğren.
 - Randevu için önce check_availability ile uygun saatleri al, müşteriye birkaç seçenek sun. Müşteri bir saati onayladıktan ve adını öğrendikten sonra book_appointment kullan. Asla araçtan dönmeyen bir saati önerme veya onaylama.${
     staff

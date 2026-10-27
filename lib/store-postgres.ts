@@ -3,6 +3,7 @@ import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 import type {
   Appointment,
+  Media,
   NewAppointment,
   PanelUser,
   Conversation,
@@ -331,6 +332,29 @@ export class PostgresStore implements Store {
   async deletePanelUser(id: string) {
     if (!UUID_RE.test(id)) return;
     await this.db.query("delete from panel_users where id = $1", [id]);
+  }
+
+  async saveMedia(input: Omit<Media, "id" | "createdAt">) {
+    const [row] = await this.db.query<Row>(
+      `insert into media (id, business_id, conversation_id, mime_type, data)
+       values ($1, $2, $3, $4, $5) returning id, created_at`,
+      [randomUUID(), input.businessId, input.conversationId, input.mimeType, input.data],
+    );
+    return { ...input, id: String(row.id), createdAt: iso(row.created_at) };
+  }
+
+  async getMedia(id: string) {
+    if (!UUID_RE.test(id)) return undefined;
+    const [r] = await this.db.query<Row>("select * from media where id = $1", [id]);
+    if (!r) return undefined;
+    return {
+      id: String(r.id),
+      businessId: String(r.business_id),
+      conversationId: String(r.conversation_id),
+      mimeType: String(r.mime_type),
+      data: Buffer.from(r.data as Uint8Array),
+      createdAt: iso(r.created_at),
+    };
   }
 
   async getBusinessSettings(businessId: string) {

@@ -2,24 +2,11 @@
 
 import { useRef, useState, useTransition } from "react";
 import type { ExtractedService } from "@/lib/service-merge";
+import { shrinkImage } from "@/lib/shrink-image";
 import { importPriceList } from "../actions";
 
 const MAX_IMAGES = 5;
 const MAX_EDGE = 1800; // px; fiyat yazısını okumaya yeter, yüklemeyi küçük tutar
-
-// Telefon fotoğrafları birkaç MB olabiliyor; yüklemeden önce tarayıcıda küçültülüp JPEG'e çevrilir.
-async function shrink(file: File): Promise<Blob> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return new Promise((resolve, reject) =>
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("toBlob"))), "image/jpeg", 0.85),
-  );
-}
 
 // Fiyat listesi, tabela veya menü fotoğrafından hizmetleri forma ekler. Kaydetmez; sahibi
 // listeyi kontrol edip formun Kaydet düğmesine basar.
@@ -48,7 +35,7 @@ export function PriceListImport({
       const formData = new FormData();
       formData.append("existing", JSON.stringify(existingNames.filter(Boolean)));
       try {
-        for (const file of Array.from(files)) formData.append("images", await shrink(file), "liste.jpg");
+        for (const file of Array.from(files)) formData.append("images", await shrinkImage(file, MAX_EDGE), "liste.jpg");
       } catch {
         setMessage({ ok: false, text: "Bu fotoğraf açılamadı. JPG veya PNG bir fotoğraf deneyin." });
         return;

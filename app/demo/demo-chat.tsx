@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AppointmentCardView } from "@/app/components/appointment-card";
 import type { AppointmentCard } from "@/lib/calendar";
+import { blobToBase64, shrinkImage } from "@/lib/shrink-image";
 
 type Bubble =
-  | { from: "customer" | "system"; text: string }
+  | { from: "customer"; text: string; imageUrl?: string }
+  | { from: "system"; text: string }
   | { from: "assistant"; text: string; options: string[] }
   | { from: "card"; card: AppointmentCard };
 
@@ -30,15 +32,24 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
   const lastAssistant = bubbles.findLastIndex((b) => b.from === "assistant");
   const optionsVisible = !pending && !bubbles.slice(lastAssistant + 1).some((b) => b.from === "customer");
 
-  async function sendMessage(message: string) {
-    if (!message || pending) return;
-    setBubbles((b) => [...b, { from: "customer", text: message }]);
+  async function sendMessage(message: string, photo?: File) {
+    if ((!message && !photo) || pending) return;
     setPending(true);
     try {
+      let image: { mediaType: string; data: string } | undefined;
+      let imageUrl: string | undefined;
+      if (photo) {
+        const small = await shrinkImage(photo, 1600).catch(() => {
+          throw new Error("Fotoğraf açılamadı, JPG veya PNG deneyin");
+        });
+        image = { mediaType: "image/jpeg", data: await blobToBase64(small) };
+        imageUrl = URL.createObjectURL(small);
+      }
+      setBubbles((b) => [...b, { from: "customer", text: message, imageUrl }]);
       const res = await fetch("/api/demo/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessId, sessionId, text: message }),
+        body: JSON.stringify({ businessId, sessionId, text: message, image }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Hata");
@@ -65,6 +76,14 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
     if (!message || pending) return;
     setText("");
     void sendMessage(message);
+  }
+
+  // Fotoğraf seçilince yazılmış metinle birlikte (WhatsApp'taki açıklama gibi) hemen gider.
+  function sendPhoto(file: File | undefined) {
+    if (!file || pending) return;
+    const message = text.trim();
+    setText("");
+    void sendMessage(message, file);
   }
 
   function reset() {
@@ -105,14 +124,20 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
           }
           return (
             <div key={i} className={`flex flex-col ${b.from === "customer" ? "items-end" : "items-start"}`}>
-              <p
-                dir="auto"
-                className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm shadow-sm ${
-                  b.from === "customer" ? "bg-bubble-out" : "bg-bubble-in"
-                }`}
-              >
-                {b.text}
-              </p>
+              {b.from === "customer" && b.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- tarayıcıdaki geçici (blob:) önizleme
+                <img src={b.imageUrl} alt="Gönderdiğiniz fotoğraf" className="mb-1 max-h-48 max-w-[70%] rounded-2xl" />
+              )}
+              {b.text && (
+                <p
+                  dir="auto"
+                  className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm shadow-sm ${
+                    b.from === "customer" ? "bg-bubble-out" : "bg-bubble-in"
+                  }`}
+                >
+                  {b.text}
+                </p>
+              )}
               {b.from === "assistant" && i === lastAssistant && optionsVisible && b.options.length > 0 && (
                 <div className="mt-2 flex max-w-[85%] flex-wrap gap-2" role="group" aria-label="Seçenekler">
                   {b.options.map((option) => (
@@ -134,6 +159,23 @@ export function DemoChat({ businessId, businessName }: { businessId: string; bus
       </div>
 
       <form onSubmit={submit} className="flex gap-2 border-t border-border p-3">
+        <label className={`btn btn-line px-3 ${pending ? "pointer-events-none opacity-50" : ""}`} title="Fotoğraf gönder">
+          <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+            <circle cx="12" cy="13.5" r="3.5" />
+          </svg>
+          <span className="sr-only">Fotoğraf gönder</span>
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={pending}
+            onChange={(e) => {
+              sendPhoto(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </label>
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}

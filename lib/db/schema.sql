@@ -93,3 +93,16 @@ create table if not exists panel_users (
   business_id text not null,
   created_at timestamptz not null default now()
 );
+
+-- Müşterilerin WhatsApp'tan gönderdiği fotoğraflar (ör. fiyat sormak için saç fotoğrafı).
+-- Konuşma geçmişinde sadece kimlik tutulur; panelde ve modele gönderirken buradan okunur.
+create table if not exists media (
+  id uuid primary key,
+  business_id text not null,
+  conversation_id uuid not null references conversations (id) on delete cascade,
+  mime_type text not null,
+  data bytea not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists media_conversation_idx on media (conversation_id);

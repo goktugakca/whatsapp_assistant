@@ -4,6 +4,7 @@ import type { BusinessType } from "./business";
 export interface Vertical {
   label: string; // "Kuaför"
   staffLabel: string; // Çalışana ne denir: "kuaför", "usta", "hekim"
+  staffTo: string; // Yönelme haliyle: "kuaföre", "ustaya", "hekime"
   rules: string[];
 }
 
@@ -11,6 +12,7 @@ export const verticals: Record<BusinessType, Vertical> = {
   hair_salon: {
     label: "Kuaför",
     staffLabel: "kuaför",
+    staffTo: "kuaföre",
     rules: [
       "Boya, röfle, keratin gibi işlemlerin süresi ve fiyatı saçın uzunluğuna ve yoğunluğuna göre değişir; kesin fiyat verme, aralığı söyle ve gerekirse saç uzunluğunu sor.",
       "Müşteri belirli bir kuaförü isterse o kişinin boş saatlerini öner.",
@@ -19,6 +21,7 @@ export const verticals: Record<BusinessType, Vertical> = {
   barber: {
     label: "Berber",
     staffLabel: "usta",
+    staffTo: "ustaya",
     rules: [
       "Kısa ve samimi yaz; berber müşterileri genelde hızlı randevu ister.",
       "Müşteri belirli bir ustayı isterse o ustanın boş saatlerini öner.",
@@ -27,6 +30,7 @@ export const verticals: Record<BusinessType, Vertical> = {
   nail_salon: {
     label: "Tırnak salonu",
     staffLabel: "uzman",
+    staffTo: "uzmana",
     rules: [
       "Müşterinin tırnaklarında mevcut kalıcı oje veya protez varsa çıkarma işlemi ek süre ister; randevudan önce bunu sor.",
       "Nail art fiyatı tasarıma göre değişir; aralığı söyle, kesin fiyatı salonda belirleneceğini belirt.",
@@ -35,6 +39,7 @@ export const verticals: Record<BusinessType, Vertical> = {
   dental_clinic: {
     label: "Diş kliniği",
     staffLabel: "hekim",
+    staffTo: "hekime",
     rules: [
       "Tıbbi teşhis koyma, ilaç önerme. Şiddetli ağrı, şişlik, kanama, ateş gibi acil belirtilerde hemen handoff_to_human kullan.",
       "Kesin tedavi planı ve fiyatı muayene veya röntgen değerlendirmesinden önce taahhüt etme.",
