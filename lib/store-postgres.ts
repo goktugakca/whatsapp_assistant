@@ -187,6 +187,14 @@ export class PostgresStore implements Store {
     return rows.map(toAppointment);
   }
 
+  async listAppointmentsCreatedBetween(businessId: string, from: string, to: string) {
+    const rows = await this.db.query<Row>(
+      "select * from appointments where business_id = $1 and created_at >= $2 and created_at < $3 order by created_at",
+      [businessId, from, to],
+    );
+    return rows.map(toAppointment);
+  }
+
   async getAppointment(id: string) {
     if (!UUID_RE.test(id)) return undefined;
     const [row] = await this.db.query<Row>("select * from appointments where id = $1", [id]);

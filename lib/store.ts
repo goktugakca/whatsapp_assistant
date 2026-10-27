@@ -82,6 +82,8 @@ export interface Store {
   // İptal edilmemiş randevular, başlangıca göre sıralı.
   listAppointments(businessId: string): Promise<Appointment[]>;
   getAppointment(id: string): Promise<Appointment | undefined>;
+  // [from, to) aralığında oluşturulan randevular, iptal edilenler dahil (pilot raporu için).
+  listAppointmentsCreatedBetween(businessId: string, from: string, to: string): Promise<Appointment[]>;
   // İptal edilen randevu saati boşaltır; zaten iptalse veya yoksa false döner.
   cancelAppointment(businessId: string, id: string): Promise<boolean>;
   // Tüm işletmelerde [from, to) aralığında başlayan, hatırlatması gönderilmemiş aktif randevular.
@@ -176,6 +178,14 @@ export class InMemoryStore implements Store {
   async getAppointment(id: string) {
     const a = this.appointments.find((x) => x.id === id);
     return a && { ...a };
+  }
+
+  async listAppointmentsCreatedBetween(businessId: string, from: string, to: string) {
+    const [f, t] = [Date.parse(from), Date.parse(to)];
+    return this.appointments
+      .filter((a) => a.businessId === businessId && Date.parse(a.createdAt) >= f && Date.parse(a.createdAt) < t)
+      .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt))
+      .map((a) => ({ ...a }));
   }
 
   async cancelAppointment(businessId: string, id: string) {

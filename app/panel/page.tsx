@@ -56,6 +56,12 @@ export default async function PanelPage(props: PageProps<"/panel">) {
           >
             Haftalık takvim
           </Link>
+          <Link
+            href={`/panel/rapor?isletme=${business.id}`}
+            className="mt-2 ml-2 inline-block rounded-lg border border-border px-3 py-1.5 text-xs font-medium"
+          >
+            Pilot raporu
+          </Link>
         </div>
         <dl className="flex gap-6 text-sm">
           <Stat label="Konuşma" value={conversations.length} />
