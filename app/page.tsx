@@ -99,7 +99,10 @@ export default function Home() {
       </section>
 
       <footer className="mt-16 text-center text-xs text-muted">
-        Sırada bağımsız bir üründür; WhatsApp, Meta Platforms, Inc.&apos;in markasıdır.
+        Sırada bağımsız bir üründür; WhatsApp, Meta Platforms, Inc.&apos;in markasıdır. ·{" "}
+        <Link href="/gizlilik" className="underline">
+          Gizlilik politikası
+        </Link>
       </footer>
     </main>
   );
