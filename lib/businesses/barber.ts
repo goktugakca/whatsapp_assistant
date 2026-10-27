@@ -16,7 +16,12 @@ export const barber: Business = {
     { id: "cocuk", name: "Çocuk tıraşı", description: "12 yaş altı.", durationMinutes: 20, priceInfo: "300 TL" },
   ],
   staff: [
-    { id: "mehmet", name: "Mehmet Usta", serviceIds: ["sac", "sakal", "sac-sakal", "cocuk"] },
+    {
+      id: "mehmet",
+      name: "Mehmet Usta",
+      serviceIds: ["sac", "sakal", "sac-sakal", "cocuk"],
+      prices: { sac: "500 TL", sakal: "250 TL", "sac-sakal": "700 TL" },
+    },
     { id: "can", name: "Can", serviceIds: ["sac", "sakal", "sac-sakal", "cocuk"] },
   ],
   workingHours: [

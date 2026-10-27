@@ -1,4 +1,4 @@
-import type { Business } from "./business";
+import { priceFor, type Business } from "./business";
 import type { Appointment } from "./store";
 
 // Randevunun müşteriye ve takvim uygulamalarına gösterilen hali.
@@ -25,7 +25,7 @@ export function toCard(business: Business, appointment: Appointment): Appointmen
     customerName: appointment.customerName,
     start: appointment.start,
     end: appointment.end,
-    priceInfo: service?.priceInfo,
+    priceInfo: priceFor(business, appointment.serviceId, appointment.staffId),
     address: business.address,
     mapsUrl: business.mapsUrl,
   };

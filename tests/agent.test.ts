@@ -86,7 +86,7 @@ describe("araçlar", () => {
     expect(staff).toEqual(["can", "mehmet"]);
   });
 
-  it("boş saatleri çalışan adlarıyla döndürür", async () => {
+  it("boş saatleri çalışan adları ve her çalışanın fiyatıyla döndürür", async () => {
     const { ctx } = await setup(barber);
     const result = await executeTool(
       "check_availability",
@@ -94,8 +94,8 @@ describe("araçlar", () => {
       ctx,
     );
     expect(JSON.parse(result.content).slots[0].staff).toEqual([
-      { id: "mehmet", name: "Mehmet Usta" },
-      { id: "can", name: "Can" },
+      { id: "mehmet", name: "Mehmet Usta", price: "500 TL" },
+      { id: "can", name: "Can", price: "400 TL" },
     ]);
   });
 

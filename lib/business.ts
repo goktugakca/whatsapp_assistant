@@ -33,6 +33,8 @@ export interface Staff {
   name: string;
   serviceIds: string[];
   workingHours?: WorkingHours[]; // Tanımlı değilse işletmenin saatleri geçerli
+  // Hizmet kimliği -> bu çalışanın fiyatı. Olmayan hizmette hizmetin genel fiyatı geçerli.
+  prices?: Record<string, string>;
 }
 
 export interface Business {
@@ -51,6 +53,12 @@ export interface Business {
   slotMinutes: number;
   faq: { q: string; a: string }[];
   policies: string[]; // Asistanın uyması gereken işletmeye özel kurallar
+}
+
+// Hizmetin fiyatı; çalışan belliyse ve ona özel fiyat girilmişse o.
+export function priceFor(business: Business, serviceId: string, staffId?: string): string | undefined {
+  const own = business.staff.find((s) => s.id === staffId)?.prices?.[serviceId]?.trim();
+  return own || business.services.find((s) => s.id === serviceId)?.priceInfo;
 }
 
 // Örnek işletmeler: demo ve panelde listelenir, ayarı hiç kaydedilmemişse başlangıç değeri.

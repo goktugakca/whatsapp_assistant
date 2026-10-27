@@ -65,10 +65,16 @@ export function SettingsForm({ initial }: { initial: Business }) {
     const takenStaff = new Set(b.staff.filter((p) => originalStaffIds.has(p.id)).map((p) => p.id));
     const staff = b.staff.map((p) => {
       const serviceIds = p.serviceIds.map((id) => serviceIdMap.get(id) ?? id);
-      if (originalStaffIds.has(p.id) || !p.name.trim()) return { ...p, serviceIds };
+      // Sadece yaptığı hizmetlerin dolu fiyatları kalır; boş alan genel fiyat demek.
+      const priceEntries = Object.entries(p.prices ?? {})
+        .map(([sid, price]) => [serviceIdMap.get(sid) ?? sid, price.trim()] as const)
+        .filter(([sid, price]) => price && serviceIds.includes(sid));
+      const person: Staff = { ...p, serviceIds, prices: Object.fromEntries(priceEntries) };
+      if (priceEntries.length === 0) delete person.prices;
+      if (originalStaffIds.has(p.id) || !p.name.trim()) return person;
       const id = slugify(p.name, takenStaff);
       takenStaff.add(id);
-      return { ...p, id, serviceIds };
+      return { ...person, id };
     });
     const policies = b.policies.map((p) => p.trim()).filter(Boolean);
     return { ...b, services, staff, policies };
@@ -227,6 +233,29 @@ export function SettingsForm({ initial }: { initial: Business }) {
                   ))}
                 </div>
               </fieldset>
+              {p.serviceIds.length > 0 && (
+                <fieldset>
+                  <legend className="mb-1 text-xs text-muted">
+                    Bu çalışanın fiyatları (boş bırakırsanız hizmetin genel fiyatı geçerli)
+                  </legend>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {b.services
+                      .filter((s) => p.serviceIds.includes(s.id))
+                      .map((s) => (
+                        <label key={s.id} className="flex items-center gap-2 text-xs">
+                          <span className="w-28 shrink-0 truncate">{s.name || "(adsız hizmet)"}</span>
+                          <input
+                            className={input}
+                            placeholder={s.priceInfo || "Fiyat"}
+                            aria-label={`${p.name || "Çalışan"} için ${s.name} fiyatı`}
+                            value={p.prices?.[s.id] ?? ""}
+                            onChange={(e) => setStaff(i, { prices: { ...p.prices, [s.id]: e.target.value } })}
+                          />
+                        </label>
+                      ))}
+                  </div>
+                </fieldset>
+              )}
               <label className="flex items-center gap-2 text-xs">
                 <input
                   type="checkbox"

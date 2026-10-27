@@ -16,7 +16,11 @@ export function buildSystemPrompt(business: Business): string {
     .map((p) => {
       const names = p.serviceIds.map((id) => business.services.find((s) => s.id === id)?.name ?? id).join(", ");
       const hours = p.workingHours ? ` Çalışma saatleri: ${formatHours(p.workingHours)}.` : "";
-      return `- [${p.id}] ${p.name}: ${names}.${hours}`;
+      const prices = Object.entries(p.prices ?? {})
+        .filter(([id, price]) => price.trim() && p.serviceIds.includes(id))
+        .map(([id, price]) => `${business.services.find((s) => s.id === id)?.name ?? id} ${price.trim()}`)
+        .join(", ");
+      return `- [${p.id}] ${p.name}: ${names}.${hours}${prices ? ` Kendi fiyatları: ${prices}.` : ""}`;
     })
     .join("\n");
   const faq = business.faq.map((f) => `S: ${f.q}\nC: ${f.a}`).join("\n\n");
@@ -31,7 +35,7 @@ Adres: ${business.address}${business.mapsUrl ? `\nHarita: ${business.mapsUrl}` :
 Konuşulan diller: ${business.languages.join(", ")}
 Çalışma saatleri: ${formatHours(business.workingHours)}
 
-Hizmetler ve fiyat bilgisi:
+Hizmetler ve fiyat bilgisi${business.staff.some((p) => p.prices && Object.keys(p.prices).length) ? " (çalışanın kendi fiyatı varsa o geçerli)" : ""}:
 ${services}
 ${staff ? `\nÇalışanlar (${vertical.staffLabel}):\n${staff}\n` : ""}
 Sık sorulan sorular:
@@ -47,7 +51,8 @@ ${rules}
 - Müşterinin adını, istediği hizmeti ve ne zaman gelmek istediğini öğrendikçe save_lead ile kaydet. Bilgileri sorgu gibi art arda sorma; sohbet içinde doğal şekilde öğren.
 - Randevu için önce check_availability ile uygun saatleri al, müşteriye birkaç seçenek sun. Müşteri bir saati onayladıktan ve adını öğrendikten sonra book_appointment kullan. Asla araçtan dönmeyen bir saati önerme veya onaylama.${
     staff
-      ? `\n- Müşteri belirli bir ${vertical.staffLabel} isterse check_availability'de staff_id olarak onu ver. Tercihi yoksa "any" kullan ve önerdiğin saatte kimin müsait olduğunu söyle.`
+      ? `\n- Her ${vertical.staffLabel} kendi takvimi ve saatleriyle çalışır. Randevu akışı: önce hizmeti öğren, sonra saat vermeden önce kiminle olmak istediğini sor. Bunun için show_options ile o hizmeti yapan çalışanları ve "Fark etmez" seçeneğini göster; çalışanlar arasında fiyat farkı varsa kısaca belirt. Hizmeti tek kişi yapıyorsa sormadan onunla devam et. Müşteri zaten birini istediyse tekrar sorma.
+- Müşteri birini seçerse check_availability'de staff_id olarak onu ver ve sadece onun boş saatlerini sun. "Fark etmez" derse "any" kullan ve önerdiğin saatte kimin müsait olduğunu söyle. Fiyatı söylerken randevunun verildiği çalışanın fiyatını söyle.`
       : ""
   }
 - Müşteri randevusunu sorarsa, iptal etmek veya saatini değiştirmek isterse önce list_my_appointments kullan. İptalde cancel_appointment kullan. Ertelemede önce yeni saati check_availability ile bul, müşteri onaylayınca book_appointment ile yeni randevuyu al, başarılıysa eskisini cancel_appointment ile iptal et.

@@ -46,6 +46,7 @@ export const businessSchema = z
           name: text(60).min(1, "Çalışan adı gerekli"),
           serviceIds: z.array(id).min(1, "Her çalışan en az bir hizmet yapmalı"),
           workingHours: workingHours.optional(),
+          prices: z.record(id, text(120)).optional(),
         }),
       )
       .max(30),
@@ -70,6 +71,15 @@ export const businessSchema = z
           ctx.addIssue({
             code: "custom",
             message: `${person.name} artık olmayan bir hizmete atanmış`,
+            path: ["staff"],
+          });
+        }
+      }
+      for (const sid of Object.keys(person.prices ?? {})) {
+        if (!person.serviceIds.includes(sid)) {
+          ctx.addIssue({
+            code: "custom",
+            message: `${person.name} için yapmadığı bir hizmete fiyat girilmiş`,
             path: ["staff"],
           });
         }

@@ -1,7 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { freeSlots, SINGLE_RESOURCE, type Slot } from "../availability";
-import type { Business } from "../business";
+import { priceFor, type Business } from "../business";
 import type { Conversation, Lead, Store } from "../store";
 
 const ANY = "any";
@@ -193,7 +193,10 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
           service: service.name,
           slots: slots.map((s) =>
             business.staff.length > 0
-              ? { start: s.start, staff: s.staffIds.map((id) => ({ id, name: staffName(id) })) }
+              ? {
+                  start: s.start,
+                  staff: s.staffIds.map((id) => ({ id, name: staffName(id), price: priceFor(business, service.id, id) })),
+                }
               : { start: s.start },
           ),
         }),
@@ -242,6 +245,7 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
           start: args.start,
           service: service.name,
           staff: appointment.staffId ? staffName(appointment.staffId) : undefined,
+          price: priceFor(business, service.id, appointment.staffId),
         }),
       };
     }

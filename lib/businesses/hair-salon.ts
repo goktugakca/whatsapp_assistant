@@ -17,8 +17,13 @@ export const hairSalon: Business = {
     { id: "keratin", name: "Keratin bakımı", description: "Brezilya fönü / keratin.", durationMinutes: 150, priceInfo: "4.000–7.000 TL" },
   ],
   staff: [
-    { id: "elif", name: "Elif", serviceIds: ["kesim", "fon", "boya", "rofle", "keratin"] },
-    { id: "deniz", name: "Deniz", serviceIds: ["kesim", "fon", "boya"] },
+    {
+      id: "elif",
+      name: "Elif",
+      serviceIds: ["kesim", "fon", "boya", "rofle", "keratin"],
+      prices: { kesim: "1.200 TL", rofle: "5.000–6.000 TL" },
+    },
+    { id: "deniz", name: "Deniz", serviceIds: ["kesim", "fon", "boya"], prices: { kesim: "900 TL" } },
     {
       id: "selin",
       name: "Selin",
