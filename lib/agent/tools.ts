@@ -295,7 +295,7 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
       if (options.length === 0) return { content: "Seçenek listesi boş.", isError: true };
       if (ctx.effects) ctx.effects.options = options;
       return {
-        content: "Seçenekler müşteriye düğme olarak gösterilecek. Metinde aynı listeyi tekrar yazma; kısaca hangisini istediğini sor.",
+        content: "Seçenekler müşteriye düğme olarak gösterilecek. Soruyu bu aracı çağırmadan önce sorduysan başka bir şey yazma; sormadıysan tek kısa cümleyle sor. Listeyi metinde tekrar yazma.",
       };
     }
 
