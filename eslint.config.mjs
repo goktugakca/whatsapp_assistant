@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Tanıtım filmi ayrı bir Remotion projesi (kendi bağımlılıkları var).
+    "video/**",
   ]),
 ]);
 

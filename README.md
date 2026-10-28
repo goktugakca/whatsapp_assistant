@@ -120,6 +120,18 @@ Ayarlar → Hizmetler ve fiyatlar bölümünde işletme sahibi tabela, menü vey
 
 Sektör sözlüğü (`lib/glossary.ts`), müşterilerin aynı işlem için kullandığı farklı adları (ombre/balyaj, brezilya fönü/keratin, skin fade, jel tırnak…) içerir ve asistanın istemine de eklenir.
 
+## Tanıtım filmi
+
+`video/` klasöründe Remotion ile kodla üretilen 28 saniyelik dikey (1080×1920) tanıtım filmi var; ana uygulamadan bağımsızdır.
+
+```bash
+cd video && npm install
+npm run studio   # tarayıcıda önizleme ve düzenleme
+npm run render   # out/sirada-reklam.mp4
+```
+
+Metinler ve zamanlamalar `video/src/Reklam.tsx` içinde. Yazı tipleri `video/public/fonts` altında, böylece internet olmadan da aynı görüntü çıkar.
+
 ## Panel girişi
 
 - `/giris` sayfasından girilir. **Yönetici:** kullanıcı adı `admin`, şifre `PANEL_PASSWORD`. Tüm işletmeleri görür, **Kullanıcılar** sayfasından işletme kullanıcısı oluşturur ve siler.
