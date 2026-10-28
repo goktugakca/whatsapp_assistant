@@ -137,3 +137,12 @@ create table if not exists instagram_accounts (
   token_expires_at timestamptz not null,
   connected_at timestamptz not null default now()
 );
+
+-- Fotoğrafla fiyat sınavı sonuçları (lib/photo-quote-eval.ts). Her çalıştırma tek satır.
+create table if not exists photo_quote_evals (
+  id uuid primary key,
+  business_id text not null,
+  result jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists photo_quote_evals_business_idx on photo_quote_evals (business_id, created_at desc);

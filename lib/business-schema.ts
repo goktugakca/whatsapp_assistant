@@ -56,7 +56,7 @@ export const businessSchema = z
     }),
     faq: z.array(z.object({ q: text(200).min(1), a: text(600).min(1) })).max(30),
     policies: z.array(text(300).min(1)).max(20),
-    photoQuotes: z.enum(["staff", "assistant"]).optional(),
+    photoQuotes: z.enum(["staff", "assistant", "examples"]).optional(),
   })
   .superRefine((b, ctx) => {
     const serviceIds = new Set(b.services.map((s) => s.id));

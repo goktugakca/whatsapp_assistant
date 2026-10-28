@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { businesses, loadBusiness } from "@/lib/business";
+import { businesses, loadBusiness, photoQuotePolicy } from "@/lib/business";
+import { MIN_EXAMPLES } from "@/lib/photo-quote";
 import { resolvePanelBusiness } from "@/lib/dal";
 import { getStore, type PriceExample } from "@/lib/store";
 import { PanelHeader } from "../panel-header";
@@ -33,14 +34,34 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
           <h1 className="font-display text-3xl font-semibold tracking-tight">Fotoğrafla fiyat örnekleri</h1>
           <p className="text-sm text-muted">{business.name}</p>
         </div>
-        <Link href={`/panel?isletme=${business.id}`} className="text-sm underline">
-          ← Panele dön
-        </Link>
+        <div className="flex gap-4 text-sm">
+          <Link href={`/panel/ornekler/sinav?isletme=${business.id}`} className="underline">
+            Fiyat sınavı
+          </Link>
+          <Link href={`/panel?isletme=${business.id}`} className="underline">
+            ← Panele dön
+          </Link>
+        </div>
       </header>
 
       <p className="mt-4 max-w-3xl text-sm text-muted">
         Müşterilerin gönderdiği saç fotoğrafları ve ustanın verdiği fiyatlar. Asistan, fotoğrafla fiyat sorulduğunda
         bu salonun benzer örneklerine bakarak karar verir. Örnekler sadece bu işletmenin asistanında kullanılır.
+      </p>
+      <p className="mt-2 max-w-3xl text-sm">
+        {photoQuotePolicy(business) === "examples" ? (
+          <>Asistan şu an fotoğrafla fiyat sorulduğunda bu örneklere göre ön fiyat veriyor.</>
+        ) : ready.length >= MIN_EXAMPLES ? (
+          <>
+            Asistan henüz bu örnekleri kullanmıyor. Önce{" "}
+            <Link href={`/panel/ornekler/sinav?isletme=${business.id}`} className="underline">
+              sınav
+            </Link>{" "}
+            yapıp ne kadar tutarlı olduğunu görün, sonra Ayarlar’dan açın.
+          </>
+        ) : (
+          <>Asistanın örneklerden fiyat verebilmesi için en az {MIN_EXAMPLES} fiyatlı örnek gerekir.</>
+        )}
       </p>
 
       <section className="mt-6">

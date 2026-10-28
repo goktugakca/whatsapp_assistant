@@ -1,7 +1,8 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { freeSlots, SINGLE_RESOURCE, type Slot } from "../availability";
-import { priceFor, type Business } from "../business";
+import { photoQuotePolicy, priceFor, type Business } from "../business";
+import { formatRange, loadExampleImages, MIN_EXAMPLES, pickExamples, quoteFromExamples, type ParseQuote } from "../photo-quote";
 import type { Conversation, Lead, Store } from "../store";
 
 const ANY = "any";
@@ -100,6 +101,24 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
         additionalProperties: false,
       },
     },
+    ...(photoQuotePolicy(business) === "examples"
+      ? [
+          {
+            name: "quote_from_photo",
+            description:
+              "Müşterinin gönderdiği son fotoğraf için, salonun geçmişte benzer fotoğraflara verdiği fiyatlara bakarak ön fiyat aralığı döndürür. Müşteri fotoğrafla fiyat sorduğunda kullan. Fiyat veremezse işletmeye devret.",
+            strict: true,
+            input_schema: {
+              type: "object",
+              properties: {
+                question: { type: "string", description: "Müşterinin ne istediği, kendi sözleriyle (ör. 'balyaj kaç para')" },
+              },
+              required: ["question"],
+              additionalProperties: false,
+            },
+          } satisfies Anthropic.Beta.Messages.BetaTool,
+        ]
+      : []),
     {
       name: "handoff_to_human",
       description:
@@ -133,6 +152,7 @@ const saveLeadInput = z.object({
 const handoffInput = z.object({ reason: z.string() });
 const showOptionsInput = z.object({ options: z.array(z.string()) });
 const cancelInput = z.object({ appointment_id: z.string() });
+const quoteInput = z.object({ question: z.string() });
 
 export const MAX_OPTIONS = 10;
 export const MAX_OPTION_LENGTH = 24; // WhatsApp liste satırı başlık sınırı
@@ -149,6 +169,7 @@ export interface ToolContext {
   store: Store;
   now?: Date;
   effects?: TurnEffects;
+  parseQuote?: ParseQuote; // Testlerde fotoğraf fiyat modelini taklit etmek için
 }
 
 export interface ToolOutcome {
@@ -303,6 +324,40 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
       };
     }
 
+    case "quote_from_photo": {
+      const args = quoteInput.parse(input);
+      const mediaId = lastPhotoId(conversation);
+      const media = mediaId && (await store.getMedia(mediaId));
+      if (!media || !/^image\/(jpeg|png|webp|gif)$/.test(media.mimeType)) {
+        return { content: "Bu konuşmada okunabilir bir fotoğraf yok. Fiyat verme; işletmeye devret." };
+      }
+      const all = await store.listPriceExamples(business.id);
+      const picked = pickExamples(all, args.question);
+      if (all.filter((e) => e.included && e.priceMin !== undefined).length < MIN_EXAMPLES || picked.length === 0) {
+        return { content: "Salonun yeterli fiyat örneği yok. Fiyat verme; işletmeye devret." };
+      }
+      const examples = await loadExampleImages(store, picked);
+      const quote = await quoteFromExamples({
+        business,
+        photo: { mediaType: media.mimeType as "image/jpeg", data: media.data.toString("base64") },
+        question: args.question,
+        examples,
+        parse: ctx.parseQuote,
+      });
+      if (!quote || quote.matchQuality === "low") {
+        return { content: "Benzer örnek bulunamadı veya fotoğraf yeterli değil. Fiyat verme; işletmeye devret." };
+      }
+      return {
+        content: JSON.stringify({
+          service: quote.service,
+          price: formatRange(quote.priceMin, quote.priceMax),
+          confidence: quote.matchQuality,
+          note: quote.note,
+          reminder: "Bunu ön fiyat olarak söyle; kesin fiyat salonda belirlenir.",
+        }),
+      };
+    }
+
     case "handoff_to_human": {
       const args = handoffInput.parse(input);
       conversation.status = "handoff";
@@ -313,6 +368,19 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
     default:
       return { content: `Bilinmeyen araç: ${name}`, isError: true };
   }
+}
+
+// Konuşmadaki son müşteri fotoğrafının kimliği (lib/media.ts işareti).
+function lastPhotoId(conversation: Conversation): string | undefined {
+  for (let i = conversation.history.length - 1; i >= 0; i--) {
+    const m = conversation.history[i];
+    if (m.role !== "user" || typeof m.content === "string") continue;
+    for (const b of m.content) {
+      const match = b.type === "text" ? /^\[\[foto:([0-9a-f-]{36})\]\]$/.exec(b.text) : null;
+      if (match) return match[1];
+    }
+  }
+  return undefined;
 }
 
 async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staffId: string): Promise<Slot[]> {

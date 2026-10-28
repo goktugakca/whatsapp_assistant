@@ -111,6 +111,14 @@ export interface InstagramAccount {
   connectedAt: string;
 }
 
+// Fotoğrafla fiyat sınavının sonucu; içerik lib/photo-quote-eval.ts'de tanımlı.
+export interface PhotoQuoteEval {
+  id: string;
+  businessId: string;
+  result: unknown;
+  createdAt: string;
+}
+
 export type ConversationKey = Pick<Conversation, "businessId" | "channel" | "contact">;
 
 export interface Store {
@@ -165,6 +173,8 @@ export interface Store {
   findInstagramAccount(accountId: string): Promise<InstagramAccount | undefined>;
   listInstagramAccounts(): Promise<InstagramAccount[]>;
   deleteInstagramAccount(businessId: string): Promise<void>;
+  savePhotoQuoteEval(businessId: string, result: unknown): Promise<PhotoQuoteEval>;
+  latestPhotoQuoteEval(businessId: string): Promise<PhotoQuoteEval | undefined>;
 }
 
 export function conversationLockKey(key: ConversationKey): string {
@@ -186,6 +196,7 @@ export class InMemoryStore implements Store {
   private media = new Map<string, Media>();
   private priceExamples: PriceExample[] = [];
   private instagram: InstagramAccount[] = [];
+  private evals: PhotoQuoteEval[] = [];
 
   async findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
@@ -399,6 +410,18 @@ export class InMemoryStore implements Store {
 
   async deleteInstagramAccount(businessId: string) {
     this.instagram = this.instagram.filter((a) => a.businessId !== businessId);
+  }
+
+  async savePhotoQuoteEval(businessId: string, result: unknown) {
+    const row: PhotoQuoteEval = { id: randomUUID(), businessId, result: structuredClone(result), createdAt: new Date().toISOString() };
+    this.evals.push(row);
+    return { ...row };
+  }
+
+  async latestPhotoQuoteEval(businessId: string) {
+    const rows = this.evals.filter((e) => e.businessId === businessId);
+    const last = rows[rows.length - 1];
+    return last && { ...last };
   }
 }
 

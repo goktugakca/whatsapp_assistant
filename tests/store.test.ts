@@ -14,7 +14,7 @@ const implementations: [string, () => Promise<Store>][] = [
   [
     "PostgresStore",
     async () => {
-      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media, price_examples, instagram_accounts cascade");
+      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media, price_examples, instagram_accounts, photo_quote_evals cascade");
       return new PostgresStore(pglite);
     },
   ],

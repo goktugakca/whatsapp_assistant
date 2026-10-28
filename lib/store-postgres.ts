@@ -3,6 +3,7 @@ import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 import type {
   InstagramAccount,
+  PhotoQuoteEval,
   Appointment,
   Media,
   NewAppointment,
@@ -468,6 +469,26 @@ export class PostgresStore implements Store {
   async deleteInstagramAccount(businessId: string) {
     await this.db.query("delete from instagram_accounts where business_id = $1", [businessId]);
   }
+
+  async savePhotoQuoteEval(businessId: string, result: unknown) {
+    const [row] = await this.db.query<Row>(
+      "insert into photo_quote_evals (id, business_id, result) values ($1, $2, $3) returning *",
+      [randomUUID(), businessId, JSON.stringify(result)],
+    );
+    return toEval(row);
+  }
+
+  async latestPhotoQuoteEval(businessId: string) {
+    const [row] = await this.db.query<Row>(
+      "select * from photo_quote_evals where business_id = $1 order by created_at desc limit 1",
+      [businessId],
+    );
+    return row ? toEval(row) : undefined;
+  }
+}
+
+function toEval(r: Row): PhotoQuoteEval {
+  return { id: String(r.id), businessId: String(r.business_id), result: r.result, createdAt: iso(r.created_at) };
 }
 
 function toInstagramAccount(r: Row): InstagramAccount {

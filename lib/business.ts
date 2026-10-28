@@ -10,6 +10,8 @@ import type { Store } from "./store";
 
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Pazar
 
+export type PhotoQuotePolicy = "staff" | "assistant" | "examples";
+
 export type BusinessType = "hair_salon" | "barber" | "nail_salon" | "dental_clinic";
 
 export interface Service {
@@ -54,12 +56,13 @@ export interface Business {
   faq: { q: string; a: string }[];
   policies: string[]; // Asistanın uyması gereken işletmeye özel kurallar
   // Müşteri fotoğraf gönderip fiyat sorduğunda: "staff" fotoğraf ustaya gider, fiyatı o yazar
-  // (varsayılan); "assistant" asistan fotoğrafa bakıp listedeki kademelerden ön fiyat söyler.
-  photoQuotes?: "staff" | "assistant";
+  // (varsayılan); "assistant" asistan fotoğrafa bakıp listedeki kademelerden ön fiyat söyler;
+  // "examples" salonun geçmiş örneklerine (lib/photo-quote.ts) bakarak ön fiyat söyler.
+  photoQuotes?: PhotoQuotePolicy;
 }
 
 // Diş kliniğinde fotoğraftan değerlendirme teşhis sayılır; her zaman hekime gider.
-export function photoQuotePolicy(business: Business): "staff" | "assistant" {
+export function photoQuotePolicy(business: Business): PhotoQuotePolicy {
   return business.type === "dental_clinic" ? "staff" : (business.photoQuotes ?? "staff");
 }
 

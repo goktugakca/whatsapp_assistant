@@ -141,7 +141,7 @@ Ayarlar → Hizmetler ve fiyatlar bölümünde işletme sahibi tabela, menü vey
 
 Sektör sözlüğü (`lib/glossary.ts`), müşterilerin aynı işlem için kullandığı farklı adları (ombre/balyaj, brezilya fönü/keratin, skin fade, jel tırnak…) içerir ve asistanın istemine de eklenir.
 
-## Geçmiş sohbetlerden fiyat örnekleri
+## Geçmiş sohbetlerden fiyat örnekleri ve fotoğrafla fiyat
 
 Panel → **Fotoğrafla fiyat örnekleri** (`/panel/ornekler`). Salon, WhatsApp'ta her sohbeti
 "Sohbeti dışa aktar → Medyayı dahil et" ile zip olarak alır ve hepsini birden yükler.
@@ -149,6 +149,18 @@ Zipler tarayıcıda açılır (`lib/whatsapp-export.ts`); sunucuya sadece müşt
 yanında yazdığı metin ve salonun fiyatlı cevabı gider. Gönderen adları tutulmaz, metinlerdeki
 müşteri adı, telefon ve e-posta silinir. Fiyatı okunamayan örnekler listede işaretlenir, salon
 elle yazar. Aynı fotoğraf ikinci kez eklenmez. Örnekler sadece o işletmenin kaydında durur.
+
+Örnekler modele "eğitim" olarak değil, soru anında referans olarak verilir (`lib/photo-quote.ts`):
+müşteri fotoğrafla fiyat sorduğunda asistan `quote_from_photo` aracını çağırır; araç soruya en yakın
+12 örneği (fotoğraf + ustanın verdiği fiyat) ve müşterinin fotoğrafını `ANTHROPIC_PHOTO_MODEL`
+(varsayılan `claude-opus-5-5`) ile karşılaştırıp aralık döndürür. Benzer örnek yoksa veya emin
+değilse fiyat vermez, fotoğraf ustaya gider. Bu mod Ayarlar → "Müşteri fotoğraf gönderip fiyat
+sorarsa" → "geçmiş örneklerinize göre" ile açılır; en az 10 fiyatlı örnek gerekir.
+
+**Fiyat sınavı** (`/panel/ornekler/sinav`): açmadan önce tutarlılığı ölçmek için. Örneklerin dörtte
+biri (en çok 30) ayrılır, asistan kalanlara bakarak onlara fiyat verir; ustanın gerçek fiyatıyla
+%15 payla karşılaştırılır. İsabet, yanlış ve "size iletirdi" sayıları hizmete göre dökülür, her örnek
+tek tek görülür. Sonuç `photo_quote_evals` tablosunda saklanır.
 
 ## Tanıtım filmi
 

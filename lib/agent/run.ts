@@ -3,6 +3,7 @@ import { describeNow } from "../availability";
 import type { Business } from "../business";
 import { toCard, type AppointmentCard } from "../calendar";
 import { hydrateMedia, mediaMarker } from "../media";
+import type { ParseQuote } from "../photo-quote";
 import type { Conversation, Store } from "../store";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools, executeTool, type TurnEffects } from "./tools";
@@ -48,6 +49,7 @@ export async function runAssistant(params: {
   mediaId?: string;
   now?: Date;
   createMessage?: CreateMessage;
+  parseQuote?: ParseQuote;
 }): Promise<RunResult> {
   const { business, conversation, store, text } = params;
   const createMessage = params.createMessage ?? defaultCreateMessage;
@@ -110,7 +112,7 @@ export async function runAssistant(params: {
       for (const tool of toolUses) {
         let outcome;
         try {
-          outcome = await executeTool(tool.name, tool.input, { business, conversation, store, now, effects });
+          outcome = await executeTool(tool.name, tool.input, { business, conversation, store, now, effects, parseQuote: params.parseQuote });
         } catch (error) {
           outcome = { content: `Araç hatası: ${(error as Error).message}`, isError: true };
         }

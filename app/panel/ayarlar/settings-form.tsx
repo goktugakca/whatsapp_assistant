@@ -236,6 +236,7 @@ export function SettingsForm({ initial }: { initial: Business }) {
               [
                 ["staff", "Fotoğraf bize gelsin, fiyatı biz yazalım", "Asistan fotoğrafın iletildiğini söyler; konuşma panelde sizi bekler."],
                 ["assistant", "Asistan ön fiyat versin", "Fotoğrafa bakıp listenizdeki kademelerden (kısa, orta, uzun gibi) ön fiyat söyler; kesin fiyatın salonda belirleneceğini belirtir."],
+                ["examples", "Asistan geçmiş örneklerinize göre ön fiyat versin", "Fotoğrafla fiyat örnekleri sayfasına yüklediğiniz eski yazışmalardaki fotoğraf–fiyat örneklerine bakar. En az 10 fiyatlı örnek gerekir; benzer örnek bulamazsa fotoğrafı size iletir."],
               ] as const
             ).map(([value, label, hint]) => (
               <label key={value} className="flex gap-3 rounded-lg border border-border p-3">
