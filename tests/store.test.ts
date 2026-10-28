@@ -14,7 +14,7 @@ const implementations: [string, () => Promise<Store>][] = [
   [
     "PostgresStore",
     async () => {
-      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media, price_examples cascade");
+      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media, price_examples, instagram_accounts cascade");
       return new PostgresStore(pglite);
     },
   ],
@@ -272,5 +272,19 @@ describe.each(implementations)("%s", (_name, create) => {
     });
     await Promise.all([slow, fast]);
     expect(order).toEqual(["a-start", "a-end", "b"]);
+  });
+});
+
+describe.each(implementations)("%s Instagram hesapları", (_name, create) => {
+  it("hesabı kaydeder, hesap kimliğiyle bulur, başka işletmeye taşınınca eskisinden kaldırır", async () => {
+    const store = await create();
+    const base = { accountId: "178", username: "salon", sealedToken: "x.y.z", tokenExpiresAt: new Date().toISOString(), connectedAt: new Date().toISOString() };
+    await store.saveInstagramAccount({ businessId: "demo-kuafor", ...base });
+    expect((await store.findInstagramAccount("178"))?.businessId).toBe("demo-kuafor");
+    await store.saveInstagramAccount({ businessId: "demo-berber", ...base });
+    expect(await store.getInstagramAccount("demo-kuafor")).toBeUndefined();
+    expect((await store.listInstagramAccounts()).map((a) => a.businessId)).toEqual(["demo-berber"]);
+    await store.deleteInstagramAccount("demo-berber");
+    expect(await store.findInstagramAccount("178")).toBeUndefined();
   });
 });

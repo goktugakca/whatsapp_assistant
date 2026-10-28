@@ -127,3 +127,13 @@ create table if not exists price_examples (
   created_at timestamptz not null default now(),
   unique (business_id, image_hash)
 );
+
+-- İşletmenin bağladığı Instagram hesabı. Erişim anahtarı uygulama tarafında şifrelenir.
+create table if not exists instagram_accounts (
+  business_id text primary key,
+  account_id text not null unique,
+  username text,
+  sealed_token text not null,
+  token_expires_at timestamptz not null,
+  connected_at timestamptz not null default now()
+);

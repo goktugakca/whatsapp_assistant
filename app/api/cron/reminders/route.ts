@@ -1,3 +1,4 @@
+import { refreshInstagramTokens } from "@/lib/instagram-tokens";
 import { sendTomorrowReminders } from "@/lib/reminders";
 import { getStore } from "@/lib/store";
 
@@ -9,7 +10,10 @@ export async function GET(request: Request) {
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const report = await sendTomorrowReminders({ store: await getStore() });
+  const store = await getStore();
+  const report = await sendTomorrowReminders({ store });
   console.info(`hatırlatma: ${report.sent} gönderildi, ${report.skipped.length} atlandı, ${report.failed.length} hata`);
-  return Response.json(report);
+  // Aynı günlük görevde Instagram anahtarları da yenilenir (60 günde dolar).
+  const instagram = await refreshInstagramTokens({ store });
+  return Response.json({ ...report, instagram });
 }

@@ -99,6 +99,27 @@ Notlar:
 - Meta'nın Ocak 2026 kuralı genel amaçlı sohbet robotlarını yasaklıyor. Bu ürün işletmeye özel müşteri hizmeti olduğu için kapsam dışında, ama asistanı her zaman işletmenin konularına bağlı tutun.
 - Birden fazla işletmeyi gerçek numaralarla bağlamak için her işletmeye `whatsappPhoneNumberId` alanı girilebilir.
 
+## Instagram bağlantısı
+
+Aynı asistan Instagram mesajlarına da yanıt verir; konuşmalar panelde WhatsApp'takilerle birlikte görünür.
+Kurulum (Instagram API with Instagram Login; Facebook sayfası gerekmez):
+
+1. Meta uygulamanıza **Instagram** ürününü ekleyin, "API setup with Instagram login" bölümünden Instagram app ID ve
+   app secret'ı alın (`INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET`). Bunlar WhatsApp'ın app ID/secret'ından farklıdır.
+2. Business login settings'e OAuth dönüş adresini yazın: `https://<alan-adınız>/api/instagram/callback`.
+   Deauthorize: `/api/instagram/deauthorize`, veri silme: `/api/instagram/data-deletion`.
+3. Webhook adresi `https://<alan-adınız>/api/instagram/webhook`, doğrulama metni `INSTAGRAM_VERIFY_TOKEN`
+   (yoksa `WHATSAPP_VERIFY_TOKEN`); `messages` alanına abone olun.
+4. İşletme sahibi panelde **Ayarlar → Instagram mesajları → Instagram'ı bağla** ile kendi hesabıyla giriş yapar.
+   Hesap işletme veya içerik üretici hesabı olmalı ve ayarlarda "Mesajlara erişime izin ver" açık olmalı.
+5. Uygulama yayında değilken sadece uygulamaya "Instagram tester" olarak eklenen hesaplar bağlanabilir; başka
+   salonlar için `instagram_business_manage_messages` izninin App Review'dan geçmesi ve işletme doğrulaması gerekir.
+
+Erişim anahtarı 60 gün geçerlidir; günlük görev (`/api/cron/reminders`) bitimine iki hafta kala yeniler.
+Anahtar veritabanında `INSTAGRAM_TOKEN_KEY` ile şifreli durur. Hesap bağlantısı panelden veya Instagram
+ayarlarından kaldırılınca silinir. Hızlı yanıt düğmeleri (en fazla 13), fotoğraf alma ve 1000 karakter sınırı
+için bölme desteklenir; hatırlatma şablonu yalnızca WhatsApp'ta vardır.
+
 ## Mimari ve bilinen sınırlar
 
 - **Veri katmanı** (`lib/store.ts`): `DATABASE_URL` varsa Postgres (`lib/store-postgres.ts`), yoksa bellek. İki uygulama da aynı testlerden geçer (`tests/store.test.ts`; Postgres testleri gömülü PGlite ile, sunucu gerekmeden koşar).

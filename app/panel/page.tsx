@@ -163,7 +163,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
         <div>
           <p className="font-medium">{c.contactName ?? c.contact}</p>
           <p className="text-xs text-muted">
-            {c.channel === "whatsapp" ? `WhatsApp · ${c.contact}` : "Demo"} · {fmt(c.updatedAt)}
+            {c.channel === "whatsapp" ? `WhatsApp · ${c.contact}` : c.channel === "instagram" ? "Instagram" : "Demo"} · {fmt(c.updatedAt)}
           </p>
         </div>
         {c.status === "handoff" ? (

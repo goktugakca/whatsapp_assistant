@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 import type {
+  InstagramAccount,
   Appointment,
   Media,
   NewAppointment,
@@ -433,6 +434,51 @@ export class PostgresStore implements Store {
       await this.db.query("delete from media where business_id = $1 and id = any($2::uuid[])", [businessId, mediaIds]);
     }
   }
+
+  async saveInstagramAccount(account: InstagramAccount) {
+    // Hesap başka işletmedeyse önce oradan çıkar; sonra bu işletmenin kaydını yaz.
+    await this.db.query("delete from instagram_accounts where account_id = $1 and business_id <> $2", [
+      account.accountId,
+      account.businessId,
+    ]);
+    await this.db.query(
+      `insert into instagram_accounts (business_id, account_id, username, sealed_token, token_expires_at, connected_at)
+       values ($1, $2, $3, $4, $5, $6)
+       on conflict (business_id) do update set account_id = excluded.account_id, username = excluded.username,
+         sealed_token = excluded.sealed_token, token_expires_at = excluded.token_expires_at,
+         connected_at = excluded.connected_at`,
+      [account.businessId, account.accountId, account.username ?? null, account.sealedToken, account.tokenExpiresAt, account.connectedAt],
+    );
+  }
+
+  async getInstagramAccount(businessId: string) {
+    const [row] = await this.db.query<Row>("select * from instagram_accounts where business_id = $1", [businessId]);
+    return row ? toInstagramAccount(row) : undefined;
+  }
+
+  async findInstagramAccount(accountId: string) {
+    const [row] = await this.db.query<Row>("select * from instagram_accounts where account_id = $1", [accountId]);
+    return row ? toInstagramAccount(row) : undefined;
+  }
+
+  async listInstagramAccounts() {
+    return (await this.db.query<Row>("select * from instagram_accounts order by business_id")).map(toInstagramAccount);
+  }
+
+  async deleteInstagramAccount(businessId: string) {
+    await this.db.query("delete from instagram_accounts where business_id = $1", [businessId]);
+  }
+}
+
+function toInstagramAccount(r: Row): InstagramAccount {
+  return {
+    businessId: String(r.business_id),
+    accountId: String(r.account_id),
+    username: opt(r.username),
+    sealedToken: String(r.sealed_token),
+    tokenExpiresAt: iso(r.token_expires_at),
+    connectedAt: iso(r.connected_at),
+  };
 }
 
 function toPriceExample(r: Row): PriceExample {

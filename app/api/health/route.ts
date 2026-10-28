@@ -27,6 +27,7 @@ export async function GET() {
     whatsapp: Boolean(
       process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_APP_SECRET && process.env.WHATSAPP_VERIFY_TOKEN,
     ),
+    instagram: Boolean(process.env.INSTAGRAM_APP_ID && process.env.INSTAGRAM_APP_SECRET),
     panelPassword: Boolean(process.env.PANEL_PASSWORD),
     region: process.env.VERCEL_REGION,
   };

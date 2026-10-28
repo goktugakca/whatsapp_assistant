@@ -32,7 +32,7 @@ export default async function ReportPage(props: PageProps<"/panel/rapor">) {
 
   const days = PERIODS.find((d) => String(d) === gun) ?? 30;
   const includeDemo = demo === "1";
-  const channels: Channel[] = includeDemo ? ["whatsapp", "demo"] : ["whatsapp"];
+  const channels: Channel[] = includeDemo ? ["whatsapp", "instagram", "demo"] : ["whatsapp", "instagram"];
   const to = new Date();
   const from = new Date(to.getTime() - days * 86_400_000);
   const [conversations, appointments] = await Promise.all([
@@ -160,7 +160,7 @@ export default async function ReportPage(props: PageProps<"/panel/rapor">) {
       </div>
 
       <p className="mt-8 text-xs text-muted">
-        Sayılar {includeDemo ? "WhatsApp ve demo" : "WhatsApp"} konuşmalarından hesaplanır. Panelden elle eklenen{" "}
+        Sayılar {includeDemo ? "WhatsApp, Instagram ve demo" : "WhatsApp ve Instagram"} konuşmalarından hesaplanır. Panelden elle eklenen{" "}
         {r.appointments.byPanel} randevu ve iptal edilen {r.appointments.cancelled} randevu asistanın randevularına
         dahil değildir.
       </p>

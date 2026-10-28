@@ -10,6 +10,7 @@ import { normalizePhone } from "@/lib/phone";
 import { extractServicesFromImages, IMAGE_TYPES, MAX_IMAGES, type ImageType } from "@/lib/price-list-import";
 import type { ExtractedService } from "@/lib/service-merge";
 import { getStore, type Conversation, type Store } from "@/lib/store";
+import { openToken, sendInstagramReply } from "@/lib/instagram";
 import { sendText } from "@/lib/whatsapp";
 
 // Konuşmayı kilit altında güncel haliyle okuyup değiştirir; aynı anda çalışan bir asistan
@@ -46,6 +47,10 @@ export async function sendStaffReply(formData: FormData) {
       const phoneNumberId = business && phoneNumberIdFor(business);
       if (!phoneNumberId) throw new Error("İşletmenin WhatsApp numarası tanımlı değil");
       await sendText({ phoneNumberId, to: conversation.contact, text });
+    } else if (conversation.channel === "instagram") {
+      const account = await store.getInstagramAccount(conversation.businessId);
+      if (!account) throw new Error("İşletmenin Instagram hesabı bağlı değil");
+      await sendInstagramReply({ token: openToken(account.sealedToken), to: conversation.contact, text });
     }
     conversation.transcript.push({ from: "staff", text, at: new Date().toISOString() });
     // Asistan yeniden açıldığında personelin ne dediğini bilsin.
@@ -218,4 +223,12 @@ export async function cancelAppointmentAction(formData: FormData) {
   const appointmentId = z.string().parse(formData.get("appointmentId"));
   await (await getStore()).cancelAppointment(businessId, appointmentId);
   revalidatePath("/panel", "layout");
+}
+
+// Instagram bağlantısını kaldırır: anahtar silinir, mesajlar artık işlenmez. Geçmiş konuşmalar kalır.
+export async function disconnectInstagram(formData: FormData) {
+  const businessId = z.string().parse(formData.get("businessId"));
+  await assertBusinessAccess(businessId);
+  await (await getStore()).deleteInstagramAccount(businessId);
+  revalidatePath("/panel/ayarlar");
 }

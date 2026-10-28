@@ -5,15 +5,20 @@ import { getStore } from "@/lib/store";
 import { verticals } from "@/lib/verticals";
 import { resolvePanelBusiness } from "@/lib/dal";
 import { PanelHeader } from "../panel-header";
+import { instagramAppConfig } from "@/lib/instagram";
+import { InstagramSection } from "./instagram-section";
 import { SettingsForm } from "./settings-form";
 
 export const metadata = { title: "Ayarlar · Sırada" };
 
 export default async function SettingsPage(props: PageProps<"/panel/ayarlar">) {
   await connection();
-  const { isletme } = await props.searchParams;
+  const { isletme, instagram } = await props.searchParams;
   const { session, businessId } = await resolvePanelBusiness(isletme);
-  const business = (await loadBusiness(await getStore(), businessId)) ?? businesses[0];
+  const store = await getStore();
+  const business = (await loadBusiness(store, businessId)) ?? businesses[0];
+  const account = await store.getInstagramAccount(business.id);
+  const now = new Date().getTime(); // connection() sonrası; sayfa her istekte sunucuda üretilir
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
@@ -27,6 +32,15 @@ export default async function SettingsPage(props: PageProps<"/panel/ayarlar">) {
           ← Panele dön
         </Link>
       </header>
+      <div className="mb-8">
+        <InstagramSection
+          businessId={business.id}
+          account={account}
+          configured={!!instagramAppConfig()}
+          result={typeof instagram === "string" ? instagram : undefined}
+          now={now}
+        />
+      </div>
       {/* key: işletme değişince form durumu sıfırlansın */}
       <SettingsForm key={business.id} initial={business} />
     </main>

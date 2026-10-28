@@ -6,7 +6,7 @@ import { KeyedQueue } from "./keyed-queue";
 // Veri katmanı. DATABASE_URL tanımlıysa Postgres (lib/store-postgres.ts), değilse bellek
 // (sunucu yeniden başlayınca silinir; sadece geliştirme ve demo için).
 
-export type Channel = "whatsapp" | "demo";
+export type Channel = "whatsapp" | "instagram" | "demo";
 export type ConversationStatus = "bot" | "handoff";
 
 export interface Lead {
@@ -23,7 +23,7 @@ export interface Conversation {
   id: string;
   businessId: string;
   channel: Channel;
-  contact: string; // WhatsApp numarası veya demo oturum kimliği
+  contact: string; // WhatsApp numarası, Instagram kullanıcı kimliği (IGSID) veya demo oturum kimliği
   contactName?: string;
   status: ConversationStatus;
   handoffReason?: string;
@@ -101,6 +101,16 @@ export interface PriceExample {
 
 export type NewPriceExample = Omit<PriceExample, "id" | "createdAt" | "included">;
 
+// İşletmenin panelden bağladığı Instagram hesabı. Erişim anahtarı şifreli saklanır (lib/instagram.ts).
+export interface InstagramAccount {
+  businessId: string;
+  accountId: string; // Webhook'ta gelen hesap kimliği; bir hesap tek işletmeye bağlıdır
+  username?: string;
+  sealedToken: string;
+  tokenExpiresAt: string;
+  connectedAt: string;
+}
+
 export type ConversationKey = Pick<Conversation, "businessId" | "channel" | "contact">;
 
 export interface Store {
@@ -149,6 +159,12 @@ export interface Store {
   updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax">>): Promise<boolean>;
   // Örneği ve fotoğraflarını birlikte siler.
   deletePriceExample(businessId: string, id: string): Promise<void>;
+  // Hesap başka bir işletmeye bağlıysa oradan alınır (aynı hesap iki işletmeye bağlanamaz).
+  saveInstagramAccount(account: InstagramAccount): Promise<void>;
+  getInstagramAccount(businessId: string): Promise<InstagramAccount | undefined>;
+  findInstagramAccount(accountId: string): Promise<InstagramAccount | undefined>;
+  listInstagramAccounts(): Promise<InstagramAccount[]>;
+  deleteInstagramAccount(businessId: string): Promise<void>;
 }
 
 export function conversationLockKey(key: ConversationKey): string {
@@ -169,6 +185,7 @@ export class InMemoryStore implements Store {
   private panelUsers: PanelUser[] = [];
   private media = new Map<string, Media>();
   private priceExamples: PriceExample[] = [];
+  private instagram: InstagramAccount[] = [];
 
   async findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
@@ -359,6 +376,29 @@ export class InMemoryStore implements Store {
     if (!example) return;
     for (const m of example.mediaIds) this.media.delete(m);
     this.priceExamples = this.priceExamples.filter((e) => e !== example);
+  }
+
+  async saveInstagramAccount(account: InstagramAccount) {
+    this.instagram = this.instagram.filter((a) => a.businessId !== account.businessId && a.accountId !== account.accountId);
+    this.instagram.push({ ...account });
+  }
+
+  async getInstagramAccount(businessId: string) {
+    const a = this.instagram.find((x) => x.businessId === businessId);
+    return a && { ...a };
+  }
+
+  async findInstagramAccount(accountId: string) {
+    const a = this.instagram.find((x) => x.accountId === accountId);
+    return a && { ...a };
+  }
+
+  async listInstagramAccounts() {
+    return this.instagram.map((a) => ({ ...a }));
+  }
+
+  async deleteInstagramAccount(businessId: string) {
+    this.instagram = this.instagram.filter((a) => a.businessId !== businessId);
   }
 }
 
