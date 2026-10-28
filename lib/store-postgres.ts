@@ -5,6 +5,8 @@ import type {
   Appointment,
   Media,
   NewAppointment,
+  NewPriceExample,
+  PriceExample,
   PanelUser,
   Conversation,
   ConversationKey,
@@ -338,7 +340,7 @@ export class PostgresStore implements Store {
     const [row] = await this.db.query<Row>(
       `insert into media (id, business_id, conversation_id, mime_type, data)
        values ($1, $2, $3, $4, $5) returning id, created_at`,
-      [randomUUID(), input.businessId, input.conversationId, input.mimeType, input.data],
+      [randomUUID(), input.businessId, input.conversationId ?? null, input.mimeType, input.data],
     );
     return { ...input, id: String(row.id), createdAt: iso(row.created_at) };
   }
@@ -350,7 +352,7 @@ export class PostgresStore implements Store {
     return {
       id: String(r.id),
       businessId: String(r.business_id),
-      conversationId: String(r.conversation_id),
+      conversationId: opt(r.conversation_id),
       mimeType: String(r.mime_type),
       data: Buffer.from(r.data as Uint8Array),
       createdAt: iso(r.created_at),
@@ -372,4 +374,81 @@ export class PostgresStore implements Store {
       [business.id, JSON.stringify(business)],
     );
   }
+
+  async addPriceExample(input: NewPriceExample) {
+    const [row] = await this.db.query<Row>(
+      `insert into price_examples
+         (id, business_id, media_ids, image_hash, customer_text, staff_reply, price_text, price_min, price_max, said_at)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       on conflict (business_id, image_hash) do nothing
+       returning *`,
+      [
+        randomUUID(),
+        input.businessId,
+        JSON.stringify(input.mediaIds),
+        input.imageHash,
+        input.customerText,
+        input.staffReply,
+        input.priceText ?? null,
+        input.priceMin ?? null,
+        input.priceMax ?? null,
+        input.saidAt,
+      ],
+    );
+    return row ? toPriceExample(row) : null;
+  }
+
+  async hasPriceExample(businessId: string, imageHash: string) {
+    const rows = await this.db.query("select 1 from price_examples where business_id = $1 and image_hash = $2", [businessId, imageHash]);
+    return rows.length > 0;
+  }
+
+  async listPriceExamples(businessId: string) {
+    const rows = await this.db.query<Row>("select * from price_examples where business_id = $1 order by said_at desc", [businessId]);
+    return rows.map(toPriceExample);
+  }
+
+  async updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax">>) {
+    if (!UUID_RE.test(id)) return false;
+    const rows = await this.db.query(
+      `update price_examples set
+         included = coalesce($3, included),
+         price_text = case when $4::boolean then $5 else price_text end,
+         price_min = case when $4::boolean then $6::int else price_min end,
+         price_max = case when $4::boolean then $7::int else price_max end
+       where business_id = $1 and id = $2 returning id`,
+      [businessId, id, patch.included ?? null, "priceText" in patch, patch.priceText ?? null, patch.priceMin ?? null, patch.priceMax ?? null],
+    );
+    return rows.length > 0;
+  }
+
+  async deletePriceExample(businessId: string, id: string) {
+    if (!UUID_RE.test(id)) return;
+    const [row] = await this.db.query<Row>(
+      "delete from price_examples where business_id = $1 and id = $2 returning media_ids",
+      [businessId, id],
+    );
+    const mediaIds = ((row?.media_ids as string[]) ?? []).filter((m) => UUID_RE.test(m));
+    if (mediaIds.length > 0) {
+      await this.db.query("delete from media where business_id = $1 and id = any($2::uuid[])", [businessId, mediaIds]);
+    }
+  }
+}
+
+function toPriceExample(r: Row): PriceExample {
+  const num = (v: unknown) => (v === null || v === undefined ? undefined : Number(v));
+  return {
+    id: String(r.id),
+    businessId: String(r.business_id),
+    mediaIds: r.media_ids as string[],
+    imageHash: String(r.image_hash),
+    customerText: String(r.customer_text),
+    staffReply: String(r.staff_reply),
+    priceText: opt(r.price_text),
+    priceMin: num(r.price_min),
+    priceMax: num(r.price_max),
+    included: Boolean(r.included),
+    saidAt: iso(r.said_at),
+    createdAt: iso(r.created_at),
+  };
 }

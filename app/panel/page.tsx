@@ -62,6 +62,9 @@ export default async function PanelPage(props: PageProps<"/panel">) {
           >
             Pilot raporu
           </Link>
+          <Link href={`/panel/ornekler?isletme=${business.id}`} className="mt-2 ml-2 btn btn-line btn-sm">
+            Fotoğrafla fiyat örnekleri
+          </Link>
         </div>
         <dl className="flex gap-6 text-sm">
           <Stat label="Konuşma" value={conversations.length} />

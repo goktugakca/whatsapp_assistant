@@ -99,10 +99,31 @@ create table if not exists panel_users (
 create table if not exists media (
   id uuid primary key,
   business_id text not null,
-  conversation_id uuid not null references conversations (id) on delete cascade,
+  conversation_id uuid references conversations (id) on delete cascade,
   mime_type text not null,
   data bytea not null,
   created_at timestamptz not null default now()
 );
 
 create index if not exists media_conversation_idx on media (conversation_id);
+
+-- Geçmiş konuşmalardan içe aktarılan fotoğrafların sohbeti yoktur.
+alter table media alter column conversation_id drop not null;
+
+-- Fotoğrafa göre fiyat örnekleri (salonun geçmiş WhatsApp yazışmalarından). Fotoğraflar media
+-- tablosunda; sadece o işletmenin asistanında kullanılır.
+create table if not exists price_examples (
+  id uuid primary key,
+  business_id text not null,
+  media_ids jsonb not null,
+  image_hash text not null,
+  customer_text text not null default '',
+  staff_reply text not null default '',
+  price_text text,
+  price_min integer,
+  price_max integer,
+  included boolean not null default true,
+  said_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  unique (business_id, image_hash)
+);

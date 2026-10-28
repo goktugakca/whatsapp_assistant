@@ -120,6 +120,15 @@ Ayarlar → Hizmetler ve fiyatlar bölümünde işletme sahibi tabela, menü vey
 
 Sektör sözlüğü (`lib/glossary.ts`), müşterilerin aynı işlem için kullandığı farklı adları (ombre/balyaj, brezilya fönü/keratin, skin fade, jel tırnak…) içerir ve asistanın istemine de eklenir.
 
+## Geçmiş sohbetlerden fiyat örnekleri
+
+Panel → **Fotoğrafla fiyat örnekleri** (`/panel/ornekler`). Salon, WhatsApp'ta her sohbeti
+"Sohbeti dışa aktar → Medyayı dahil et" ile zip olarak alır ve hepsini birden yükler.
+Zipler tarayıcıda açılır (`lib/whatsapp-export.ts`); sunucuya sadece müşterinin fotoğrafı,
+yanında yazdığı metin ve salonun fiyatlı cevabı gider. Gönderen adları tutulmaz, metinlerdeki
+müşteri adı, telefon ve e-posta silinir. Fiyatı okunamayan örnekler listede işaretlenir, salon
+elle yazar. Aynı fotoğraf ikinci kez eklenmez. Örnekler sadece o işletmenin kaydında durur.
+
 ## Tanıtım filmi
 
 `video/` klasöründe Remotion ile kodla üretilen 28 saniyelik dikey (1080×1920) tanıtım filmi var; ana uygulamadan bağımsızdır.

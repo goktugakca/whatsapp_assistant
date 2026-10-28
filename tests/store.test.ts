@@ -14,7 +14,7 @@ const implementations: [string, () => Promise<Store>][] = [
   [
     "PostgresStore",
     async () => {
-      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media cascade");
+      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media, price_examples cascade");
       return new PostgresStore(pglite);
     },
   ],
@@ -221,6 +221,43 @@ describe.each(implementations)("%s", (_name, create) => {
     expect(loaded).toMatchObject({ businessId: key.businessId, conversationId: c.id, mimeType: "image/jpeg" });
     expect(Buffer.compare(loaded!.data, data)).toBe(0);
     expect(await store.getMedia("olmayan")).toBeUndefined();
+  });
+
+  it("fiyat örneklerini ekler, aynı fotoğrafı ikinci kez eklemez, günceller ve siler", async () => {
+    const media = await store.saveMedia({ businessId: key.businessId, mimeType: "image/jpeg", data: Buffer.from([1, 2]) });
+    expect(media.conversationId).toBeUndefined();
+    const input = {
+      businessId: key.businessId,
+      mediaIds: [media.id],
+      imageHash: "h1",
+      customerText: "balyaj ne kadar",
+      staffReply: "5.000 TL olur",
+      priceText: "5.000 TL olur",
+      priceMin: 5000,
+      priceMax: 5000,
+      saidAt: "2026-09-20T18:00:00.000Z",
+    };
+    const ex = await store.addPriceExample(input);
+    expect(ex).toMatchObject({ mediaIds: [media.id], priceMin: 5000, included: true });
+    expect(await store.addPriceExample(input)).toBeNull();
+    expect(await store.hasPriceExample(key.businessId, "h1")).toBe(true);
+    expect(await store.hasPriceExample("baska", "h1")).toBe(false);
+
+    await store.addPriceExample({ ...input, imageHash: "h2", priceText: undefined, priceMin: undefined, priceMax: undefined, saidAt: "2026-09-21T18:00:00.000Z" });
+    const list = await store.listPriceExamples(key.businessId);
+    expect(list.map((e) => e.imageHash)).toEqual(["h2", "h1"]);
+    expect(list[0].priceMin).toBeUndefined();
+
+    expect(await store.updatePriceExample(key.businessId, list[0].id, { priceText: "4.000 TL", priceMin: 4000, priceMax: 4000 })).toBe(true);
+    expect(await store.updatePriceExample(key.businessId, ex!.id, { included: false })).toBe(true);
+    expect(await store.updatePriceExample("baska", ex!.id, { included: true })).toBe(false);
+    const after = await store.listPriceExamples(key.businessId);
+    expect(after[0]).toMatchObject({ priceText: "4.000 TL", priceMin: 4000, included: true });
+    expect(after[1]).toMatchObject({ included: false, priceMin: 5000 });
+
+    await store.deletePriceExample(key.businessId, ex!.id);
+    expect(await store.listPriceExamples(key.businessId)).toHaveLength(1);
+    expect(await store.getMedia(media.id)).toBeUndefined();
   });
 
   it("aynı konuşmadaki işleri sırayla çalıştırır", async () => {

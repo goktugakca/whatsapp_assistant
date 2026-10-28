@@ -76,11 +76,30 @@ export interface PanelUser {
 export interface Media {
   id: string;
   businessId: string;
-  conversationId: string;
+  conversationId?: string; // Geçmiş konuşmalardan içe aktarılan fotoğrafların sohbeti yoktur
   mimeType: string;
   data: Buffer;
   createdAt: string;
 }
+
+// Fotoğrafa göre fiyat örneği: müşterinin gönderdiği saç fotoğrafı ve ustanın verdiği fiyat.
+// Salonun geçmiş WhatsApp yazışmalarından içe aktarılır; sadece o salonun asistanında kullanılır.
+export interface PriceExample {
+  id: string;
+  businessId: string;
+  mediaIds: string[];
+  imageHash: string; // İlk fotoğrafın SHA-256'sı; aynı örnek iki kez eklenmez
+  customerText: string;
+  staffReply: string;
+  priceText?: string;
+  priceMin?: number;
+  priceMax?: number;
+  included: boolean; // Sahibi kontrol edip çıkarabilir
+  saidAt: string;
+  createdAt: string;
+}
+
+export type NewPriceExample = Omit<PriceExample, "id" | "createdAt" | "included">;
 
 export type ConversationKey = Pick<Conversation, "businessId" | "channel" | "contact">;
 
@@ -123,6 +142,13 @@ export interface Store {
   deletePanelUser(id: string): Promise<void>;
   saveMedia(input: Omit<Media, "id" | "createdAt">): Promise<Media>;
   getMedia(id: string): Promise<Media | undefined>;
+  // Aynı fotoğraf (imageHash) bu işletmede zaten varsa eklemez ve null döner.
+  addPriceExample(input: NewPriceExample): Promise<PriceExample | null>;
+  hasPriceExample(businessId: string, imageHash: string): Promise<boolean>;
+  listPriceExamples(businessId: string): Promise<PriceExample[]>;
+  updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax">>): Promise<boolean>;
+  // Örneği ve fotoğraflarını birlikte siler.
+  deletePriceExample(businessId: string, id: string): Promise<void>;
 }
 
 export function conversationLockKey(key: ConversationKey): string {
@@ -142,6 +168,7 @@ export class InMemoryStore implements Store {
   private businessSettings = new Map<string, Business>();
   private panelUsers: PanelUser[] = [];
   private media = new Map<string, Media>();
+  private priceExamples: PriceExample[] = [];
 
   async findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
@@ -300,6 +327,38 @@ export class InMemoryStore implements Store {
 
   async getMedia(id: string) {
     return this.media.get(id);
+  }
+
+  async addPriceExample(input: NewPriceExample) {
+    if (await this.hasPriceExample(input.businessId, input.imageHash)) return null;
+    const example: PriceExample = { id: randomUUID(), createdAt: new Date().toISOString(), included: true, ...input };
+    this.priceExamples.push(example);
+    return { ...example };
+  }
+
+  async hasPriceExample(businessId: string, imageHash: string) {
+    return this.priceExamples.some((e) => e.businessId === businessId && e.imageHash === imageHash);
+  }
+
+  async listPriceExamples(businessId: string) {
+    return this.priceExamples
+      .filter((e) => e.businessId === businessId)
+      .sort((a, b) => b.saidAt.localeCompare(a.saidAt))
+      .map((e) => ({ ...e }));
+  }
+
+  async updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax">>) {
+    const e = this.priceExamples.find((x) => x.id === id && x.businessId === businessId);
+    if (!e) return false;
+    Object.assign(e, patch);
+    return true;
+  }
+
+  async deletePriceExample(businessId: string, id: string) {
+    const example = this.priceExamples.find((e) => e.id === id && e.businessId === businessId);
+    if (!example) return;
+    for (const m of example.mediaIds) this.media.delete(m);
+    this.priceExamples = this.priceExamples.filter((e) => e !== example);
   }
 }
 
