@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import { businesses, loadBusiness } from "@/lib/business";
-import { getStore, type Conversation } from "@/lib/store";
+import { getStore, type Channel, type Conversation } from "@/lib/store";
 import { verticals } from "@/lib/verticals";
 import { resolvePanelBusiness } from "@/lib/dal";
 import { PanelHeader } from "./panel-header";
@@ -17,13 +17,15 @@ const timeFmt = new Intl.DateTimeFormat("tr-TR", {
   minute: "2-digit",
 });
 
+const CHANNEL_LABEL: Record<Channel, string> = { whatsapp: "WhatsApp", instagram: "Instagram", demo: "Demo" };
+
 function fmt(iso: string) {
   return timeFmt.format(new Date(iso));
 }
 
 export default async function PanelPage(props: PageProps<"/panel">) {
   await connection(); // Her istekte güncel veri
-  const { isletme } = await props.searchParams;
+  const { isletme, kanal } = await props.searchParams;
   const store = await getStore();
   const { session, businessId } = await resolvePanelBusiness(isletme);
   const business = (await loadBusiness(store, businessId)) ?? businesses[0];
@@ -33,6 +35,19 @@ export default async function PanelPage(props: PageProps<"/panel">) {
     session.isAdmin ? store.listWaitlist() : Promise.resolve([]),
   ]);
   const handoffs = conversations.filter((c) => c.status === "handoff");
+  // Konuşmalar kanala göre sekmelerde: WhatsApp, Instagram, demo. Demo sekmesi sadece demo
+  // konuşması varsa görünür. Varsayılan sekme, konuşması olan ilk kanal.
+  const tabs = (["whatsapp", "instagram", "demo"] as const)
+    .map((channel) => ({
+      channel,
+      label: CHANNEL_LABEL[channel],
+      count: conversations.filter((c) => c.channel === channel).length,
+      waiting: handoffs.filter((c) => c.channel === channel).length,
+    }))
+    .filter((t) => t.channel !== "demo" || t.count > 0);
+  const activeChannel: Channel =
+    tabs.some((t) => t.channel === kanal) ? (kanal as Channel) : (tabs.find((t) => t.count > 0)?.channel ?? "whatsapp");
+  const shown = conversations.filter((c) => c.channel === activeChannel);
   const serviceName = (id: string) => business.services.find((s) => s.id === id)?.name ?? id;
   const staffName = (id?: string) => business.staff.find((s) => s.id === id)?.name ?? "–";
   const hasStaff = business.staff.length > 0;
@@ -107,11 +122,28 @@ export default async function PanelPage(props: PageProps<"/panel">) {
 
       <section className="mt-10">
         <h2 className="text-lg font-semibold">Konuşmalar</h2>
-        {conversations.length === 0 && (
-          <p className="mt-2 text-sm text-muted">Henüz konuşma yok. /demo sayfasından deneyebilirsiniz.</p>
+        <nav className="mt-3 flex flex-wrap gap-2" aria-label="Kanal">
+          {tabs.map((t) => (
+            <Link
+              key={t.channel}
+              href={`/panel?isletme=${business.id}&kanal=${t.channel}`}
+              className={`tab ${t.channel === activeChannel ? "tab-active" : ""}`}
+              aria-current={t.channel === activeChannel ? "page" : undefined}
+            >
+              {t.label} <span className="text-muted">({t.count})</span>
+              {t.waiting > 0 && <span className="stamp stamp-alert ml-2 text-xs">{t.waiting} bekliyor</span>}
+            </Link>
+          ))}
+        </nav>
+        {shown.length === 0 && (
+          <p className="mt-3 text-sm text-muted">
+            {activeChannel === "demo"
+              ? "Henüz demo konuşması yok."
+              : `Henüz ${CHANNEL_LABEL[activeChannel]} konuşması yok.`}
+          </p>
         )}
         <div className="mt-3 grid gap-4 lg:grid-cols-2">
-          {conversations.map((c) => (
+          {shown.map((c) => (
             <ConversationCard key={c.id} conversation={c} />
           ))}
         </div>
@@ -163,7 +195,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
         <div>
           <p className="font-medium">{c.contactName ?? c.contact}</p>
           <p className="text-xs text-muted">
-            {c.channel === "whatsapp" ? `WhatsApp · ${c.contact}` : c.channel === "instagram" ? "Instagram" : "Demo"} · {fmt(c.updatedAt)}
+            {c.channel === "whatsapp" ? `WhatsApp · ${c.contact}` : CHANNEL_LABEL[c.channel]} · {fmt(c.updatedAt)}
           </p>
         </div>
         {c.status === "handoff" ? (
