@@ -145,6 +145,8 @@ export interface Store {
   addAppointmentIfFree(input: NewAppointment): Promise<Appointment | null>;
   // WhatsApp aynı mesajı birden fazla kez gönderebilir; ilk görüşte true döner.
   markMessageSeen(messageId: string): Promise<boolean>;
+  // İşleme başarısız olursa işaret geri alınır; Meta yeniden gönderince mesaj tekrar denenir.
+  forgetMessage(messageId: string): Promise<void>;
   addWaitlistEntry(input: Omit<WaitlistEntry, "id" | "createdAt">): Promise<WaitlistEntry>;
   listWaitlist(): Promise<WaitlistEntry[]>;
   // Aynı konuşma üzerindeki işleri (asistan turu, personel yanıtı) sıraya koyar ki
@@ -298,6 +300,10 @@ export class InMemoryStore implements Store {
     if (this.seenMessages.has(messageId)) return false;
     this.seenMessages.add(messageId);
     return true;
+  }
+
+  async forgetMessage(messageId: string) {
+    this.seenMessages.delete(messageId);
   }
 
   async addWaitlistEntry(input: Omit<WaitlistEntry, "id" | "createdAt">) {

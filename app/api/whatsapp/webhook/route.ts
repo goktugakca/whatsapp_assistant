@@ -44,13 +44,16 @@ export async function POST(request: Request) {
   console.log(`WhatsApp webhook: ${messages.length} mesaj`);
   after(async () => {
     const store = await getStore();
-    for (const message of messages) {
-      try {
-        await handleInboundMessage(message, { store });
-      } catch (error) {
-        console.error("WhatsApp mesajı işlenemedi:", message.id, error);
-      }
-    }
+    // Farklı müşterilerin mesajları paralel; aynı müşterininkiler konuşma kilidiyle sıralı.
+    await Promise.all(
+      messages.map(async (message) => {
+        try {
+          await handleInboundMessage(message, { store });
+        } catch (error) {
+          console.error("WhatsApp mesajı işlenemedi:", message.id, error);
+        }
+      }),
+    );
   });
 
   return new Response("OK", { status: 200 });

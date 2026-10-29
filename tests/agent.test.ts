@@ -159,6 +159,47 @@ describe("runAssistant", () => {
   });
 });
 
+describe("hata durumunda mesaj kaybolmaz", () => {
+  it("işleme başarısız olursa 'görüldü' işareti geri alınır ve yeniden denenebilir", async () => {
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");
+    vi.stubEnv("WHATSAPP_BUSINESS_ID", barber.id);
+    const store = new InMemoryStore();
+    const original = store.findOrCreateConversation.bind(store);
+    let fail = true;
+    store.findOrCreateConversation = async (input) => {
+      if (fail) {
+        fail = false;
+        throw new Error("veritabanı yok");
+      }
+      return original(input);
+    };
+    const send = vi.fn(async () => {});
+    const { createMessage } = scripted([message([{ type: "text", text: "Merhaba!", citations: null }], "end_turn")]);
+    const inbound = { id: "w-err", phoneNumberId: "pn-1", from: "905551112233", text: "Selam", timestamp: 0 };
+    await expect(handleInboundMessage(inbound, { store, send, createMessage })).rejects.toThrow("veritabanı yok");
+    // Aynı mesaj yeniden gelince "duplicate" değil, tekrar işlenir.
+    expect(await handleInboundMessage(inbound, { store, send, createMessage })).toBe("replied");
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("yanıt gönderilemezse konuşma personele bırakılır, mesaj ikinci kez işlenmez", async () => {
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");
+    vi.stubEnv("WHATSAPP_BUSINESS_ID", barber.id);
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const store = new InMemoryStore();
+    const send = vi.fn(async () => {
+      throw new Error("Meta 500");
+    });
+    const { createMessage } = scripted([message([{ type: "text", text: "Merhaba!", citations: null }], "end_turn")]);
+    const inbound = { id: "w-send", phoneNumberId: "pn-1", from: "905551112233", text: "Selam", timestamp: 0 };
+    expect(await handleInboundMessage(inbound, { store, send, createMessage })).toBe("send-failed");
+    const [c] = await store.listConversations(barber.id);
+    expect(c.status).toBe("handoff");
+    expect(c.transcript.at(-1)?.text).toContain("ulaşmadı");
+    expect(await handleInboundMessage(inbound, { store, send, createMessage })).toBe("duplicate");
+  });
+});
+
 describe("block_customer", () => {
   it("uygunsuz müşteriyi engeller: tek cümle gider, sonraki mesajlara yanıt verilmez", async () => {
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");

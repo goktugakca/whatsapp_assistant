@@ -36,10 +36,16 @@ export function createPgDatabase(url: string): Database {
   const connectionString = withExplicitSslMode(url);
   // Sunucusuz ortamda her örnek kendi havuzunu açar; Neon'un havuzlanmış (-pooler)
   // adresini (DATABASE_URL) kullanın.
-  const pool = new Pool({ connectionString, max: 5 });
+  // Sorgular için havuz; bağlantı 10 sn içinde alınamazsa hata (sonsuza kadar beklemek yerine).
+  const pool = new Pool({ connectionString, max: 5, connectionTimeoutMillis: 10_000 });
+  // Konuşma kilitleri ayrı havuzda: kilit, asistan turu boyunca (model çağrıları dahil) bir
+  // bağlantıyı açık işlemde tutar. Aynı havuzdan olsaydı aynı anda 5 konuşma tüm bağlantıları
+  // kilitte tutar, sorgular bağlantı bulamaz ve her şey asılı kalırdı.
+  const lockPool = new Pool({ connectionString, max: 20, connectionTimeoutMillis: 10_000 });
   // Vercel Fluid compute'ta boşta kalan bağlantıların fonksiyon askıya alınmadan önce
   // düzgün kapanmasını sağlar; Vercel dışında etkisizdir.
   attachDatabasePool(pool);
+  attachDatabasePool(lockPool);
   return {
     async query<T>(text: string, params?: unknown[]) {
       const result = await pool.query(text, params);
@@ -49,10 +55,12 @@ export function createPgDatabase(url: string): Database {
       // İşlem (transaction) seviyesinde kilit: PgBouncer'ın transaction modunda da tek bir
       // sunucu bağlantısında kalır ve işlem bitince kendiliğinden bırakılır. fn çalışırken
       // bu bağlantı açık bir işlemde bekler; fn'in sorguları havuzdaki diğer bağlantıları kullanır.
-      const client = await pool.connect();
+      const client = await lockPool.connect();
       let ok = false;
       try {
         await client.query("begin");
+        // Kilit en fazla 50 sn beklenir (önceki tur takılı kaldıysa sonsuza kadar beklemesin).
+        await client.query("set local lock_timeout = '50s'");
         await client.query("select pg_advisory_xact_lock(hashtextextended($1, 0))", [key]);
         const result = await fn();
         ok = true;
@@ -280,6 +288,10 @@ export class PostgresStore implements Store {
       ],
     );
     return toAppointment(row);
+  }
+
+  async forgetMessage(messageId: string) {
+    await this.db.query("delete from processed_messages where id = $1", [messageId]);
   }
 
   async markMessageSeen(messageId: string) {

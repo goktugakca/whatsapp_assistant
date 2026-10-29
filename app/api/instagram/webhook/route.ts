@@ -41,13 +41,16 @@ export async function POST(request: Request) {
   console.log(`Instagram webhook: ${messages.length} mesaj`);
   after(async () => {
     const store = await getStore();
-    for (const message of messages) {
-      try {
-        await handleInstagramMessage(message, { store });
-      } catch (error) {
-        console.error("Instagram mesajı işlenemedi:", message.id, error);
-      }
-    }
+    // Farklı müşterilerin mesajları paralel; aynı müşterininkiler konuşma kilidiyle sıralı.
+    await Promise.all(
+      messages.map(async (message) => {
+        try {
+          await handleInstagramMessage(message, { store });
+        } catch (error) {
+          console.error("Instagram mesajı işlenemedi:", message.id, error);
+        }
+      }),
+    );
   });
   return new Response("OK", { status: 200 });
 }
