@@ -67,6 +67,7 @@ export async function runAssistant(params: {
   const tools = buildTools(business);
   const replyParts: string[] = [];
   const effects: TurnEffects = { options: [], bookedAppointmentIds: [] };
+  let askedWithOptions = false;
 
   const startedAt = Date.now();
   const roundTimes: number[] = [];
@@ -100,7 +101,12 @@ export async function runAssistant(params: {
 
       conversation.history.push({ role: "assistant", content: response.content });
       for (const block of response.content) {
-        if (block.type === "text" && block.text.trim()) replyParts.push(block.text.trim());
+        if (block.type !== "text" || !block.text.trim()) continue;
+        // Soru sorulup düğmeler gösterildikten sonra model aynı soruyu bir kez daha yazma
+        // eğiliminde ("Hangi saat size uygun?"). Düğmelerin üstünde tek soru kalsın diye
+        // bu noktadan sonraki metin geçmişte kalır ama müşteriye gitmez.
+        if (askedWithOptions) continue;
+        replyParts.push(block.text.trim());
       }
 
       const toolUses = response.content.filter(
@@ -124,6 +130,7 @@ export async function runAssistant(params: {
         });
       }
       conversation.history.push({ role: "user", content: results });
+      if (effects.options.length > 0 && replyParts.join(" ").includes("?")) askedWithOptions = true;
     }
   } catch (error) {
     console.error("Asistan hatası:", error);

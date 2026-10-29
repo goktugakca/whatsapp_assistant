@@ -225,6 +225,25 @@ describe("seçenekler ve randevu kartı", () => {
     });
   });
 
+  it("soru sorulup düğmeler gösterildikten sonra model aynı soruyu tekrar yazarsa müşteriye gitmez", async () => {
+    const { store, conversation } = await setup(barber);
+    const { createMessage } = scripted([
+      message(
+        [
+          { type: "text", text: "Hangi hizmeti istersiniz?", citations: null },
+          { type: "tool_use", id: "t1", name: "show_options", input: { options: ["Saç", "Sakal"] } },
+        ],
+        "tool_use",
+      ),
+      message([{ type: "text", text: "Hangi hizmeti istediğinizi seçebilirsiniz.", citations: null }], "end_turn"),
+    ]);
+    const result = await runAssistant({ business: barber, conversation, store, text: "randevu", now, createMessage });
+    expect(result.reply).toBe("Hangi hizmeti istersiniz?");
+    expect(result.options).toEqual(["Saç", "Sakal"]);
+    // Geçmişte modelin yazdığı her şey durur; sonraki tur tutarlı kalsın.
+    expect(JSON.stringify(conversation.history)).toContain("seçebilirsiniz");
+  });
+
   it("WhatsApp yanıtına takvim bağlantısını ve düğmeleri ekler", async () => {
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");
     vi.stubEnv("WHATSAPP_BUSINESS_ID", barber.id);
