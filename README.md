@@ -200,6 +200,13 @@ WhatsApp, son 24 saatte yazmamış bir müşteriye sadece **Meta'nın onayladı�
 
 Hatırlatma sadece telefon numarası olan randevulara gider: WhatsApp'tan alınan randevular ve panelden telefonla girilenler. Demo randevuları atlanır. Panel takviminde gönderilenler "🔔 hatırlatıldı" ile görünür.
 
+## Devredilen konuşma bildirimi
+
+Ayarlar → Genel bilgiler → "haber verilecek WhatsApp numarası". Asistan bir konuşmayı personele
+bıraktığında bu numaraya kısa bir WhatsApp mesajı gider (`lib/notify.ts`). Meta'da onaylı bir
+şablon varsa (`WHATSAPP_HANDOFF_TEMPLATE`, gövde: `{{1}} sizi bekliyor: {{2}}`) her zaman ulaşır;
+yoksa serbest metin denenir ve ancak sahibi son 24 saatte işletme numarasına yazdıysa teslim edilir.
+
 ## Google Takvim
 
 - **Şimdi:** Panel takviminde işletmeye özel bir abonelik linki var (`/api/takvim/<işletme>/<anahtar>.ics`). Google Takvim'e "URL ile" eklenince randevular görünür. Tek yönlüdür ve Google bu linki birkaç saatte bir yeniler. Anahtar `PANEL_PASSWORD`'den (veya `CALENDAR_FEED_SECRET`'tan) türetilir; şifre değişince link de değişir.

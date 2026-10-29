@@ -119,3 +119,25 @@ describe("küçük düzeltmeler", () => {
     await expect(downloadInstagramImage("https://lookaside.fbsbx.com/a", 1000, evil)).rejects.toThrow("Beklenmeyen");
   });
 });
+
+describe("devretme bildirimi", () => {
+  it("asistan konuşmayı bırakınca işletmenin bildirim numarasına WhatsApp gider", async () => {
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");
+    vi.stubEnv("WHATSAPP_BUSINESS_ID", barber.id);
+    const { handleInboundMessage } = await import("@/lib/inbound");
+    const store = new InMemoryStore();
+    await store.saveBusinessSettings({ ...barber, notifyPhone: "0532 111 22 33" });
+    const send = vi.fn(async () => {});
+    const sendText = vi.fn(async () => {});
+    const createMessage = vi.fn(async () =>
+      ({ id: "m", type: "message", role: "assistant", model: "t", stop_reason: "tool_use", content: [{ type: "tool_use", id: "t1", name: "handoff_to_human", input: { reason: "Fiyat pazarlığı" } }] }) as never,
+    ).mockImplementationOnce(async () =>
+      ({ id: "m", type: "message", role: "assistant", model: "t", stop_reason: "tool_use", content: [{ type: "tool_use", id: "t1", name: "handoff_to_human", input: { reason: "Fiyat pazarlığı" } }] }) as never,
+    ).mockImplementationOnce(async () =>
+      ({ id: "m2", type: "message", role: "assistant", model: "t", stop_reason: "end_turn", content: [{ type: "text", text: "Size dönüş yapacağız.", citations: null }] }) as never,
+    );
+    const inbound = { id: "w-h", phoneNumberId: "pn-1", from: "905551112233", contactName: "Murat", text: "indirim?", timestamp: 0 };
+    expect(await handleInboundMessage(inbound, { store, send, createMessage, notify: { sendText } })).toBe("replied");
+    expect(sendText).toHaveBeenCalledWith(expect.objectContaining({ to: "905321112233", text: expect.stringContaining("Murat sizi bekliyor") }));
+  });
+});

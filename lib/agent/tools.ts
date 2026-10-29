@@ -20,7 +20,7 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
     {
       name: "check_availability",
       description:
-        "Belirli bir gün ve hizmet için boş randevu saatlerini ve o saatte müsait çalışanları döndürür. Müşteriye saat önermeden önce mutlaka kullan.",
+        "Belirli bir gün ve hizmet için boş başlangıç saatlerini (ISO) ve her saatte müsait çalışanları (fiyatlarıyla) döndürür. Müşteriye saat önermeden önce kullan; geçmiş saatleri ve kapalı günleri zaten eler. Birden fazla gün isteniyorsa her gün için ayrı çağır. Boş saat yoksa başka bir gün dene ya da müşteriye sor.",
       strict: true,
       input_schema: {
         type: "object",
@@ -36,7 +36,7 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
     {
       name: "book_appointment",
       description:
-        "Randevuyu oluşturur. Sadece müşteri saati onayladıktan ve adını öğrendikten sonra kullan. start, check_availability'den dönen saatlerden biri olmalı.",
+        "Randevuyu oluşturur ve müşteriye otomatik onay kartı gönderilmesini sağlar. Sadece müşteri saati onayladıktan ve adını öğrendikten sonra kullan; start, check_availability'den dönen saatlerden biri olmalı. Saat bu arada dolduysa hata ve o günün boş saatleri döner; müşteriye onları sun. Mevcut bir randevuyu değiştirmek için bunu değil reschedule_appointment kullan.",
       strict: true,
       input_schema: {
         type: "object",
@@ -72,7 +72,7 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
     {
       name: "list_my_appointments",
       description:
-        "Bu müşterinin bu işletmedeki yaklaşan randevularını döndürür. Müşteri randevusunu sorduğunda, iptal veya erteleme istediğinde önce bunu kullan.",
+        "Bu müşterinin (bu kanaldaki kimliğiyle) yaklaşan randevularını kimlik, saat, hizmet ve çalışanıyla döndürür. Müşteri randevusunu sorduğunda, iptal veya değişiklik istediğinde önce bunu kullan. Geçmiş randevuları ve başka müşterilerinkini göstermez.",
       strict: true,
       input_schema: { type: "object", properties: {}, required: [], additionalProperties: false },
     },
@@ -275,8 +275,12 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
         (s) => s.start === args.start,
       );
       if (!slot) {
+        const alternatives = (await slotsFor(ctx, args.start.slice(0, 10), service.id, args.staff_id)).slice(0, 6).map((s) => s.start);
         return {
-          content: "Bu saat artık uygun değil veya geçerli bir saat değil. check_availability ile tekrar kontrol et.",
+          content:
+            alternatives.length > 0
+              ? `Bu saat uygun değil. O gün boş saatler: ${alternatives.join(", ")}. Müşteriye bunları sun.`
+              : "Bu saat uygun değil ve o gün başka boş saat yok. Başka bir gün için check_availability kullan.",
           isError: true,
         };
       }

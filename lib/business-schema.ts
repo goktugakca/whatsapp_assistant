@@ -57,6 +57,12 @@ export const businessSchema = z
     faq: z.array(z.object({ q: text(200).min(1), a: text(600).min(1) })).max(30),
     policies: z.array(text(300).min(1)).max(20),
     photoQuotes: z.enum(["staff", "assistant", "examples"]).optional(),
+    notifyPhone: z
+      .string()
+      .trim()
+      .max(30)
+      .refine((v) => !v || /^\+?[\d\s()-]{10,20}$/.test(v), { message: "Bildirim numarası geçerli bir telefon olmalı" })
+      .optional(),
   })
   .superRefine((b, ctx) => {
     const serviceIds = new Set(b.services.map((s) => s.id));
@@ -104,8 +110,8 @@ export function validateBusiness(input: unknown): BusinessValidation {
   if (offGrid.length > 0) {
     return { ok: false, errors: [`Açılış saatleri randevu aralığına (${step} dk) uymalı: ${[...new Set(offGrid.map((h) => h.open))].join(", ")}`] };
   }
-  const { mapsUrl, ...rest } = result.data;
-  return { ok: true, business: { ...rest, ...(mapsUrl ? { mapsUrl } : {}) } as Business };
+  const { mapsUrl, notifyPhone, ...rest } = result.data;
+  return { ok: true, business: { ...rest, ...(mapsUrl ? { mapsUrl } : {}), ...(notifyPhone ? { notifyPhone } : {}) } as Business };
 }
 
 // Hizmet veya çalışan adından kalıcı kimlik üretir (ör. "Saç + sakal" -> "sac-sakal").

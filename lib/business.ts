@@ -60,6 +60,8 @@ export interface Business {
   // (varsayılan); "assistant" asistan fotoğrafa bakıp listedeki kademelerden ön fiyat söyler;
   // "examples" salonun geçmiş örneklerine (lib/photo-quote.ts) bakarak ön fiyat söyler.
   photoQuotes?: PhotoQuotePolicy;
+  // Asistan bir konuşmayı personele bıraktığında WhatsApp'tan haber verilecek numara (lib/notify.ts).
+  notifyPhone?: string;
 }
 
 // Diş kliniğinde fotoğraftan değerlendirme teşhis sayılır; her zaman hekime gider.

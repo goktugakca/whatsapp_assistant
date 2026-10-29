@@ -16,6 +16,7 @@ import {
   MAX_MEDIA_BYTES,
   mediaMarker,
 } from "./media";
+import { notifyHandoff } from "./notify";
 import { downloadMedia, sendReply, type InboundMessage } from "./whatsapp";
 
 type Outcome =
@@ -39,7 +40,7 @@ interface Incoming {
   send: (text: string, options: string[]) => Promise<void>;
 }
 
-type Deps = { store: Store; createMessage?: CreateMessage };
+type Deps = { store: Store; createMessage?: CreateMessage; notify?: Parameters<typeof notifyHandoff>[2] };
 
 // Fotoğrafı indirip kaydeder. Panelde her zaman görünür; modele sadece konuşma başına sınır
 // dolmadıysa gösterilir. İndirilemezse müşterinin metni bir notla devam eder.
@@ -126,6 +127,7 @@ async function handleIncoming(message: Incoming, deps: Deps): Promise<Outcome> {
       return conversation.status;
     }
 
+    const wasBot = conversation.status === "bot";
     const customerEntry = conversation.transcript.length; // runAssistant müşterinin mesajını buraya ekler
     const { reply, options, appointments } = await runAssistant({
       business,
@@ -139,6 +141,9 @@ async function handleIncoming(message: Incoming, deps: Deps): Promise<Outcome> {
     if (panelMediaId)
       conversation.transcript[customerEntry].mediaId = panelMediaId;
     await store.saveConversation(conversation);
+    // Asistan bu turda konuşmayı personele bıraktıysa işletmeye haber ver (engellemede değil).
+    const after = conversation.status as Conversation["status"]; // runAssistant durumu değiştirmiş olabilir
+    if (wasBot && after === "handoff") await notifyHandoff(business, conversation, deps.notify);
     // Oluşan randevu için takvime ekleme sayfasının bağlantısı yanıta eklenir.
     const base = appUrl();
     const links = base

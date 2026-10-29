@@ -131,6 +131,18 @@ export function SettingsForm({ initial }: { initial: Business }) {
               onChange={(e) => update({ mapsUrl: e.target.value })}
             />
           </Field>
+          <Field label="Sizi bekleyen konuşma olunca haber verilecek WhatsApp numarası (isteğe bağlı)" wide>
+            <input
+              className={input}
+              inputMode="tel"
+              value={b.notifyPhone ?? ""}
+              placeholder="05xx xxx xx xx"
+              onChange={(e) => update({ notifyPhone: e.target.value })}
+            />
+            <span className="mt-1 block text-[13px] text-muted">
+              Asistan bir müşteriyi size bıraktığında bu numaraya kısa bir WhatsApp mesajı gelir.
+            </span>
+          </Field>
           <Field label="Yanıt verilen diller (virgülle)">
             <input
               className={input}
