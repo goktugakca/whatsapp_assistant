@@ -2,12 +2,23 @@ import Anthropic from "@anthropic-ai/sdk";
 import { describeNow } from "../availability";
 import type { Business } from "../business";
 import { toCard, type AppointmentCard } from "../calendar";
-import { historyWindow, hydrateMedia, mediaMarker, trimStoredHistory } from "../media";
+import {
+  historyWindow,
+  hydrateMedia,
+  mediaMarker,
+  trimStoredHistory,
+} from "../media";
 import type { ParseQuote } from "../photo-quote";
 import { containsProfanity } from "../profanity";
 import type { Conversation, Store } from "../store";
 import { buildSystemPrompt } from "./prompt";
-import { buildTools, calendarIdFor, executeTool, type TurnEffects } from "./tools";
+import { addDays, localDate } from "../week";
+import {
+  buildTools,
+  calendarIdFor,
+  executeTool,
+  type TurnEffects,
+} from "./tools";
 
 type CreateParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
 type BetaMessage = Anthropic.Beta.Messages.BetaMessage;
@@ -20,13 +31,17 @@ const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-5-5";
 // modellerde var; Haiku'ya gönderilirse istek reddedilir.
 const SUPPORTS_FALLBACK = /^claude-(opus|sonnet|fable)-/.test(MODEL);
 // Sohbet için düşük efor yeterli ve yanıtı hızlandırır; ölçerek ayarlanmalı.
-const EFFORT = (process.env.ANTHROPIC_EFFORT ?? "low") as "low" | "medium" | "high";
+const EFFORT = (process.env.ANTHROPIC_EFFORT ?? "low") as
+  | "low"
+  | "medium"
+  | "high";
 const MAX_TOOL_ROUNDS = 8;
 
 // Küfürlü mesaja model çağrılmadan sabit yanıt: ilkinde uyarı, ikincisinde engel.
 export const PROFANITY_WARNING =
   "Size yalnızca işletmenin hizmetleri konusunda yardımcı olabilirim; lütfen bu şekilde yazmayalım. Nasıl yardımcı olabilirim?";
-export const PROFANITY_BLOCKED = "Bu konuşmaya devam edemiyorum. İyi günler dilerim.";
+export const PROFANITY_BLOCKED =
+  "Bu konuşmaya devam edemiyorum. İyi günler dilerim.";
 
 export const FALLBACK_REPLY =
   "Mesajınızı aldık, en kısa sürede size dönüş yapacağız. / We received your message, we will get back to you shortly.";
@@ -41,48 +56,87 @@ const defaultCreateMessage: CreateMessage = (params) => {
 // bir notla başa konur ki asistan adı ve ilgisini yeniden sormasın.
 function knownAbout(conversation: Conversation): string {
   const lead = conversation.lead;
-  return [lead?.name && `adı ${lead.name}`, lead?.interest && `ilgilendiği hizmet: ${lead.interest}`, lead?.language && `dili ${lead.language}`]
+  return [
+    lead?.name && `adı ${lead.name}`,
+    lead?.interest && `ilgilendiği hizmet: ${lead.interest}`,
+    lead?.language && `dili ${lead.language}`,
+  ]
     .filter(Boolean)
     .join(", ");
 }
 
-function windowed(conversation: Conversation): Anthropic.Beta.Messages.BetaMessageParam[] {
+function windowed(
+  conversation: Conversation,
+): Anthropic.Beta.Messages.BetaMessageParam[] {
   const window = historyWindow(conversation.history);
   if (window.length === conversation.history.length) return window;
   const known = knownAbout(conversation);
   const note = `[Bu konuşmanın daha eski kısmı gösterilmiyor.${known ? ` Müşteri hakkında bilinenler: ${known}.` : ""}]`;
-  return [{ role: "user", content: note }, { role: "assistant", content: "Anlaşıldı." }, ...window];
+  return [
+    { role: "user", content: note },
+    { role: "assistant", content: "Anlaşıldı." },
+    ...window,
+  ];
 }
 
 // Personel konuşmayı yeniden açınca (devir veya engel sonrası) modelin geçmişi. Engel
 // kaldırıldığında küfürlü kısım geçmişten atılır: model aksi halde o tutumu sürdürüyor ya da
 // güvenlik reddi veriyor. Panelde görünen transcript olduğu gibi kalır.
-export function reopenHistory(conversation: Conversation): Conversation["history"] {
+export function reopenHistory(
+  conversation: Conversation,
+): Conversation["history"] {
   const known = knownAbout(conversation);
   if (conversation.status === "blocked") {
     const note = `[İşletme personeli engeli kaldırdı; konuşmaya temiz başla ve müşteriye normal şekilde yardımcı ol.${known ? ` Müşteri hakkında bilinenler: ${known}.` : ""}]`;
-    return [{ role: "user", content: note }, { role: "assistant", content: "Anlaşıldı." }];
+    return [
+      { role: "user", content: note },
+      { role: "assistant", content: "Anlaşıldı." },
+    ];
   }
   return [
     ...conversation.history,
-    { role: "user", content: "[İşletme personeli asistanı bu konuşmada yeniden açtı; kaldığın yerden normal şekilde devam et.]" },
+    {
+      role: "user",
+      content:
+        "[İşletme personeli asistanı bu konuşmada yeniden açtı; kaldığın yerden normal şekilde devam et.]",
+    },
     { role: "assistant", content: "Anlaşıldı." },
   ];
 }
 
-const whenFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+const whenFmt = new Intl.DateTimeFormat("tr-TR", {
+  timeZone: "Europe/Istanbul",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 // Müşterinin yaklaşan randevuları her turda bağlam olarak verilir; asistan selamlaşmada
 // bunları hatırlatıp değiştir/iptal/yeni seçeneklerini sunar, araç çağırmadan bilir.
-async function upcomingContext(business: Business, conversation: Conversation, store: Store, now: Date): Promise<string> {
+async function upcomingContext(
+  business: Business,
+  conversation: Conversation,
+  store: Store,
+  now: Date,
+): Promise<string> {
   try {
-    const range = { from: now.toISOString(), to: new Date(now.getTime() + 60 * 86_400_000).toISOString() };
-    const mine = (await store.listAppointments(calendarIdFor(business.id, conversation.channel), range)).filter(
-      (a) => a.contact === conversation.contact,
-    );
+    const range = {
+      from: now.toISOString(),
+      to: new Date(now.getTime() + 60 * 86_400_000).toISOString(),
+    };
+    const mine = (
+      await store.listAppointments(
+        calendarIdFor(business.id, conversation.channel),
+        range,
+      )
+    ).filter((a) => a.contact === conversation.contact);
     if (mine.length === 0) return "";
     const lines = mine.slice(0, 3).map((a) => {
-      const service = business.services.find((s) => s.id === a.serviceId)?.name ?? a.serviceId;
+      const service =
+        business.services.find((s) => s.id === a.serviceId)?.name ??
+        a.serviceId;
       const staff = business.staff.find((s) => s.id === a.staffId)?.name;
       return `${whenFmt.format(new Date(a.start))} · ${service}${staff ? ` · ${staff}` : ""} (kimlik ${a.id})`;
     });
@@ -90,6 +144,52 @@ async function upcomingContext(business: Business, conversation: Conversation, s
   } catch {
     return "";
   }
+}
+
+// Model show_options'ı atladığında koddan düğme: evet/hayır sorusuna "Evet / Hayır", "hangi gün"
+// sorusuna önümüzdeki açık günler. Müşteri yazmak yerine dokunsun.
+const DAY_SHORT = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
+const MONTH_SHORT = [
+  "Oca",
+  "Şub",
+  "Mar",
+  "Nis",
+  "May",
+  "Haz",
+  "Tem",
+  "Ağu",
+  "Eyl",
+  "Eki",
+  "Kas",
+  "Ara",
+];
+export function fallbackOptions(
+  reply: string,
+  business: Business,
+  now: Date,
+): string[] {
+  const last =
+    reply
+      .trim()
+      .split(/(?<=[.!?])\s+/)
+      .at(-1) ?? "";
+  if (/hangi g[üu]n/i.test(last)) {
+    const today = localDate(now, business.utcOffset);
+    const labels: string[] = [];
+    for (let i = 1; i <= 14 && labels.length < 6; i++) {
+      const date = addDays(today, i);
+      const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+      if (!business.workingHours.some((h) => h.day === weekday)) continue;
+      const [, m, d] = date.split("-").map(Number);
+      labels.push(
+        i === 1 ? "Yarın" : `${DAY_SHORT[weekday]} ${d} ${MONTH_SHORT[m - 1]}`,
+      );
+    }
+    return labels;
+  }
+  if (/\b(mi|mı|mu|mü|misiniz|mısınız|musunuz|müsünüz)\s*\?\s*$/i.test(last))
+    return ["Evet", "Hayır"];
+  return [];
 }
 
 export interface RunResult {
@@ -116,12 +216,19 @@ export async function runAssistant(params: {
   const createMessage = params.createMessage ?? defaultCreateMessage;
   const now = params.now ?? new Date();
 
-  conversation.transcript.push({ from: "customer", text, at: now.toISOString(), mediaId: params.mediaId });
+  conversation.transcript.push({
+    from: "customer",
+    text,
+    at: now.toISOString(),
+    mediaId: params.mediaId,
+  });
   const upcoming = await upcomingContext(business, conversation, store, now);
   const message = `[Şu an: ${describeNow(business, now)}]${upcoming}\n${text || (params.mediaId ? "(Müşteri sadece fotoğraf gönderdi.)" : "")}`;
   conversation.history.push({
     role: "user",
-    content: params.mediaId ? [mediaMarker(params.mediaId), { type: "text", text: message }] : message,
+    content: params.mediaId
+      ? [mediaMarker(params.mediaId), { type: "text", text: message }]
+      : message,
   });
   const mediaCache = new Map();
   conversation.history = trimStoredHistory(conversation.history);
@@ -129,14 +236,20 @@ export async function runAssistant(params: {
   // Küfür/hakaret içeren mesajda model çağrılmaz: ilkinde tek cümlelik uyarı, tekrarında engel.
   if (containsProfanity(text)) {
     // Uyarı yakın geçmişteyse (son 10 mesaj) tekrar sayılır; aylar önceki uyarı engel gerektirmez.
-    const warnedBefore = conversation.transcript.slice(-10).some((m) => m.from === "assistant" && m.text === PROFANITY_WARNING);
+    const warnedBefore = conversation.transcript
+      .slice(-10)
+      .some((m) => m.from === "assistant" && m.text === PROFANITY_WARNING);
     const reply = warnedBefore ? PROFANITY_BLOCKED : PROFANITY_WARNING;
     if (warnedBefore) {
       conversation.status = "blocked";
       conversation.handoffReason = "Uyarıya rağmen küfürlü mesaj";
     }
     conversation.history.push({ role: "assistant", content: reply });
-    conversation.transcript.push({ from: "assistant", text: reply, at: new Date().toISOString() });
+    conversation.transcript.push({
+      from: "assistant",
+      text: reply,
+      at: new Date().toISOString(),
+    });
     return { reply, handedOff: false, options: [], appointments: [] };
   }
 
@@ -169,7 +282,9 @@ export async function runAssistant(params: {
 
       if (response.stop_reason === "refusal") {
         // Model (ve yedek modeller) yanıtlamadı: bu turu geçmişe eklemeden insana devret.
-        console.warn(`asistan reddetti: ${business.id} konuşma ${conversation.id}`);
+        console.warn(
+          `asistan reddetti: ${business.id} konuşma ${conversation.id}`,
+        );
         conversation.status = "handoff";
         conversation.handoffReason = "Asistan bu mesajı yanıtlayamadı.";
         replyParts.length = 0;
@@ -177,7 +292,10 @@ export async function runAssistant(params: {
         break;
       }
 
-      conversation.history.push({ role: "assistant", content: response.content });
+      conversation.history.push({
+        role: "assistant",
+        content: response.content,
+      });
       for (const block of response.content) {
         if (block.type !== "text" || !block.text.trim()) continue;
         // Soru sorulup düğmeler gösterildikten sonra model aynı soruyu bir kez daha yazma
@@ -188,7 +306,8 @@ export async function runAssistant(params: {
       }
 
       const toolUses = response.content.filter(
-        (b): b is Anthropic.Beta.Messages.BetaToolUseBlock => b.type === "tool_use",
+        (b): b is Anthropic.Beta.Messages.BetaToolUseBlock =>
+          b.type === "tool_use",
       );
       if (response.stop_reason !== "tool_use" || toolUses.length === 0) break;
 
@@ -196,9 +315,19 @@ export async function runAssistant(params: {
       for (const tool of toolUses) {
         let outcome;
         try {
-          outcome = await executeTool(tool.name, tool.input, { business, conversation, store, now, effects, parseQuote: params.parseQuote });
+          outcome = await executeTool(tool.name, tool.input, {
+            business,
+            conversation,
+            store,
+            now,
+            effects,
+            parseQuote: params.parseQuote,
+          });
         } catch (error) {
-          outcome = { content: `Araç hatası: ${(error as Error).message}`, isError: true };
+          outcome = {
+            content: `Araç hatası: ${(error as Error).message}`,
+            isError: true,
+          };
         }
         results.push({
           type: "tool_result",
@@ -208,20 +337,27 @@ export async function runAssistant(params: {
         });
       }
       conversation.history.push({ role: "user", content: results });
-      if (effects.options.length > 0 && replyParts.join(" ").includes("?")) askedWithOptions = true;
+      if (effects.options.length > 0 && replyParts.join(" ").includes("?"))
+        askedWithOptions = true;
     }
     // Tur sınırına araç çağrısıyla gelindiyse iş yarım kaldı: müşteri boş vaatle bırakılmasın.
     const last = conversation.history.at(-1);
-    if (last?.role === "user" && typeof last.content !== "string" && last.content.some((b) => b.type === "tool_result")) {
+    if (
+      last?.role === "user" &&
+      typeof last.content !== "string" &&
+      last.content.some((b) => b.type === "tool_result")
+    ) {
       conversation.status = "handoff";
-      conversation.handoffReason = "Asistan işlemi tamamlayamadı (çok fazla adım).";
+      conversation.handoffReason =
+        "Asistan işlemi tamamlayamadı (çok fazla adım).";
       replyParts.length = 0;
       replyParts.push(FALLBACK_REPLY);
     }
   } catch (error) {
     console.error("Asistan hatası:", error);
     conversation.status = "handoff";
-    conversation.handoffReason = "Teknik hata nedeniyle otomatik yanıt verilemedi.";
+    conversation.handoffReason =
+      "Teknik hata nedeniyle otomatik yanıt verilemedi.";
     replyParts.length = 0;
     replyParts.push(FALLBACK_REPLY);
   }
@@ -232,12 +368,18 @@ export async function runAssistant(params: {
   );
   if (replyParts.length === 0 && conversation.status === "bot") {
     // Model metin üretmedi (boş yanıt): aynı yedek cümleyi her mesajda tekrarlamak yerine personele bırak.
-    console.warn(`asistan boş yanıt verdi: ${business.id} konuşma ${conversation.id}`);
+    console.warn(
+      `asistan boş yanıt verdi: ${business.id} konuşma ${conversation.id}`,
+    );
     conversation.status = "handoff";
     conversation.handoffReason = "Asistan yanıt üretemedi.";
   }
   const reply = replyParts.join("\n\n") || FALLBACK_REPLY;
-  conversation.transcript.push({ from: "assistant", text: reply, at: new Date().toISOString() });
+  conversation.transcript.push({
+    from: "assistant",
+    text: reply,
+    at: new Date().toISOString(),
+  });
 
   const appointments: AppointmentCard[] = [];
   for (const id of effects.bookedAppointmentIds) {
@@ -245,6 +387,16 @@ export async function runAssistant(params: {
     if (appointment) appointments.push(toCard(business, appointment));
   }
   // Devredilen konuşmada müşteriye artık seçenek sunulmaz.
-  const options = conversation.status === "bot" ? effects.options : [];
-  return { reply, handedOff: conversation.status === "handoff", options, appointments };
+  const options =
+    conversation.status === "bot"
+      ? effects.options.length > 0
+        ? effects.options
+        : fallbackOptions(reply, business, now)
+      : [];
+  return {
+    reply,
+    handedOff: conversation.status === "handoff",
+    options,
+    appointments,
+  };
 }

@@ -420,3 +420,16 @@ describe("düğme etiketleri ve yaklaşan randevu bağlamı", () => {
     expect(buildSystemPrompt(barber)).toContain("Randevuyu değiştir");
   });
 });
+
+describe("düğme güvenlik ağı", () => {
+  it("evet/hayır ve 'hangi gün' sorularında model düğme göstermese de düğme gider", async () => {
+    const { fallbackOptions } = await import("@/lib/agent/run");
+    expect(fallbackOptions("Aynı saatte sadece ustayı değiştirelim mi?", barber, now)).toEqual(["Evet", "Hayır"]);
+    expect(fallbackOptions("Taşınacak. Onaylıyor musunuz?", barber, now)).toEqual(["Evet", "Hayır"]);
+    const days = fallbackOptions("Randevunuzu hangi gün ve saat aralığına taşımak istersiniz?", barber, now);
+    expect(days[0]).toBe("Yarın");
+    expect(days.length).toBeGreaterThanOrEqual(4);
+    expect(days.some((d) => d.startsWith("Paz "))).toBe(false); // berber Pazar kapalı
+    expect(fallbackOptions("Randevunuz güncellendi. Görüşmek üzere!", barber, now)).toEqual([]);
+  });
+});
