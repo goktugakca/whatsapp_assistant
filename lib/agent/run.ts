@@ -190,8 +190,18 @@ export function fallbackOptions(
     return labels;
   }
   const lastQuestion = [...sentences].reverse().find((x) => x.endsWith("?"));
+  if (!lastQuestion) return [];
+  // "Değiştirmek, iptal etmek ya da yeni randevu almak ister misiniz?" → üç düğme.
   if (
-    lastQuestion &&
+    /değiştir/i.test(lastQuestion) &&
+    /iptal/i.test(lastQuestion) &&
+    /yeni randevu/i.test(lastQuestion)
+  ) {
+    return ["Randevuyu değiştir", "İptal et", "Yeni randevu"];
+  }
+  // Seçenekli soruya ("A ya da B?") Evet/Hayır konmaz; sadece gerçek evet/hayır sorusuna.
+  if (/\b(ya da|veya|yoksa)\b/i.test(lastQuestion)) return [];
+  if (
     /\b(mi|mı|mu|mü|misiniz|mısınız|musunuz|müsünüz|miyim|mıyım)\s*\?$/i.test(
       lastQuestion,
     )

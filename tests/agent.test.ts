@@ -433,5 +433,11 @@ describe("düğme güvenlik ağı", () => {
     expect(fallbackOptions("Randevunuz güncellendi. Görüşmek üzere!", barber, now)).toEqual([]);
     expect(fallbackOptions("Hangi gün ve saat aralığına taşımak istersiniz? Can ile devam edebilirim.", barber, now)[0]).toBe("Yarın");
     expect(fallbackOptions("Mevcut randevunuz taşınacak. Onaylıyor musunuz? Fiyat 550 TL.", barber, now)).toEqual(["Evet", "Hayır"]);
+    expect(fallbackOptions("Değiştirmek, iptal etmek ya da yeni randevu almak ister misiniz?", barber, now)).toEqual([
+      "Randevuyu değiştir",
+      "İptal et",
+      "Yeni randevu",
+    ]);
+    expect(fallbackOptions("Saç kesimi mi yoksa saç + sakal mı istersiniz?", barber, now)).toEqual([]);
   });
 });
