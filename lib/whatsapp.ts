@@ -59,6 +59,8 @@ export function parseInboundMessages(payload: unknown): InboundMessage[] {
       if (change.field !== "messages" || !phoneNumberId) continue;
 
       for (const message of value?.messages ?? []) {
+        // Tepki (👍), sistem bildirimi ve desteklenmeyen içerik yanıt gerektirmez.
+        if (["reaction", "system", "unsupported"].includes(message.type)) continue;
         const contact = value?.contacts?.find((c) => c.wa_id === message.from);
         if (message.type === "image" && message.image?.id) {
           result.push({

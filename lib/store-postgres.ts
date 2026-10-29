@@ -105,6 +105,7 @@ function toAppointment(r: Row): Appointment {
     businessId: String(r.business_id),
     conversationId: opt(r.conversation_id),
     source: (r.source as Appointment["source"]) ?? "assistant",
+    channel: (opt(r.channel) as Appointment["channel"]) ?? undefined,
     customerName: String(r.customer_name),
     contact: String(r.contact),
     serviceId: String(r.service_id),
@@ -277,8 +278,8 @@ export class PostgresStore implements Store {
     const [row] = await this.db.query<Row>(
       `with lock as (select pg_advisory_xact_lock(hashtextextended($2 || ':' || coalesce($7, '_'), 0)))
        insert into appointments
-         (id, business_id, conversation_id, customer_name, contact, service_id, staff_id, start_at, end_at, source)
-       select $1, $2, $3::uuid, $4, $5, $6, $7, $8::timestamptz, $9::timestamptz, $10 from lock
+         (id, business_id, conversation_id, customer_name, contact, service_id, staff_id, start_at, end_at, source, channel)
+       select $1, $2, $3::uuid, $4, $5, $6, $7, $8::timestamptz, $9::timestamptz, $10, $11 from lock
        returning *`,
       [
         randomUUID(),
@@ -291,9 +292,29 @@ export class PostgresStore implements Store {
         input.start,
         input.end,
         input.source,
+        input.channel ?? null,
       ],
     );
     return toAppointment(row);
+  }
+
+  async rescheduleAppointment(businessId: string, id: string, change: { start: string; end: string; staffId?: string }) {
+    if (!UUID_RE.test(id)) return undefined;
+    try {
+      const [row] = await this.db.query<Row>(
+        `update appointments set start_at = $3::timestamptz, end_at = $4::timestamptz, staff_id = $5
+         where id = $1 and business_id = $2 and cancelled_at is null returning *`,
+        [id, businessId, change.start, change.end, change.staffId ?? null],
+      );
+      return row ? toAppointment(row) : undefined;
+    } catch (error) {
+      if ((error as { code?: string }).code === EXCLUSION_VIOLATION) return null;
+      throw error;
+    }
+  }
+
+  async forgetMessagesBefore(iso: string) {
+    await this.db.query("delete from processed_messages where created_at < $1", [iso]);
   }
 
   async forgetMessage(messageId: string) {

@@ -29,6 +29,9 @@ export async function GET() {
     ),
     instagram: Boolean(process.env.INSTAGRAM_APP_ID && process.env.INSTAGRAM_APP_SECRET),
     panelPassword: Boolean(process.env.PANEL_PASSWORD),
+    // Üretimde her biri ayrı tanımlı olmalı; yoksa PANEL_PASSWORD'den türetilir ve şifre
+    // değişince oturumlar, takvim bağlantıları ve Instagram bağlantıları birlikte kırılır.
+    separateSecrets: Boolean(process.env.SESSION_SECRET && process.env.INSTAGRAM_TOKEN_KEY && process.env.CALENDAR_FEED_SECRET),
     region: process.env.VERCEL_REGION,
   };
   const healthy = database !== "error";

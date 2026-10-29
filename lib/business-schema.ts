@@ -95,6 +95,15 @@ export function validateBusiness(input: unknown): BusinessValidation {
   if (!result.success) {
     return { ok: false, errors: [...new Set(result.error.issues.map((i) => i.message))] };
   }
+  // Saatler randevu aralığına oturmalı; 12:15 açılış 30 dakikalık ızgarada hiç saat üretmez.
+  const minutes = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
+  const step = result.data.slotMinutes;
+  const offGrid = [...result.data.workingHours, ...result.data.staff.flatMap((s) => s.workingHours ?? [])].filter(
+    (h) => minutes(h.open) % step !== 0,
+  );
+  if (offGrid.length > 0) {
+    return { ok: false, errors: [`Açılış saatleri randevu aralığına (${step} dk) uymalı: ${[...new Set(offGrid.map((h) => h.open))].join(", ")}`] };
+  }
   const { mapsUrl, ...rest } = result.data;
   return { ok: true, business: { ...rest, ...(mapsUrl ? { mapsUrl } : {}) } as Business };
 }

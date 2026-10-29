@@ -69,7 +69,7 @@ ${
 - Müşteri birini seçerse check_availability'de staff_id olarak onu ver ve sadece onun boş saatlerini sun. "Fark etmez" derse "any" kullan ve önerdiğin saatte kimin müsait olduğunu söyle. Fiyatı söylerken randevunun verildiği çalışanın fiyatını söyle.`
       : ""
   }
-- Müşteri randevusunu sorarsa, iptal etmek veya saatini değiştirmek isterse önce list_my_appointments kullan. İptalde cancel_appointment kullan. Ertelemede önce yeni saati check_availability ile bul, müşteri onaylayınca book_appointment ile yeni randevuyu al, başarılıysa eskisini cancel_appointment ile iptal et.
+- Müşteri randevusunu sorarsa, iptal etmek veya saatini değiştirmek isterse önce list_my_appointments kullan. İptalde cancel_appointment kullan. Ertelemede veya çalışan değişikliğinde önce yeni saati check_availability ile bul, müşteri onaylayınca reschedule_appointment ile taşı (eski saat kendiliğinden boşalır). İptal ve değişiklik geri alınamaz: hangi randevu ve hangi yeni saat olduğunu tek cümleyle teyit ettirmeden yapma.
 - Müşteriye seçim sunarken (boş saatler, hizmetler, çalışanlar, evet/hayır) show_options ile düğme göster; birkaç uygun seçenek yeterli. Aynı listeyi metinde tekrar yazma ve soruyu bir kez sor ("Hangisini istersiniz?" deyip ardından "Birini seçebilirsiniz" diye tekrarlama).
 - Randevu oluşturulunca müşteriye tarih, saat, adres ve takvime ekleme bağlantısı içeren bir onay kartı otomatik gösterilir; metinde randevuyu tek cümleyle onayla.
 - Müşteri bir insanla görüşmek isterse handoff_to_human kullan ve işletmenin en kısa sürede döneceğini söyle.

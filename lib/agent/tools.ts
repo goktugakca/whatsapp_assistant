@@ -79,12 +79,28 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
     {
       name: "cancel_appointment",
       description:
-        "Müşterinin kendi randevusunu iptal eder; saat başkalarına açılır. Sadece müşteri açıkça iptal istediğinde ve hangi randevu olduğu netken kullan. Erteleme isteniyorsa önce yeni saate book_appointment ile randevu al, başarılı olursa eskisini iptal et.",
+        "Müşterinin kendi randevusunu iptal eder; saat başkalarına açılır. Sadece müşteri açıkça iptal istediğinde ve hangi randevu olduğu netken kullan. Erteleme veya çalışan değişikliği için bunu değil reschedule_appointment aracını kullan.",
       strict: true,
       input_schema: {
         type: "object",
         properties: { appointment_id: { type: "string", description: "list_my_appointments'tan dönen kimlik" } },
         required: ["appointment_id"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "reschedule_appointment",
+      description:
+        "Müşterinin mevcut randevusunu yeni bir saate ve/veya başka bir çalışana taşır; eski saat boşa çıkar, randevu kimliği aynı kalır. Önce list_my_appointments ile randevuyu, check_availability ile yeni saati bul; müşteri yeni saati onayladıktan sonra kullan. Aynı saatte sadece çalışan değişiyorsa start olarak mevcut saati ver.",
+      strict: true,
+      input_schema: {
+        type: "object",
+        properties: {
+          appointment_id: { type: "string", description: "list_my_appointments'tan dönen kimlik" },
+          start: { type: "string", description: "Yeni başlangıç, check_availability'den dönen ISO saat (aynı kalıyorsa mevcut saat)" },
+          staff_id: { type: "string", enum: staffIds, description: staffDescription },
+        },
+        required: ["appointment_id", "start", "staff_id"],
         additionalProperties: false,
       },
     },
@@ -165,6 +181,7 @@ const saveLeadInput = z.object({
 const handoffInput = z.object({ reason: z.string() });
 const showOptionsInput = z.object({ options: z.array(z.string()) });
 const cancelInput = z.object({ appointment_id: z.string() });
+const rescheduleInput = z.object({ appointment_id: z.string(), start: z.string(), staff_id: z.string() });
 const quoteInput = z.object({ question: z.string() });
 
 export const MAX_OPTIONS = 10;
@@ -272,6 +289,7 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
           businessId: calendarId,
           conversationId: conversation.id,
           source: "assistant",
+          channel: conversation.channel,
           customerName: args.customer_name,
           contact: conversation.contact,
           serviceId: service.id,
@@ -293,6 +311,11 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
           service: service.name,
           staff: appointment.staffId ? staffName(appointment.staffId) : undefined,
           price: priceFor(business, service.id, appointment.staffId),
+          // "Fark etmez" denip randevu belirli bir ustaya düşünce fiyat o ustanınkidir.
+          note:
+            args.staff_id === ANY && appointment.staffId && business.staff.some((s) => s.prices?.[service.id])
+              ? "Fiyat randevunun verildiği çalışana göredir; daha önce başka bir fiyat söylediysen doğrusunu belirt."
+              : undefined,
         }),
       };
     }
@@ -333,6 +356,42 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
       }
       await store.cancelAppointment(calendarId, own.id);
       return { content: JSON.stringify({ ok: true, cancelled: own.id, start: own.start }) };
+    }
+
+    case "reschedule_appointment": {
+      const args = rescheduleInput.parse(input);
+      const own = (await customerAppointments(ctx)).find((a) => a.id === args.appointment_id);
+      if (!own) {
+        return { content: "Bu müşteriye ait böyle yaklaşan bir randevu yok. list_my_appointments ile kontrol et.", isError: true };
+      }
+      const service = business.services.find((s) => s.id === own.serviceId);
+      if (!service) return { content: "Randevunun hizmeti artık listede yok; işletmeye devret.", isError: true };
+      // Müsaitlik, taşınan randevunun kendisi sayılmadan hesaplanır.
+      const slot = (await slotsFor(ctx, args.start.slice(0, 10), service.id, args.staff_id, own.id)).find((s) => s.start === args.start);
+      if (!slot) {
+        return { content: "Bu saat uygun değil veya geçerli bir saat değil. check_availability ile tekrar kontrol et.", isError: true };
+      }
+      const end = new Date(Date.parse(args.start) + service.durationMinutes * 60_000).toISOString();
+      let moved = null;
+      for (const staffId of slot.staffIds) {
+        moved = await store.rescheduleAppointment(calendarId, own.id, {
+          start: args.start,
+          end,
+          staffId: staffId === SINGLE_RESOURCE ? undefined : staffId,
+        });
+        if (moved) break;
+      }
+      if (!moved) return { content: "Bu saat az önce doldu. check_availability ile yeni saatleri al.", isError: true };
+      return {
+        content: JSON.stringify({
+          ok: true,
+          appointmentId: moved.id,
+          start: moved.start,
+          service: service.name,
+          staff: moved.staffId ? staffName(moved.staffId) : undefined,
+          price: priceFor(business, service.id, moved.staffId),
+        }),
+      };
     }
 
     case "show_options": {
@@ -418,7 +477,7 @@ function lastPhotoId(conversation: Conversation): string | undefined {
   return undefined;
 }
 
-async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staffId: string): Promise<Slot[]> {
+async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staffId: string, ignoreId?: string): Promise<Slot[]> {
   // Sadece o günün randevuları (gece yarısı taşmaları için bir gün pay).
   const dayStart = new Date(`${date}T00:00:00${ctx.business.utcOffset}`).getTime();
   const appointments = await ctx.store.listAppointments(calendarIdFor(ctx.business.id, ctx.conversation.channel), {
@@ -430,7 +489,7 @@ async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staff
     date,
     serviceId,
     staffId: staffId === ANY ? undefined : staffId,
-    busy: appointments.map((a) => ({ start: a.start, end: a.end, staffId: a.staffId })),
+    busy: appointments.filter((a) => a.id !== ignoreId).map((a) => ({ start: a.start, end: a.end, staffId: a.staffId })),
     now: ctx.now,
   });
 }

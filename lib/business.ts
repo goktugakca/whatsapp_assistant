@@ -6,6 +6,7 @@ import { barber } from "./businesses/barber";
 import { dentalClinic } from "./businesses/dental-clinic";
 import { hairSalon } from "./businesses/hair-salon";
 import { nailSalon } from "./businesses/nail-salon";
+import { validateBusiness } from "./business-schema";
 import type { Store } from "./store";
 
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0 = Pazar
@@ -83,7 +84,16 @@ export function getDefaultBusiness(id: string): Business | undefined {
 export async function loadBusiness(store: Store, id: string): Promise<Business | undefined> {
   // Demo randevuları "<id>#demo" takvim kimliğiyle kaydedilir (lib/agent/tools.ts); işletme aynı.
   const businessId = id.split("#")[0];
-  return (await store.getBusinessSettings(businessId)) ?? getDefaultBusiness(businessId);
+  const fallback = getDefaultBusiness(businessId);
+  const saved = await store.getBusinessSettings(businessId);
+  if (!saved) return fallback;
+  // Kayıt eski bir şemadan kalmış olabilir; eksik alanlar varsayılandan tamamlanır, yine de
+  // geçersizse asistan çökmesin diye varsayılana dönülür ve loglanır.
+  const merged = { ...fallback, ...saved } as Business;
+  const result = validateBusiness(merged);
+  if (result.ok) return result.business;
+  console.error("İşletme ayarı geçersiz, varsayılana dönüldü:", businessId, result.errors);
+  return fallback;
 }
 
 // Pilotta tek bir WhatsApp numarası, WHATSAPP_BUSINESS_ID ile seçilen işletmeye bağlanır.

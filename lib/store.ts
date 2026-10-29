@@ -42,6 +42,7 @@ export interface Appointment {
   businessId: string;
   conversationId?: string; // Panelden elle eklenen randevularda yok
   source: "assistant" | "panel";
+  channel?: Channel; // Randevunun alındığı kanal; hatırlatma sadece WhatsApp'a gider
   customerName: string;
   contact: string;
   serviceId: string;
@@ -146,6 +147,14 @@ export interface Store {
   // Aynı kaynağa (çalışan veya tek takvim) çakışan randevu varsa kaydetmez ve null döner.
   // Kontrol ve kayıt tek adımda yapılır; iki müşteri aynı anda aynı saati alamaz.
   addAppointmentIfFree(input: NewAppointment): Promise<Appointment | null>;
+  // Randevuyu yeni saate/çalışana taşır; çakışırsa null, yoksa/iptalse undefined.
+  rescheduleAppointment(
+    businessId: string,
+    id: string,
+    change: { start: string; end: string; staffId?: string },
+  ): Promise<Appointment | null | undefined>;
+  // Tekrar denetimi için tutulan mesaj kimliklerinden eskileri siler.
+  forgetMessagesBefore(iso: string): Promise<void>;
   // WhatsApp aynı mesajı birden fazla kez gönderebilir; ilk görüşte true döner.
   markMessageSeen(messageId: string): Promise<boolean>;
   // İşleme başarısız olursa işaret geri alınır; Meta yeniden gönderince mesaj tekrar denenir.
@@ -303,6 +312,21 @@ export class InMemoryStore implements Store {
     const appointment: Appointment = { id: randomUUID(), createdAt: new Date().toISOString(), ...input };
     this.appointments.push(appointment);
     return appointment;
+  }
+
+  async rescheduleAppointment(businessId: string, id: string, change: { start: string; end: string; staffId?: string }) {
+    const a = this.appointments.find((x) => x.id === id && x.businessId === businessId && !x.cancelledAt);
+    if (!a) return undefined;
+    const clash = this.appointments.some(
+      (o) => o !== a && o.businessId === businessId && !o.cancelledAt && o.staffId === change.staffId && overlaps(o, change),
+    );
+    if (clash) return null;
+    Object.assign(a, change);
+    return { ...a };
+  }
+
+  async forgetMessagesBefore() {
+    // Bellekte tutulanlar süreçle birlikte gider.
   }
 
   async markMessageSeen(messageId: string) {

@@ -147,12 +147,23 @@ export async function sendInstagramReply(params: {
 }
 
 // Müşterinin gönderdiği fotoğraf Meta'nın CDN adresinden indirilir (adres bir süre geçerlidir).
+const MEDIA_HOST = /(^|\.)(fbcdn\.net|cdninstagram\.com|fbsbx\.com|facebook\.com|instagram\.com)$/;
+function assertMediaUrl(url: string) {
+  const u = new URL(url);
+  if (u.protocol !== "https:" || !MEDIA_HOST.test(u.hostname)) throw new Error(`Beklenmeyen medya adresi: ${u.host}`);
+}
+
 export async function downloadInstagramImage(url: string, maxBytes: number, fetchImpl: typeof fetch = fetch) {
-  const host = new URL(url).hostname;
-  if (!/(^|\.)(fbcdn\.net|cdninstagram\.com|fbsbx\.com|facebook\.com|instagram\.com)$/.test(host)) {
-    throw new Error(`Beklenmeyen medya adresi: ${host}`);
+  // Yönlendirmeler kendiliğinden takip edilmez; her atlamada adres yeniden denetlenir (SSRF).
+  assertMediaUrl(url);
+  let res = await fetchImpl(url, { redirect: "manual" });
+  for (let hop = 0; hop < 3 && res.status >= 300 && res.status < 400; hop++) {
+    const next = res.headers.get("location");
+    if (!next) break;
+    const resolved = new URL(next, url).toString();
+    assertMediaUrl(resolved);
+    res = await fetchImpl(resolved, { redirect: "manual" });
   }
-  const res = await fetchImpl(url);
   if (!res.ok) throw new Error(`Fotoğraf indirilemedi (${res.status})`);
   const length = Number(res.headers.get("content-length") ?? 0);
   if (length > maxBytes) throw new Error("Fotoğraf çok büyük");

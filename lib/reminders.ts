@@ -46,14 +46,22 @@ export async function sendTomorrowReminders(deps: {
     new Date(now.getTime() + 48 * 60 * 60_000).toISOString(),
   );
 
+  // Aynı işletme için ayarlar bir kez okunur (N+1 yerine).
+  const businessCache = new Map<string, Awaited<ReturnType<typeof loadBusiness>>>();
   for (const appointment of candidates) {
-    const business = await loadBusiness(store, appointment.businessId);
+    const skip = (reason: string) => report.skipped.push({ id: appointment.id, reason });
+    if (appointment.channel && appointment.channel !== "whatsapp") {
+      skip(`${appointment.channel} randevusu; hatırlatma yalnızca WhatsApp'tan gönderilebilir`);
+      continue;
+    }
+    if (appointment.businessId.includes("#")) continue; // demo takvimi
+    if (!businessCache.has(appointment.businessId)) businessCache.set(appointment.businessId, await loadBusiness(store, appointment.businessId));
+    const business = businessCache.get(appointment.businessId);
     if (!business) continue;
     if (localDate(appointment.start, business.utcOffset) !== addDays(localDate(now, business.utcOffset), 1)) continue;
 
     const to = normalizePhone(appointment.contact);
     const phoneNumberId = phoneNumberIdFor(business);
-    const skip = (reason: string) => report.skipped.push({ id: appointment.id, reason });
     if (!to) {
       skip("telefon numarası yok (demo veya numarasız randevu)");
       continue;
@@ -91,12 +99,17 @@ export async function sendTomorrowReminders(deps: {
     const text = `Hatırlatma gönderildi: ${card.customerName}, yarın (${when}) ${card.serviceName} randevunuz var.${
       base ? ` ${base}/randevu/${appointment.id}` : ""
     }`;
-    await store.withConversationLock(key, async () => {
-      const conversation = await store.findOrCreateConversation({ ...key, contactName: appointment.customerName });
-      conversation.transcript.push({ from: "assistant", text, at: new Date().toISOString() });
-      conversation.history.push({ role: "assistant", content: `[Otomatik hatırlatma] ${text}` });
-      await store.saveConversation(conversation);
-    });
+    try {
+      await store.withConversationLock(key, async () => {
+        const conversation = await store.findOrCreateConversation({ ...key, contactName: appointment.customerName });
+        conversation.transcript.push({ from: "assistant", text, at: new Date().toISOString() });
+        conversation.history.push({ role: "assistant", content: `[Otomatik hatırlatma] ${text}` });
+        await store.saveConversation(conversation);
+      });
+    } catch (error) {
+      // Hatırlatma gitti; konuşma kaydı yazılamadıysa diğer müşterilere devam.
+      console.error("Hatırlatma konuşmaya yazılamadı:", appointment.id, error);
+    }
   }
   return report;
 }

@@ -34,6 +34,7 @@ Randevuyla çalışan işletmelerin (kuaför, berber, tırnak salonu, güzellik 
 - `book_appointment`: Sadece gerçekten boş olan bir saate randevu yazar; model saat uyduramaz. Çalışan tercihi yoksa müsait olan birine atar.
 - `save_lead`: Müşterinin adını, dilini, istediği hizmeti ve ne zaman gelmek istediğini panele kaydeder.
 - `show_options`: Boş saatleri, hizmetleri veya çalışanları tıklanabilir düğme olarak sunar. Demoda düğme, WhatsApp'ta etkileşimli mesaj olur (3'e kadar kısa seçenek düğme, fazlası liste).
+- `reschedule_appointment`: Randevuyu yeni saate ve/veya başka çalışana taşır; eski saat boşalır.
 - `handoff_to_human`: Konuşmayı işletmeye devreder; asistan o müşteriye artık otomatik yanıt vermez.
 - `block_customer`: Küfür, taciz veya ısrarla uygunsuz istek yazan müşteriyi engeller; sonraki mesajları panelde görünür ama yanıtlanmaz. İşletme engeli panelden kaldırabilir.
 

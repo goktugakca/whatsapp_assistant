@@ -166,6 +166,14 @@ export async function runAssistant(params: {
       conversation.history.push({ role: "user", content: results });
       if (effects.options.length > 0 && replyParts.join(" ").includes("?")) askedWithOptions = true;
     }
+    // Tur sınırına araç çağrısıyla gelindiyse iş yarım kaldı: müşteri boş vaatle bırakılmasın.
+    const last = conversation.history.at(-1);
+    if (last?.role === "user" && typeof last.content !== "string" && last.content.some((b) => b.type === "tool_result")) {
+      conversation.status = "handoff";
+      conversation.handoffReason = "Asistan işlemi tamamlayamadı (çok fazla adım).";
+      replyParts.length = 0;
+      replyParts.push(FALLBACK_REPLY);
+    }
   } catch (error) {
     console.error("Asistan hatası:", error);
     conversation.status = "handoff";
@@ -187,6 +195,6 @@ export async function runAssistant(params: {
     if (appointment) appointments.push(toCard(business, appointment));
   }
   // Devredilen konuşmada müşteriye artık seçenek sunulmaz.
-  const options = conversation.status === "handoff" ? [] : effects.options;
+  const options = conversation.status === "bot" ? effects.options : [];
   return { reply, handedOff: conversation.status === "handoff", options, appointments };
 }

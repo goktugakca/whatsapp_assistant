@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { timingSafeEqual } from "node:crypto";
 import { verifyPassword } from "@/lib/password";
@@ -21,10 +21,40 @@ function safeNext(value: FormDataEntryValue | null): string {
   return next.startsWith("/panel") ? next : "/panel";
 }
 
+// Kaba kuvvet freni (süreç belleğinde): aynı kullanıcı adı + IP için 15 dakikada 5 hatalı
+// denemeden sonra kilit. Sunucusuz ortamda örnek başına tutulur; yine de otomatik denemeyi
+// pratikte işe yaramaz hale getirir.
+const FAIL_WINDOW_MS = 15 * 60_000;
+const MAX_FAILURES = 5;
+const failures = new Map<string, number[]>();
+const failKey = (username: string, ip: string) => `${username}@${ip}`;
+function recentFailures(key: string): number[] {
+  const now = Date.now();
+  const list = (failures.get(key) ?? []).filter((t) => now - t < FAIL_WINDOW_MS);
+  if (list.length === 0) failures.delete(key);
+  else failures.set(key, list);
+  return list;
+}
+function isLockedOut(username: string, ip: string): boolean {
+  return recentFailures(failKey(username, ip)).length >= MAX_FAILURES;
+}
+function recordFailure(username: string, ip: string) {
+  const key = failKey(username, ip);
+  failures.set(key, [...recentFailures(key), Date.now()]);
+  if (failures.size > 5000) failures.clear();
+}
+function clearFailures(username: string, ip: string) {
+  failures.delete(failKey(username, ip));
+}
+
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const username = String(formData.get("username") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
   if (!username || !password) return { error: "Kullanıcı adı ve şifre gerekli.", username };
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "?";
+  if (isLockedOut(username, ip)) {
+    return { error: "Çok fazla başarısız deneme. 15 dakika sonra tekrar deneyin.", username };
+  }
 
   let token: string | undefined;
   const adminPassword = process.env.PANEL_PASSWORD;
@@ -39,7 +69,11 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     }
   }
   // Hangi bilginin yanlış olduğunu söylemiyoruz.
-  if (!token) return { error: "Kullanıcı adı veya şifre hatalı.", username };
+  if (!token) {
+    recordFailure(username, ip);
+    return { error: "Kullanıcı adı veya şifre hatalı.", username };
+  }
+  clearFailures(username, ip);
 
   (await cookies()).set(SESSION_COOKIE, token, {
     httpOnly: true,

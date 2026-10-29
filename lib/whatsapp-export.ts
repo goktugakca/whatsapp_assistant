@@ -91,7 +91,9 @@ export function redact(text: string, names: string[]): string {
     .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[e-posta]");
   for (const name of names) {
     for (const part of name.split(/\s+/).filter((p) => p.length >= 3)) {
-      out = out.replace(new RegExp(`\\b${part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi"), "[müşteri]");
+      // \b ASCII sınırıdır; "Şule", "Özge" gibi Türkçe harfle başlayan adlar için harf dışı sınır kullanılır.
+      const escaped = part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      out = out.replace(new RegExp(`(^|[^\\p{L}])${escaped}(?![\\p{L}])`, "giu"), "$1[müşteri]");
     }
   }
   return out;
