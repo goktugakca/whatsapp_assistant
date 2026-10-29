@@ -168,12 +168,14 @@ export function fallbackOptions(
   business: Business,
   now: Date,
 ): string[] {
-  const last =
-    reply
-      .trim()
-      .split(/(?<=[.!?])\s+/)
-      .at(-1) ?? "";
-  if (/hangi g[üu]n/i.test(last)) {
+  // Soru cevabın ortasında da olabilir ("…hangi gün istersiniz? Can ile devam edebilirim."):
+  // tüm cümlelere bakılır, evet/hayır için son soru cümlesi esas alınır.
+  const sentences = reply
+    .trim()
+    .split(/(?<=[.!?])\s+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (sentences.some((x) => /hangi g[üu]n/i.test(x))) {
     const today = localDate(now, business.utcOffset);
     const labels: string[] = [];
     for (let i = 1; i <= 14 && labels.length < 6; i++) {
@@ -187,7 +189,13 @@ export function fallbackOptions(
     }
     return labels;
   }
-  if (/\b(mi|mı|mu|mü|misiniz|mısınız|musunuz|müsünüz)\s*\?\s*$/i.test(last))
+  const lastQuestion = [...sentences].reverse().find((x) => x.endsWith("?"));
+  if (
+    lastQuestion &&
+    /\b(mi|mı|mu|mü|misiniz|mısınız|musunuz|müsünüz|miyim|mıyım)\s*\?$/i.test(
+      lastQuestion,
+    )
+  )
     return ["Evet", "Hayır"];
   return [];
 }

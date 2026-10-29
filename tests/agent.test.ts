@@ -431,5 +431,7 @@ describe("düğme güvenlik ağı", () => {
     expect(days.length).toBeGreaterThanOrEqual(4);
     expect(days.some((d) => d.startsWith("Paz "))).toBe(false); // berber Pazar kapalı
     expect(fallbackOptions("Randevunuz güncellendi. Görüşmek üzere!", barber, now)).toEqual([]);
+    expect(fallbackOptions("Hangi gün ve saat aralığına taşımak istersiniz? Can ile devam edebilirim.", barber, now)[0]).toBe("Yarın");
+    expect(fallbackOptions("Mevcut randevunuz taşınacak. Onaylıyor musunuz? Fiyat 550 TL.", barber, now)).toEqual(["Evet", "Hayır"]);
   });
 });
