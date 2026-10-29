@@ -71,7 +71,8 @@ export async function runAssistant(params: {
 
   // Küfür/hakaret içeren mesajda model çağrılmaz: ilkinde tek cümlelik uyarı, tekrarında engel.
   if (containsProfanity(text)) {
-    const warnedBefore = conversation.transcript.some((m) => m.from === "assistant" && m.text === PROFANITY_WARNING);
+    // Uyarı yakın geçmişteyse (son 10 mesaj) tekrar sayılır; aylar önceki uyarı engel gerektirmez.
+    const warnedBefore = conversation.transcript.slice(-10).some((m) => m.from === "assistant" && m.text === PROFANITY_WARNING);
     const reply = warnedBefore ? PROFANITY_BLOCKED : PROFANITY_WARNING;
     if (warnedBefore) {
       conversation.status = "blocked";

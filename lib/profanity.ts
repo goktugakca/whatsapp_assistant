@@ -1,34 +1,21 @@
-// Müşteri adı gibi veritabanına ve takvime yazılan metinlerde küfür denetimi. Model kuralı
-// yetmeyebilir ("onursiken amsızoğlu" adıyla randevu alınmıştı); bu liste koddan uygulanır.
-// Kökler Türkçe küçük harfle, ı/i ayrımı korunarak aranır. Kısa olanlar yalnızca kelime
-// olarak eşleşir (ör. "amk"), uzunlar kelime içinde de ("sikerim", "amsızoğlu").
+// Müşteri adı ve mesajlarında küfür denetimi; koddan uygulanır (model kuralı yetmiyordu).
+// Yanlış pozitif pahalı: müşteri uyarılır ve engellenebilir. O yüzden kısa kökler kelime
+// içinde değil, yalnızca kelime başında ve masum türevleri dışlanarak aranır:
+// "eksik", "klasik", "kesik", "götür", "sayarak", "boks" küfür DEĞİLDİR.
+// Türkçe küçük harf, ı/i ayrımı korunur.
 
-const ROOTS = [
-  "sik",
-  "amsız",
-  "amcık",
-  "amına",
-  "amını",
-  "orospu",
-  "piç",
-  "yarrak",
-  "yarak",
-  "göt",
-  "ibne",
-  "pezevenk",
-  "kahpe",
-  "sürtük",
-  "yavşak",
-  "gavat",
-  "taşak",
-  "taşşak",
-  "döl",
-  "bok",
+const EXACT = new Set(["amk", "aq", "oç", "mk", "awk", "sg", "ananı", "anan", "am", "amcik", "sikik", "siktir", "ibne", "piç"]);
+
+const PATTERNS = [
+  /^sik(?!ke)/, // sikerim, siktir…; "sikke" hariç
+  /siken|sikerim|sikim|sikt/, // "onursiken" gibi birleşik yazımlar
+  /^göt(?!ür)/, // götveren, göte…; "götür" hariç
+  /^bok(?!s|hara)/, // "boks", "boksör", "Bokhara" hariç
+  /amsız|amcık|amına|amını/,
+  /orospu/,
+  /^yarr?ak/, // "sayarak" hariç (kelime başı)
+  /pezevenk|kahpe|sürtük|yavşak|gavat|taşak|taşşak|ibne|piç/,
 ];
-const WORDS = ["amk", "aq", "oç", "mk", "awk", "sg", "ananı", "anan", "am", "amcik", "sikik", "siktir"];
-
-// Kökü içerdiği hâlde masum olan kelimeler; Türkçe'de yaygın ad ve sözcükler.
-const ALLOW = ["bokhara", "siku", "amsterdam"];
 
 export function containsProfanity(text: string): boolean {
   const words = text
@@ -36,10 +23,5 @@ export function containsProfanity(text: string): boolean {
     .replace(/[^a-zçğıöşü\s]/g, " ")
     .split(/\s+/)
     .filter(Boolean);
-  for (const w of words) {
-    if (ALLOW.includes(w)) continue;
-    if (WORDS.includes(w)) return true;
-    if (ROOTS.some((r) => w.includes(r))) return true;
-  }
-  return false;
+  return words.some((w) => EXACT.has(w) || PATTERNS.some((p) => p.test(w)));
 }

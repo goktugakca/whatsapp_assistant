@@ -12,7 +12,11 @@ describe("containsProfanity", () => {
     }
   });
   it("normal adları geçirir", () => {
-    for (const s of ["Murat", "Ayşe Yılmaz", "Mustafa Sıkı", "Gökhan Amsterdam", "Mehmet Ali", "Yeşim", "Şebnem", "Ercan Bokhara"]) {
+    for (const s of [
+      "Murat", "Ayşe Yılmaz", "Mustafa Sıkı", "Gökhan Amsterdam", "Mehmet Ali", "Yeşim", "Şebnem", "Ercan Bokhara", "Göktuğ",
+      "eksik bilgi var", "klasik manikür istiyorum", "saçım kesik", "beni götürür müsünüz", "parayı sayarak", "boks yapıyorum",
+      "Ayşe Döl", "sikke koleksiyonu", "yarın gelsem", "amacım kısa kesim",
+    ]) {
       expect(containsProfanity(s), s).toBe(false);
     }
   });
