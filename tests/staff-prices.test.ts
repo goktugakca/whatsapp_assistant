@@ -33,7 +33,8 @@ describe("çalışana özel fiyat", () => {
   it("istem çalışan fiyatlarını ve saatten önce kişiyi sorma kuralını içerir", () => {
     const prompt = buildSystemPrompt(barber);
     expect(prompt).toContain("Mehmet Usta: Saç kesimi, Sakal tıraşı, Saç + sakal, Çocuk tıraşı. Kendi fiyatları: Saç kesimi 500 TL");
-    expect(prompt).toContain("saat vermeden önce kiminle olmak istediğini sor");
+    expect(prompt).toContain("saat vermeden önce hangi usta tercihi olduğunu sor");
+    expect(prompt).toContain("kiminle olmak istersiniz\" türünden yanlış anlaşılabilecek ifadeler kullanma");
     expect(prompt).toContain('"Fark etmez"');
   });
 
@@ -55,6 +56,6 @@ describe("çalışana özel fiyat", () => {
 
   it("çalışansız işletmede kişi sorma kuralı yok", () => {
     expect(dentalClinic.staff).toEqual([]);
-    expect(buildSystemPrompt(dentalClinic)).not.toContain("kiminle olmak istediğini sor");
+    expect(buildSystemPrompt(dentalClinic)).not.toContain("tercihi olduğunu sor");
   });
 });
