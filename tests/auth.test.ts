@@ -89,7 +89,8 @@ describe("yetki katmanı", () => {
     await loginAs(null);
     await expect(assertBusinessAccess("demo-kuafor")).resolves.toMatchObject({ isAdmin: true });
     expect((await resolvePanelBusiness("demo-tirnak")).businessId).toBe("demo-tirnak");
-    expect((await resolvePanelBusiness("olmayan")).businessId).toBe("demo-kuafor");
+    expect((await resolvePanelBusiness(undefined)).businessId).toBe("demo-kuafor");
+    await expect(resolvePanelBusiness("olmayan")).rejects.toThrow(); // notFound()
   });
 
   it("silinen kullanıcının oturumu geçersizdir; girişsiz kullanıcı yönlendirilir", async () => {

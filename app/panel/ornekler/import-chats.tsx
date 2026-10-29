@@ -166,7 +166,7 @@ export function ImportChats({ businessId }: { businessId: string }) {
 
       {busy && <p className="hand mt-3 text-xl">{busy}</p>}
       {errors.length > 0 && (
-        <ul className="mt-3 list-disc pl-5 text-[13px] text-red-600">
+        <ul className="mt-3 list-disc pl-5 text-[13px] text-danger">
           {errors.slice(0, 8).map((e) => (
             <li key={e}>{e}</li>
           ))}

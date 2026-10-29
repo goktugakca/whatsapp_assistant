@@ -27,7 +27,7 @@ export function LoginForm({ next }: { next?: string }) {
         <input name="password" type="password" autoComplete="current-password" required className={input} />
       </label>
       {state?.error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {state.error}
         </p>
       )}

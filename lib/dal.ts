@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { businesses } from "./business";
 import { readSessionToken, SESSION_COOKIE, type SessionData } from "./session";
 import { getStore } from "./store";
@@ -41,8 +41,10 @@ export async function requireAdmin(): Promise<PanelSession> {
 export async function resolvePanelBusiness(requested: unknown): Promise<{ session: PanelSession; businessId: string }> {
   const session = await requireSession();
   if (!session.isAdmin) return { session, businessId: session.businessId! };
-  const id = typeof requested === "string" && businesses.some((b) => b.id === requested) ? requested : businesses[0].id;
-  return { session, businessId: id };
+  if (requested === undefined) return { session, businessId: businesses[0].id };
+  // Yanlış kimlik sessizce ilk işletmeye düşmesin; yönetici yanlış yerde değişiklik yapmasın.
+  if (typeof requested !== "string" || !businesses.some((b) => b.id === requested)) notFound();
+  return { session, businessId: requested };
 }
 
 // İşlemler (server action) için: yetkisizse hata fırlatır.

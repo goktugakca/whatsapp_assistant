@@ -2,6 +2,7 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { assertBusinessAccess } from "@/lib/dal";
 import { getStore } from "@/lib/store";
@@ -74,6 +75,11 @@ export async function setExamplePrice(formData: FormData) {
   const id = z.string().parse(formData.get("id"));
   const text = z.string().trim().max(200).parse(formData.get("price") ?? "");
   const price = text ? extractPrice(/\d/.test(text) && !/(tl|₺|lira|bin)/i.test(text) ? `${text} TL` : text) : undefined;
+  if (text && !price) {
+    // Fiyat okunamadı: kaydı bozmadan sayfaya uyarıyla dön.
+    revalidatePath("/panel/ornekler");
+    redirect(`/panel/ornekler?isletme=${encodeURIComponent(businessId)}&hata=fiyat#${id}`);
+  }
   await (await getStore()).updatePriceExample(businessId, id, {
     priceText: price ? text : undefined,
     priceMin: price?.min,

@@ -37,7 +37,7 @@ export function WaitlistForm({ businessTypes }: { businessTypes: string[] }) {
       >
         {pending ? "Gönderiliyor…" : "Ücretsiz pilota başvur"}
       </button>
-      {state && !state.ok && <p className="text-sm text-red-600 sm:col-span-2">{state.message}</p>}
+      {state && !state.ok && <p className="text-sm text-danger sm:col-span-2">{state.message}</p>}
     </form>
   );
 }

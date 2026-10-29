@@ -34,7 +34,7 @@ export function InstagramSection({
         WhatsApp&apos;takilerle birlikte görünür.
       </p>
       {message && (
-        <p role="status" className={`mt-3 text-sm ${message.ok ? "text-ok" : "text-red-600"}`}>
+        <p role="status" className={`mt-3 text-sm ${message.ok ? "text-ok" : "text-danger"}`}>
           {message.text}
         </p>
       )}
@@ -47,7 +47,7 @@ export function InstagramSection({
             <p className="text-xs text-muted">
               Bağlandı: {dateFmt.format(new Date(account.connectedAt))}
               {daysLeft <= 0 ? (
-                <span className="text-red-600"> · Erişim süresi doldu, yeniden bağlayın.</span>
+                <span className="text-danger"> · Erişim süresi doldu, yeniden bağlayın.</span>
               ) : daysLeft <= 7 ? (
                 <span className="text-accent"> · Erişim {daysLeft} gün içinde yenilenecek.</span>
               ) : null}
@@ -58,7 +58,7 @@ export function InstagramSection({
           </a>
           <form action={disconnectInstagram}>
             <input type="hidden" name="businessId" value={businessId} />
-            <button className="text-sm text-red-600 hover:underline">Bağlantıyı kaldır</button>
+            <button className="text-sm text-danger hover:underline">Bağlantıyı kaldır</button>
           </form>
         </div>
       ) : configured ? (

@@ -27,7 +27,7 @@ export function ManualAppointmentForm(props: {
         <span className="text-xs text-muted">Telefon (isteğe bağlı)</span>
         <input name="contact" inputMode="tel" defaultValue={v.contact} className={input} />
       </label>
-      <label className="grid gap-1 text-sm">
+      <label className="grid gap-1 text-sm sm:col-span-3">
         <span className="text-xs text-muted">Hizmet</span>
         <select name="serviceId" defaultValue={v.serviceId} className={input}>
           {props.services.map((s) => (
@@ -54,11 +54,11 @@ export function ManualAppointmentForm(props: {
       )}
       <label className="grid gap-1 text-sm">
         <span className="text-xs text-muted">Tarih</span>
-        <input type="date" name="date" required defaultValue={v.date ?? props.defaultDate} className={input} />
+        <input type="date" name="date" lang="tr" required defaultValue={v.date ?? props.defaultDate} className={input} />
       </label>
       <label className="grid gap-1 text-sm">
         <span className="text-xs text-muted">Saat</span>
-        <input type="time" name="time" required step={300} defaultValue={v.time} className={input} />
+        <input type="time" name="time" lang="tr" required step={300} defaultValue={v.time} className={input} />
       </label>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-3">
         <button
@@ -69,7 +69,7 @@ export function ManualAppointmentForm(props: {
           {pending ? "Ekleniyor…" : "Randevu ekle"}
         </button>
         {state && (
-          <p className={`text-sm ${state.ok ? "text-ok" : "text-red-600"}`} role="status">
+          <p className={`text-sm ${state.ok ? "text-ok" : "text-danger"}`} role="status">
             {state.message} {state.suggestions?.join(", ")}
           </p>
         )}

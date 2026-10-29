@@ -97,7 +97,7 @@ export default async function EvalPage(props: PageProps<"/panel/ornekler/sinav">
                       <td className="py-1.5 pr-4">{s.service}</td>
                       <td className="py-1.5 pr-4">{s.tested}</td>
                       <td className="py-1.5 pr-4">{s.hit}</td>
-                      <td className={`py-1.5 pr-4 ${s.miss > 0 ? "text-red-600" : ""}`}>{s.miss}</td>
+                      <td className={`py-1.5 pr-4 ${s.miss > 0 ? "text-danger" : ""}`}>{s.miss}</td>
                       <td className="py-1.5">{s.abstain}</td>
                     </tr>
                   ))}
@@ -124,7 +124,7 @@ export default async function EvalPage(props: PageProps<"/panel/ornekler/sinav">
                     ) : c.outcome === "error" ? (
                       <span className="text-muted">hata</span>
                     ) : (
-                      <b className={c.outcome === "miss" ? "text-red-600" : "text-ok"}>{formatRange(c.quote!.priceMin, c.quote!.priceMax)}</b>
+                      <b className={c.outcome === "miss" ? "text-danger" : "text-ok"}>{formatRange(c.quote!.priceMin, c.quote!.priceMax)}</b>
                     )}
                   </p>
                   {c.quote?.note && <p className="mt-1 text-xs text-muted">{c.quote.note}</p>}

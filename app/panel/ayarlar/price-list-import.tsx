@@ -78,7 +78,7 @@ export function PriceListImport({
         Mevcut hizmetleri bu listeyle değiştir (listede olmayanlar silinir)
       </label>
       {message && (
-        <p role="status" className={`mt-2 text-sm ${message.ok ? "text-ok" : "text-red-600"}`}>
+        <p role="status" className={`mt-2 text-sm ${message.ok ? "text-ok" : "text-danger"}`}>
           {message.text}
         </p>
       )}

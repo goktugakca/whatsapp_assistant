@@ -37,7 +37,7 @@ export function CreateUserForm({ businesses }: { businesses: { id: string; name:
           {pending ? "Oluşturuluyor…" : "Kullanıcı oluştur"}
         </button>
         {state && (
-          <p className={`text-sm ${state.ok ? "text-ok" : "text-red-600"}`} role="status">
+          <p className={`text-sm ${state.ok ? "text-ok" : "text-danger"}`} role="status">
             {state.message}
           </p>
         )}

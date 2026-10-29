@@ -21,7 +21,7 @@ const DAYS: { day: Weekday; label: string }[] = [
 const input =
   "field";
 const smallButton = "btn btn-line btn-sm";
-const removeButton = "text-xs text-red-600 hover:underline";
+const removeButton = "btn btn-line btn-sm w-fit shrink-0 justify-self-start border-danger text-danger";
 
 export function SettingsForm({ initial }: { initial: Business }) {
   const [b, setB] = useState<Business>(initial);
@@ -391,9 +391,9 @@ export function SettingsForm({ initial }: { initial: Business }) {
         />
       </Section>
 
-      <div className="sticky bottom-0 -mx-4 border-t border-border bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-xl sm:border">
+      <div className="sticky bottom-0 -mx-4 border-t border-border bg-background px-4 py-3 sm:mx-0 sm:rounded-xl sm:border">
         {state && (
-          <div className={`mb-2 text-sm ${state.ok ? "text-ok" : "text-red-600"}`} role="status">
+          <div className={`mb-2 text-sm ${state.ok ? "text-ok" : "text-danger"}`} role="status">
             {state.message}
             {state.errors && (
               <ul className="mt-1 list-disc pl-5">
@@ -456,7 +456,8 @@ function HoursEditor({ hours, onChange }: { hours: WorkingHours[]; onChange: (ho
               <div className="flex items-center gap-2">
                 <input
                   type="time"
-                  className={`${input} w-28`}
+                  lang="tr"
+                  className={`${input} w-32`}
                   aria-label={`${label} açılış`}
                   value={h.open}
                   onChange={(e) => set(day, { open: e.target.value })}
@@ -464,7 +465,8 @@ function HoursEditor({ hours, onChange }: { hours: WorkingHours[]; onChange: (ho
                 <span className="text-muted">–</span>
                 <input
                   type="time"
-                  className={`${input} w-28`}
+                  lang="tr"
+                  className={`${input} w-32`}
                   aria-label={`${label} kapanış`}
                   value={h.close}
                   onChange={(e) => set(day, { close: e.target.value })}

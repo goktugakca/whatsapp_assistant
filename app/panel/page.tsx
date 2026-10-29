@@ -81,7 +81,7 @@ export default async function PanelPage(props: PageProps<"/panel">) {
             href={`/panel/rapor?isletme=${business.id}`}
             className="mt-2 ml-2 btn btn-line btn-sm"
           >
-            Pilot raporu
+            Aylık özet
           </Link>
           <Link href={`/panel/ornekler?isletme=${business.id}`} className="mt-2 ml-2 btn btn-line btn-sm">
             Fotoğrafla fiyat örnekleri
@@ -89,7 +89,7 @@ export default async function PanelPage(props: PageProps<"/panel">) {
         </div>
         <dl className="flex gap-6 text-sm">
           <Stat label="Konuşma" value={conversations.length} />
-          <Stat label="Sizi bekliyor" value={handoffs.length} highlight={handoffs.length > 0} />
+          <Stat label="Sizi bekliyor" value={handoffs.length} highlight={handoffs.length > 0} hint="Asistanın size bıraktığı konuşmalar; cevabı siz yazın" />
           <Stat label="Randevu" value={appointments.length} />
         </dl>
       </header>
@@ -107,17 +107,20 @@ export default async function PanelPage(props: PageProps<"/panel">) {
                   <th className="px-4 py-2 font-medium">Müşteri</th>
                   <th className="px-4 py-2 font-medium">Hizmet</th>
                   {hasStaff && <th className="px-4 py-2 font-medium">Çalışan</th>}
-                  <th className="px-4 py-2 font-medium">İletişim</th>
+                  <th className="hidden px-4 py-2 font-medium sm:table-cell">İletişim</th>
                 </tr>
               </thead>
               <tbody>
                 {appointments.map((a) => (
                   <tr key={a.id} className="border-t border-border">
                     <td className="px-4 py-2 whitespace-nowrap">{fmt(a.start)}</td>
-                    <td className="px-4 py-2">{a.customerName}</td>
+                    <td className="px-4 py-2">
+                      {a.customerName}
+                      <span className="block font-mono text-[11px] text-muted sm:hidden">{a.contact}</span>
+                    </td>
                     <td className="px-4 py-2">{serviceName(a.serviceId)}</td>
                     {hasStaff && <td className="px-4 py-2">{staffName(a.staffId)}</td>}
-                    <td className="px-4 py-2 font-mono text-xs">{a.contact}</td>
+                    <td className="hidden px-4 py-2 font-mono text-xs sm:table-cell">{a.contact}</td>
                   </tr>
                 ))}
               </tbody>
@@ -173,9 +176,9 @@ export default async function PanelPage(props: PageProps<"/panel">) {
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+function Stat({ label, value, highlight, hint }: { label: string; value: number; highlight?: boolean; hint?: string }) {
   return (
-    <div>
+    <div title={hint}>
       <dt className="text-xs text-muted">{label}</dt>
       <dd className={`font-display text-3xl font-semibold leading-none ${highlight ? "text-accent" : ""}`}>{value}</dd>
     </div>
@@ -217,7 +220,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
 
       {c.status !== "bot" && c.handoffReason && (
         <p className="border-b border-dashed border-border bg-bubble-out px-4 py-2 text-xs">
-          {c.status === "blocked" ? "Engelleme nedeni" : "Devretme nedeni"}: {c.handoffReason}
+          {c.status === "blocked" ? "Engelleme nedeni" : "Size bırakıldı çünkü"}: {c.handoffReason}
         </p>
       )}
 
@@ -276,7 +279,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
             <form action={resumeAssistant}>
               <input type="hidden" name="conversationId" value={c.id} />
               <button className="text-muted underline">
-                {c.status === "blocked" ? "Engeli kaldır, asistan yeniden yanıtlasın" : "Asistanı bu konuşmada yeniden aç"}
+                {c.status === "blocked" ? "Engeli kaldır, asistan yeniden yanıtlasın" : "Asistan yanıtlamaya devam etsin"}
               </button>
             </form>
           ) : (
@@ -287,7 +290,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
               <input type="hidden" name="conversationId" value={c.id} />
               <ConfirmButton
                 message={`${c.contactName ?? c.contact} engellensin mi? Asistan bu kişiye bir daha yanıt vermez; mesajları panelde görünmeye devam eder. Engeli sonra kaldırabilirsiniz.`}
-                className="btn btn-line btn-sm border-red-600 text-red-600"
+                className="btn btn-line btn-sm border-danger text-danger"
               >
                 Engelle
               </ConfirmButton>

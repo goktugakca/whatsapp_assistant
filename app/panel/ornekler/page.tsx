@@ -16,7 +16,7 @@ const dateFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", 
 // fotoğrafla fiyat sorulduğunda o salonun fiyat mantığını öğrenmek için kullanacak.
 export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) {
   await connection();
-  const { isletme } = await props.searchParams;
+  const { isletme, hata } = await props.searchParams;
   const store = await getStore();
   const { session, businessId } = await resolvePanelBusiness(isletme);
   const business = (await loadBusiness(store, businessId)) ?? businesses[0];
@@ -68,6 +68,11 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
         <ImportChats businessId={business.id} />
       </section>
 
+      {hata === "fiyat" && (
+        <p role="alert" className="mt-4 text-sm text-danger">
+          Fiyat anlaşılamadı. Rakamla yazın, ör. “4.000 TL” veya “3.000–4.000 TL”.
+        </p>
+      )}
       <dl className="mt-8 flex flex-wrap gap-8 text-sm">
         <Stat label="Kullanıma hazır" value={ready.length} />
         <Stat label="Fiyatı eksik" value={missing.length} highlight={missing.length > 0} />
@@ -132,7 +137,7 @@ function ExampleGroup({
 
 function ExampleCard({ example: e, businessId }: { example: PriceExample; businessId: string }) {
   return (
-    <article className={`flex flex-col rounded-xl border border-border bg-card ${e.included ? "" : "opacity-60"}`}>
+    <article id={e.id} className={`flex flex-col rounded-xl border border-border bg-card ${e.included ? "" : "opacity-60"}`}>
       <div className="flex gap-1 p-2">
         {e.mediaIds.map((id) => (
           <a key={id} href={`/api/media/${id}`} target="_blank" rel="noopener noreferrer" className="flex-1">
@@ -169,7 +174,7 @@ function ExampleCard({ example: e, businessId }: { example: PriceExample; busine
           <form action={deleteExample}>
             <input type="hidden" name="businessId" value={businessId} />
             <input type="hidden" name="id" value={e.id} />
-            <button className="text-red-600 hover:underline">Sil</button>
+            <button className="text-danger hover:underline">Sil</button>
           </form>
         </div>
       </footer>

@@ -27,7 +27,7 @@ export function RunEvalButton({ businessId, disabled }: { businessId: string; di
       </button>
       {busy && <p className="hand mt-2 text-xl">Asistan örnekleri tek tek fiyatlandırıyor…</p>}
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="mt-2 text-sm text-danger">
           {error}
         </p>
       )}

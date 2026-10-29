@@ -16,6 +16,7 @@
   --bubble-in: #ffffff;
   --bubble-out: #e3eafb;
   --ok: #2f7a4b;
+  --danger: #c2405a; /* kırmızı kalem */
 }
 
 @theme inline {
@@ -31,6 +32,7 @@
   --color-bubble-in: var(--bubble-in);
   --color-bubble-out: var(--bubble-out);
   --color-ok: var(--ok);
+  --color-danger: var(--danger);
   --font-sans: var(--font-rubik);
   --font-display: var(--font-rubik);
   --font-mono: var(--font-rubik);
@@ -44,6 +46,7 @@
 /* Yazdırırken (pilot raporu PDF'i) her zaman açık tema. */
 @media screen and (prefers-color-scheme: dark) {
   :root {
+    --danger: #ff8a9e;
     --background: #0f1526;
     --foreground: #e6ebf7;
     --muted: #97a2bf;

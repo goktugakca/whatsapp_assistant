@@ -8,7 +8,7 @@ import { verticals } from "@/lib/verticals";
 import { PanelHeader } from "../panel-header";
 import { PrintButton } from "./print-button";
 
-export const metadata = { title: "Pilot raporu · Sırada" };
+export const metadata = { title: "Aylık özet · Sırada" };
 
 const PERIODS = [7, 30, 90] as const;
 
@@ -104,7 +104,7 @@ export default async function ReportPage(props: PageProps<"/panel/rapor">) {
         <Metric
           label="Ortalama yanıt süresi"
           value={r.medianResponseSeconds === undefined ? "–" : duration(r.medianResponseSeconds)}
-          note="ortanca"
+          note="tipik süre"
         />
       </section>
 
@@ -116,9 +116,9 @@ export default async function ReportPage(props: PageProps<"/panel/rapor">) {
           note="personel olmadan"
         />
         <Metric
-          label="Randevuların en az değeri"
+          label="Randevuların tahmini cirosu"
           value={r.estimatedValue.priced > 0 ? `${tl.format(r.estimatedValue.amount)} TL` : "–"}
-          note="fiyat aralığının alt sınırıyla"
+          note="en düşük fiyattan hesaplandı"
         />
         <Metric label="Hatırlatma gönderilen" value={r.remindersSent} />
       </section>

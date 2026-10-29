@@ -30,7 +30,7 @@ export default async function UsersPage() {
           <h1 className="font-display text-3xl font-semibold tracking-tight">Kullanıcılar</h1>
           <p className="text-sm text-muted">Her işletme sadece kendi panelini, takvimini ve ayarlarını görür.</p>
         </div>
-        <Link href="/panel" className="text-sm underline">
+        <Link href="/panel" className="text-sm underline whitespace-nowrap">
           Panele dön
         </Link>
       </header>
@@ -56,7 +56,7 @@ export default async function UsersPage() {
                 </div>
                 <form action={deletePanelUser}>
                   <input type="hidden" name="userId" value={u.id} />
-                  <button className="text-xs text-red-600 hover:underline">Sil</button>
+                  <button className="text-xs text-danger hover:underline">Sil</button>
                 </form>
               </li>
             ))}

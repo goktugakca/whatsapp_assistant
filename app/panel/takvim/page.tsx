@@ -90,7 +90,7 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
           <Link href={weekLink(addDays(monday, -7))} className="btn btn-line btn-sm">
             ← Önceki
           </Link>
-          <Link href={weekLink(today)} className="btn btn-line btn-sm">
+          <Link href={weekLink(mondayOf(today))} className="btn btn-line btn-sm">
             Bu hafta
           </Link>
           <Link href={weekLink(addDays(monday, 7))} className="btn btn-line btn-sm">
@@ -219,7 +219,7 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
                       </p>
                       <p className="text-xs text-muted">
                         {card.serviceName}
-                        {card.staffName ? ` · ${card.staffName}` : ""} · {a.source === "panel" ? "panelden" : "asistan"}
+                        {card.staffName ? ` · ${card.staffName}` : ""} · {a.source === "panel" ? "elle eklendi" : a.channel === "instagram" ? "Instagram'dan alındı" : "WhatsApp'tan alındı"}
                         {a.reminderSentAt ? " · 🔔 hatırlatıldı" : ""}
                       </p>
                     </div>
@@ -229,7 +229,7 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
                       <input type="hidden" name="back" value={`${weekLink(monday)}&mesaj=iptal`} />
                       <ConfirmButton
                         message={`${card.customerName} · ${card.serviceName} randevusu iptal edilsin mi? Müşteriye otomatik bilgi gitmez; gerekiyorsa siz haber verin.`}
-                        className="btn btn-line btn-sm border-red-600 text-red-600"
+                        className="btn btn-line btn-sm border-danger text-danger"
                       >
                         İptal et
                       </ConfirmButton>
