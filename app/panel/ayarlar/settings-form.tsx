@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { Business, Service, Staff, Weekday, WorkingHours } from "@/lib/business";
 import { slugify } from "@/lib/business-schema";
+import { describePrice, normalizePriceText } from "@/lib/price-text";
 import { mergeServices, type ExtractedService } from "@/lib/service-merge";
 import { saveBusinessSettings, type SettingsState } from "../actions";
 import { PriceListImport } from "./price-list-import";
@@ -87,7 +88,7 @@ export function SettingsForm({ initial }: { initial: Business }) {
       const id = slugify(s.name, takenServices);
       takenServices.add(id);
       serviceIdMap.set(s.id, id);
-      return { ...s, id };
+      return { ...s, id, priceInfo: normalizePriceText(s.priceInfo) };
     });
     const originalStaffIds = new Set(initial.staff.map((p) => p.id));
     const takenStaff = new Set(b.staff.filter((p) => originalStaffIds.has(p.id)).map((p) => p.id));
@@ -95,7 +96,7 @@ export function SettingsForm({ initial }: { initial: Business }) {
       const serviceIds = p.serviceIds.map((id) => serviceIdMap.get(id) ?? id);
       // Sadece yaptığı hizmetlerin dolu fiyatları kalır; boş alan genel fiyat demek.
       const priceEntries = Object.entries(p.prices ?? {})
-        .map(([sid, price]) => [serviceIdMap.get(sid) ?? sid, price.trim()] as const)
+        .map(([sid, price]) => [serviceIdMap.get(sid) ?? sid, normalizePriceText(price)] as const)
         .filter(([sid, price]) => price && serviceIds.includes(sid));
       const person: Staff = { ...p, serviceIds, prices: Object.fromEntries(priceEntries) };
       if (priceEntries.length === 0) delete person.prices;
@@ -213,12 +214,11 @@ export function SettingsForm({ initial }: { initial: Business }) {
                 />
                 <span className="text-muted">dk</span>
               </label>
-              <input
-                className={input}
-                placeholder="Fiyat (ör. 900–1.200 TL)"
-                aria-label="Fiyat"
+              <PriceInput
                 value={s.priceInfo}
-                onChange={(e) => setService(i, { priceInfo: e.target.value })}
+                placeholder="Fiyat: 1.500 TL · 900–1.200 TL · Kısa 1.500, Uzun 2.500"
+                ariaLabel="Fiyat"
+                onChange={(v) => setService(i, { priceInfo: v })}
               />
               <button type="button" className={removeButton} onClick={() => removeService(i)}>
                 Sil
@@ -324,12 +324,12 @@ export function SettingsForm({ initial }: { initial: Business }) {
                       .map((s) => (
                         <label key={s.id} className="flex items-center gap-2 text-xs">
                           <span className="w-28 shrink-0 truncate">{s.name || "(adsız hizmet)"}</span>
-                          <input
-                            className={input}
-                            placeholder={s.priceInfo || "Fiyat"}
-                            aria-label={`${p.name || "Çalışan"} için ${s.name} fiyatı`}
+                          <PriceInput
                             value={p.prices?.[s.id] ?? ""}
-                            onChange={(e) => setStaff(i, { prices: { ...p.prices, [s.id]: e.target.value } })}
+                            placeholder={s.priceInfo ? `Genel: ${s.priceInfo}` : "Fiyat"}
+                            ariaLabel={`${p.name || "Çalışan"} için ${s.name} fiyatı`}
+                            compact
+                            onChange={(v) => setStaff(i, { prices: { ...p.prices, [s.id]: v } })}
                           />
                         </label>
                       ))}
@@ -425,6 +425,40 @@ export function SettingsForm({ initial }: { initial: Business }) {
         </button>
       </div>
     </form>
+  );
+}
+
+// Fiyat kutusu: yazarken "asistan ne diyecek" önizlemesi, odaktan çıkınca yazım düzeltme.
+function PriceInput({
+  value,
+  placeholder,
+  ariaLabel,
+  compact,
+  onChange,
+}: {
+  value: string;
+  placeholder: string;
+  ariaLabel: string;
+  compact?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const preview = describePrice(value);
+  const show = compact ? value.trim() && preview.kind === "price" && normalizePriceText(value) !== value.trim() : true;
+  return (
+    <div className="grid min-w-0 gap-1">
+      <input
+        className={input}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => {
+          const fixed = normalizePriceText(value);
+          if (fixed !== value) onChange(fixed);
+        }}
+      />
+      {show && <span className={`text-[11px] ${preview.kind === "none" ? "text-muted" : "text-muted"}`}>{preview.text}</span>}
+    </div>
   );
 }
 
