@@ -146,6 +146,7 @@ export async function runAssistant(params: {
 
       if (response.stop_reason === "refusal") {
         // Model (ve yedek modeller) yanıtlamadı: bu turu geçmişe eklemeden insana devret.
+        console.warn(`asistan reddetti: ${business.id} konuşma ${conversation.id}`);
         conversation.status = "handoff";
         conversation.handoffReason = "Asistan bu mesajı yanıtlayamadı.";
         replyParts.length = 0;
@@ -206,6 +207,12 @@ export async function runAssistant(params: {
   console.info(
     `asistan: ${business.id} ${Date.now() - startedAt}ms, model çağrıları [${roundTimes.join(", ")}]ms, model ${MODEL}`,
   );
+  if (replyParts.length === 0 && conversation.status === "bot") {
+    // Model metin üretmedi (boş yanıt): aynı yedek cümleyi her mesajda tekrarlamak yerine personele bırak.
+    console.warn(`asistan boş yanıt verdi: ${business.id} konuşma ${conversation.id}`);
+    conversation.status = "handoff";
+    conversation.handoffReason = "Asistan yanıt üretemedi.";
+  }
   const reply = replyParts.join("\n\n") || FALLBACK_REPLY;
   conversation.transcript.push({ from: "assistant", text: reply, at: new Date().toISOString() });
 
