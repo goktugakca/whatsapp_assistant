@@ -5,7 +5,7 @@ import { getStore, type Channel, type Conversation } from "@/lib/store";
 import { verticals } from "@/lib/verticals";
 import { resolvePanelBusiness } from "@/lib/dal";
 import { PanelHeader } from "./panel-header";
-import { resumeAssistant, sendStaffReply } from "./actions";
+import { blockConversation, resumeAssistant, sendStaffReply } from "./actions";
 
 export const metadata = { title: "Panel · Sırada" };
 
@@ -265,14 +265,26 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
             Gönder
           </button>
         </form>
-        {c.status !== "bot" && (
-          <form action={resumeAssistant}>
-            <input type="hidden" name="conversationId" value={c.id} />
-            <button className="text-xs text-muted underline">
-              {c.status === "blocked" ? "Engeli kaldır, asistan yeniden yanıtlasın" : "Asistanı bu konuşmada yeniden aç"}
-            </button>
-          </form>
-        )}
+        <div className="flex justify-between text-xs">
+          {c.status !== "bot" ? (
+            <form action={resumeAssistant}>
+              <input type="hidden" name="conversationId" value={c.id} />
+              <button className="text-muted underline">
+                {c.status === "blocked" ? "Engeli kaldır, asistan yeniden yanıtlasın" : "Asistanı bu konuşmada yeniden aç"}
+              </button>
+            </form>
+          ) : (
+            <span />
+          )}
+          {c.status !== "blocked" && (
+            <form action={blockConversation}>
+              <input type="hidden" name="conversationId" value={c.id} />
+              <button className="text-red-600 hover:underline" title="Asistan bu kişiye bir daha yanıt vermez">
+                Engelle
+              </button>
+            </form>
+          )}
+        </div>
       </footer>
     </article>
   );

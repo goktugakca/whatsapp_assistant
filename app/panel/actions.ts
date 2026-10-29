@@ -37,6 +37,17 @@ export async function resumeAssistant(formData: FormData) {
   revalidatePath("/panel");
 }
 
+// Panelden engelleme: asistan bu müşteriye artık yanıt vermez; mesajları panelde görünmeye devam eder.
+export async function blockConversation(formData: FormData) {
+  const id = z.string().parse(formData.get("conversationId"));
+  const store = await getStore();
+  await updateConversation(store, id, async (conversation) => {
+    conversation.status = "blocked";
+    conversation.handoffReason = "Panelden engellendi";
+  });
+  revalidatePath("/panel");
+}
+
 export async function sendStaffReply(formData: FormData) {
   const id = z.string().parse(formData.get("conversationId"));
   const text = z.string().trim().min(1).max(4000).parse(formData.get("text"));

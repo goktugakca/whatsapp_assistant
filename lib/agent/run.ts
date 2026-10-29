@@ -4,6 +4,7 @@ import type { Business } from "../business";
 import { toCard, type AppointmentCard } from "../calendar";
 import { hydrateMedia, mediaMarker } from "../media";
 import type { ParseQuote } from "../photo-quote";
+import { containsProfanity } from "../profanity";
 import type { Conversation, Store } from "../store";
 import { buildSystemPrompt } from "./prompt";
 import { buildTools, executeTool, type TurnEffects } from "./tools";
@@ -21,6 +22,11 @@ const SUPPORTS_FALLBACK = /^claude-(opus|sonnet|fable)-/.test(MODEL);
 // Sohbet için düşük efor yeterli ve yanıtı hızlandırır; ölçerek ayarlanmalı.
 const EFFORT = (process.env.ANTHROPIC_EFFORT ?? "low") as "low" | "medium" | "high";
 const MAX_TOOL_ROUNDS = 8;
+
+// Küfürlü mesaja model çağrılmadan sabit yanıt: ilkinde uyarı, ikincisinde engel.
+export const PROFANITY_WARNING =
+  "Size yalnızca işletmenin hizmetleri konusunda yardımcı olabilirim; lütfen bu şekilde yazmayalım. Nasıl yardımcı olabilirim?";
+export const PROFANITY_BLOCKED = "Bu konuşmaya devam edemiyorum. İyi günler dilerim.";
 
 export const FALLBACK_REPLY =
   "Mesajınızı aldık, en kısa sürede size dönüş yapacağız. / We received your message, we will get back to you shortly.";
@@ -62,6 +68,19 @@ export async function runAssistant(params: {
     content: params.mediaId ? [mediaMarker(params.mediaId), { type: "text", text: message }] : message,
   });
   const mediaCache = new Map();
+
+  // Küfür/hakaret içeren mesajda model çağrılmaz: ilkinde tek cümlelik uyarı, tekrarında engel.
+  if (containsProfanity(text)) {
+    const warnedBefore = conversation.transcript.some((m) => m.from === "assistant" && m.text === PROFANITY_WARNING);
+    const reply = warnedBefore ? PROFANITY_BLOCKED : PROFANITY_WARNING;
+    if (warnedBefore) {
+      conversation.status = "blocked";
+      conversation.handoffReason = "Uyarıya rağmen küfürlü mesaj";
+    }
+    conversation.history.push({ role: "assistant", content: reply });
+    conversation.transcript.push({ from: "assistant", text: reply, at: new Date().toISOString() });
+    return { reply, handedOff: false, options: [], appointments: [] };
+  }
 
   const system = buildSystemPrompt(business);
   const tools = buildTools(business);

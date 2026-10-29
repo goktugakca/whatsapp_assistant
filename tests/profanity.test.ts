@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { PROFANITY_BLOCKED, PROFANITY_WARNING, runAssistant } from "@/lib/agent/run";
 import { executeTool } from "@/lib/agent/tools";
 import { barber } from "@/lib/businesses/barber";
 import { containsProfanity } from "@/lib/profanity";
@@ -34,5 +35,22 @@ describe("uygunsuz adla randevu", () => {
     await executeTool("save_lead", { name: "amk", language: "tr", country: "", interest: "saç", timeframe: "", notes: "" }, ctx);
     expect(conversation.lead?.name).toBeUndefined();
     expect(conversation.lead?.interest).toBe("saç");
+  });
+});
+
+describe("küfürlü mesaj", () => {
+  it("model çağrılmadan ilkinde uyarır, ikincisinde engeller", async () => {
+    const store = new InMemoryStore();
+    const conversation = await store.findOrCreateConversation({ businessId: barber.id, channel: "demo", contact: "k" });
+    const createMessage = async () => {
+      throw new Error("model çağrılmamalı");
+    };
+    const first = await runAssistant({ business: barber, conversation, store, text: "merhaba amk", createMessage });
+    expect(first.reply).toBe(PROFANITY_WARNING);
+    expect(conversation.status).toBe("bot");
+    const second = await runAssistant({ business: barber, conversation, store, text: "ne diyon aq", createMessage });
+    expect(second.reply).toBe(PROFANITY_BLOCKED);
+    expect(conversation.status).toBe("blocked");
+    expect(conversation.transcript.map((m) => m.from)).toEqual(["customer", "assistant", "customer", "assistant"]);
   });
 });
