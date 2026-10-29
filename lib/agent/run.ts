@@ -39,15 +39,35 @@ const defaultCreateMessage: CreateMessage = (params) => {
 
 // Modele giden geçmiş: son mesajlar; eski kısım atıldıysa müşteri hakkında bilinenler kısa
 // bir notla başa konur ki asistan adı ve ilgisini yeniden sormasın.
+function knownAbout(conversation: Conversation): string {
+  const lead = conversation.lead;
+  return [lead?.name && `adı ${lead.name}`, lead?.interest && `ilgilendiği hizmet: ${lead.interest}`, lead?.language && `dili ${lead.language}`]
+    .filter(Boolean)
+    .join(", ");
+}
+
 function windowed(conversation: Conversation): Anthropic.Beta.Messages.BetaMessageParam[] {
   const window = historyWindow(conversation.history);
   if (window.length === conversation.history.length) return window;
-  const lead = conversation.lead;
-  const known = [lead?.name && `adı ${lead.name}`, lead?.interest && `ilgilendiği hizmet: ${lead.interest}`, lead?.language && `dili ${lead.language}`]
-    .filter(Boolean)
-    .join(", ");
+  const known = knownAbout(conversation);
   const note = `[Bu konuşmanın daha eski kısmı gösterilmiyor.${known ? ` Müşteri hakkında bilinenler: ${known}.` : ""}]`;
   return [{ role: "user", content: note }, { role: "assistant", content: "Anlaşıldı." }, ...window];
+}
+
+// Personel konuşmayı yeniden açınca (devir veya engel sonrası) modelin geçmişi. Engel
+// kaldırıldığında küfürlü kısım geçmişten atılır: model aksi halde o tutumu sürdürüyor ya da
+// güvenlik reddi veriyor. Panelde görünen transcript olduğu gibi kalır.
+export function reopenHistory(conversation: Conversation): Conversation["history"] {
+  const known = knownAbout(conversation);
+  if (conversation.status === "blocked") {
+    const note = `[İşletme personeli engeli kaldırdı; konuşmaya temiz başla ve müşteriye normal şekilde yardımcı ol.${known ? ` Müşteri hakkında bilinenler: ${known}.` : ""}]`;
+    return [{ role: "user", content: note }, { role: "assistant", content: "Anlaşıldı." }];
+  }
+  return [
+    ...conversation.history,
+    { role: "user", content: "[İşletme personeli asistanı bu konuşmada yeniden açtı; kaldığın yerden normal şekilde devam et.]" },
+    { role: "assistant", content: "Anlaşıldı." },
+  ];
 }
 
 export interface RunResult {

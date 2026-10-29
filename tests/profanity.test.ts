@@ -58,3 +58,19 @@ describe("küfürlü mesaj", () => {
     expect(conversation.transcript.map((m) => m.from)).toEqual(["customer", "assistant", "customer", "assistant"]);
   });
 });
+
+describe("engel kaldırılınca", () => {
+  it("model geçmişi temiz başlar, müşteri bilgisi notla korunur", async () => {
+    const { reopenHistory } = await import("@/lib/agent/run");
+    const store = new InMemoryStore();
+    const conversation = await store.findOrCreateConversation({ businessId: barber.id, channel: "demo", contact: "b" });
+    conversation.history.push({ role: "user", content: "kes sikik" }, { role: "assistant", content: "Bu konuşmaya devam edemiyorum." });
+    conversation.lead = { name: "Murat", interest: "saç + sakal", updatedAt: "" };
+    conversation.status = "blocked";
+    const history = reopenHistory(conversation);
+    expect(JSON.stringify(history)).not.toContain("sikik");
+    expect(JSON.stringify(history)).toContain("Murat");
+    conversation.status = "handoff";
+    expect(reopenHistory(conversation)).toHaveLength(4); // devirde geçmiş korunur, not eklenir
+  });
+});

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { reopenHistory } from "@/lib/agent/run";
 import { freeSlots, SINGLE_RESOURCE } from "@/lib/availability";
 import { loadBusiness, phoneNumberIdFor } from "@/lib/business";
 import { validateBusiness } from "@/lib/business-schema";
@@ -32,6 +33,7 @@ export async function resumeAssistant(formData: FormData) {
   const id = z.string().parse(formData.get("conversationId"));
   const store = await getStore();
   await updateConversation(store, id, async (conversation) => {
+    conversation.history = reopenHistory(conversation);
     conversation.status = "bot";
     conversation.handoffReason = undefined;
   });

@@ -62,7 +62,7 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
           language: { type: "string" },
           country: { type: "string" },
           interest: { type: "string", description: "İlgilendiği hizmet" },
-          timeframe: { type: "string", description: "Ne zaman gelmek istediği" },
+          timeframe: { type: "string", description: "Ne zaman gelmek istediği; kesin tarih ve saat olarak yaz (ör. '30 Ekim Cuma 20:00'), 'yarın' gibi göreli ifade kullanma" },
           notes: { type: "string", description: "İşletme için kısa not" },
         },
         required: ["name", "language", "country", "interest", "timeframe", "notes"],
