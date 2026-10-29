@@ -2,6 +2,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
 import { freeSlots, SINGLE_RESOURCE, type Slot } from "../availability";
 import { photoQuotePolicy, priceFor, type Business } from "../business";
+import { containsProfanity } from "../profanity";
 import { formatRange, loadExampleImages, MIN_EXAMPLES, pickExamples, quoteFromExamples, type ParseQuote } from "../photo-quote";
 import type { Conversation, Lead, Store } from "../store";
 
@@ -238,6 +239,12 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
 
     case "book_appointment": {
       const args = bookAppointmentInput.parse(input);
+      if (containsProfanity(args.customer_name)) {
+        return {
+          content: "Bu ad kabul edilmez (uygunsuz). Randevu alınmadı. Müşteriden gerçek adını bir kez daha iste; yine uygunsuz yazarsa block_customer kullan.",
+          isError: true,
+        };
+      }
       const service = business.services.find((s) => s.id === args.service_id);
       if (!service) return { content: "Bilinmeyen hizmet.", isError: true };
       const slot = (await slotsFor(ctx, args.start.slice(0, 10), service.id, args.staff_id)).find(
@@ -287,7 +294,9 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
       const args = saveLeadInput.parse(input);
       const merged: Lead = { ...(conversation.lead ?? { updatedAt: "" }) };
       for (const [key, value] of Object.entries(args) as [keyof typeof args, string][]) {
-        if (value.trim()) merged[key] = value.trim();
+        if (!value.trim()) continue;
+        if (key === "name" && containsProfanity(value)) continue; // uygunsuz ad kaydedilmez
+        merged[key] = value.trim();
       }
       conversation.lead = { ...merged, updatedAt: new Date().toISOString() };
       return { content: "Kaydedildi." };
