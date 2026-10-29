@@ -4,8 +4,12 @@
 denetimi (390/768/1280 px, açık/koyu tema) ve web araştırması (rakipler, veri setleri,
 Anthropic önerileri, Meta/KVKK kuralları). Önem: 🔴 kritik/yüksek · 🟠 orta · 🟡 düşük.
 
-**Hemen düzeltildi:** küfür filtresi "eksik", "klasik", "kesik", "götür", "sayarak", "boks"
-gibi kelimeleri küfür sayıp müşteriyi engelleyebiliyordu (commit 05d190a).
+**Durum (29 Ekim, akşam):** A1–A15, B1–B3, D1–D15, E1–E4 ve C2–C3 uygulandı (commit'ler
+05d190a … 8163717). Kalanlar: C1 (WhatsApp+Instagram aynı müşteri birleştirme), C4 (panelde
+"assistant" modu uyarısı), C5 (çalışan silinince randevular), C6 (sabit işletme listesi),
+C7 (Instagram→WhatsApp opt-in), E5 sınav seti, E6–E12 ürün akışları. Panel dil listesinin bir
+kısmı yapıldı (Aylık özet, Size bırakıldı çünkü…, elle eklendi / WhatsApp'tan alındı, tipik
+süre, tahmini ciro); "Medyayı dahil et", ".ics" gibi teknik ifadeler duruyor.
 
 ---
 
