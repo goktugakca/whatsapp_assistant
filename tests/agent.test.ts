@@ -394,3 +394,29 @@ describe("demo takvimi", () => {
     expect((await executeTool("cancel_appointment", { appointment_id: appointmentId }, ctx)).content).toContain("ok");
   });
 });
+
+describe("düğme etiketleri ve yaklaşan randevu bağlamı", () => {
+  it("bozuk Türkçe karakterli etiket işletmenin yazdığı ada çevrilir", async () => {
+    const { canonicalLabel } = await import("@/lib/agent/tools");
+    const names = ["Saç + sakal", "Saç kesimi", "Mehmet Usta", "Fark etmez"];
+    expect(canonicalLabel('Sa"c + sakal', names)).toBe("Saç + sakal");
+    expect(canonicalLabel("sac kesimi", names)).toBe("Saç kesimi");
+    expect(canonicalLabel("Salı 14:30", names)).toBe("Salı 14:30");
+    expect(canonicalLabel('"Evet"', names)).toBe("Evet");
+  });
+
+  it("müşterinin yaklaşan randevusu her turda modele bağlam olarak gider", async () => {
+    const store = new InMemoryStore();
+    const conversation = await store.findOrCreateConversation({ businessId: barber.id, channel: "whatsapp", contact: "905551112233" });
+    await store.addAppointmentIfFree({
+      businessId: barber.id, source: "assistant", customerName: "Murat", contact: "905551112233", serviceId: "sac-sakal",
+      staffId: "mehmet", start: "2026-10-30T17:00:00.000Z", end: "2026-10-30T17:45:00.000Z",
+    });
+    const { createMessage, calls } = scripted([message([{ type: "text", text: "Merhaba Murat!", citations: null }], "end_turn")]);
+    await runAssistant({ business: barber, conversation, store, text: "merhaba", now, createMessage });
+    const sent = calls[0].messages.at(-1)!.content as string;
+    expect(sent).toContain("[Müşterinin yaklaşan randevusu:");
+    expect(sent).toContain("Mehmet Usta");
+    expect(buildSystemPrompt(barber)).toContain("Randevuyu değiştir");
+  });
+});

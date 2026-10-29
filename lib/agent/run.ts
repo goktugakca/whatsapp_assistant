@@ -7,7 +7,7 @@ import type { ParseQuote } from "../photo-quote";
 import { containsProfanity } from "../profanity";
 import type { Conversation, Store } from "../store";
 import { buildSystemPrompt } from "./prompt";
-import { buildTools, executeTool, type TurnEffects } from "./tools";
+import { buildTools, calendarIdFor, executeTool, type TurnEffects } from "./tools";
 
 type CreateParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
 type BetaMessage = Anthropic.Beta.Messages.BetaMessage;
@@ -70,6 +70,28 @@ export function reopenHistory(conversation: Conversation): Conversation["history
   ];
 }
 
+const whenFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+
+// Müşterinin yaklaşan randevuları her turda bağlam olarak verilir; asistan selamlaşmada
+// bunları hatırlatıp değiştir/iptal/yeni seçeneklerini sunar, araç çağırmadan bilir.
+async function upcomingContext(business: Business, conversation: Conversation, store: Store, now: Date): Promise<string> {
+  try {
+    const range = { from: now.toISOString(), to: new Date(now.getTime() + 60 * 86_400_000).toISOString() };
+    const mine = (await store.listAppointments(calendarIdFor(business.id, conversation.channel), range)).filter(
+      (a) => a.contact === conversation.contact,
+    );
+    if (mine.length === 0) return "";
+    const lines = mine.slice(0, 3).map((a) => {
+      const service = business.services.find((s) => s.id === a.serviceId)?.name ?? a.serviceId;
+      const staff = business.staff.find((s) => s.id === a.staffId)?.name;
+      return `${whenFmt.format(new Date(a.start))} · ${service}${staff ? ` · ${staff}` : ""} (kimlik ${a.id})`;
+    });
+    return `\n[Müşterinin yaklaşan randevusu: ${lines.join("; ")}]`;
+  } catch {
+    return "";
+  }
+}
+
 export interface RunResult {
   reply: string;
   handedOff: boolean;
@@ -95,7 +117,8 @@ export async function runAssistant(params: {
   const now = params.now ?? new Date();
 
   conversation.transcript.push({ from: "customer", text, at: now.toISOString(), mediaId: params.mediaId });
-  const message = `[Şu an: ${describeNow(business, now)}]\n${text || (params.mediaId ? "(Müşteri sadece fotoğraf gönderdi.)" : "")}`;
+  const upcoming = await upcomingContext(business, conversation, store, now);
+  const message = `[Şu an: ${describeNow(business, now)}]${upcoming}\n${text || (params.mediaId ? "(Müşteri sadece fotoğraf gönderdi.)" : "")}`;
   conversation.history.push({
     role: "user",
     content: params.mediaId ? [mediaMarker(params.mediaId), { type: "text", text: message }] : message,

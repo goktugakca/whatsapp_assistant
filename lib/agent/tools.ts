@@ -400,10 +400,11 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
 
     case "show_options": {
       const args = showOptionsInput.parse(input);
+      const canonical = [...business.services.map((s) => s.name), ...business.staff.map((s) => s.name), "Fark etmez"];
       const options = [
         ...new Set(
           args.options
-            .map((o) => o.trim())
+            .map((o) => canonicalLabel(o, canonical))
             .filter(Boolean)
             .map((o) => (o.length > MAX_OPTION_LENGTH ? `${o.slice(0, MAX_OPTION_LENGTH - 1)}…` : o)),
         ),
@@ -466,6 +467,23 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
     default:
       return { content: `Bilinmeyen araç: ${name}`, isError: true };
   }
+}
+
+// Model düğme etiketinde Türkçe harfi bozabiliyor ("Sa\"c + sakal", "Sac + sakal"). Etiket
+// bir hizmet/çalışan adına harf bazında benziyorsa işletmenin yazdığı asıl ad kullanılır;
+// kalan tırnak ve ters bölü işaretleri temizlenir.
+const ASCII: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u", â: "a", î: "i", û: "u" };
+const letterKey = (s: string) =>
+  s
+    .toLocaleLowerCase("tr")
+    .replace(/[çğıöşüâîû]/g, (c) => ASCII[c])
+    .replace(/[^a-z0-9]/g, "");
+export function canonicalLabel(label: string, canonical: string[]): string {
+  const cleaned = label.replace(/["'`\\]/g, "").replace(/\s+/g, " ").trim();
+  if (!cleaned) return "";
+  const key = letterKey(cleaned);
+  const match = canonical.find((c) => letterKey(c) === key);
+  return match ?? cleaned;
 }
 
 // Konuşmadaki son müşteri fotoğrafının kimliği (lib/media.ts işareti).
