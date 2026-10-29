@@ -6,6 +6,7 @@ import { verticals } from "@/lib/verticals";
 import { resolvePanelBusiness } from "@/lib/dal";
 import { PanelHeader } from "./panel-header";
 import { blockConversation, resumeAssistant, sendStaffReply } from "./actions";
+import { ConfirmButton, ScrollToBottom } from "./ui";
 
 export const metadata = { title: "Panel · Sırada" };
 
@@ -231,7 +232,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
         </dl>
       )}
 
-      <div className="max-h-72 space-y-2 overflow-y-auto px-4 py-3">
+      <ScrollToBottom className="max-h-72 space-y-2 overflow-y-auto px-4 py-3">
         {c.transcript.map((m, i) => (
           <div key={i} className={`flex ${m.from === "customer" ? "justify-start" : "justify-end"}`}>
             <p
@@ -255,7 +256,7 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
             </p>
           </div>
         ))}
-      </div>
+      </ScrollToBottom>
 
       <footer className="mt-auto space-y-2 border-t border-border px-4 py-3">
         <form action={sendStaffReply} className="flex gap-2">
@@ -284,9 +285,12 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
           {c.status !== "blocked" && (
             <form action={blockConversation}>
               <input type="hidden" name="conversationId" value={c.id} />
-              <button className="text-red-600 hover:underline" title="Asistan bu kişiye bir daha yanıt vermez">
+              <ConfirmButton
+                message={`${c.contactName ?? c.contact} engellensin mi? Asistan bu kişiye bir daha yanıt vermez; mesajları panelde görünmeye devam eder. Engeli sonra kaldırabilirsiniz.`}
+                className="btn btn-line btn-sm border-red-600 text-red-600"
+              >
                 Engelle
-              </button>
+              </ConfirmButton>
             </form>
           )}
         </div>

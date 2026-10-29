@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { freeSlots, SINGLE_RESOURCE } from "@/lib/availability";
 import { loadBusiness, phoneNumberIdFor } from "@/lib/business";
@@ -239,6 +240,9 @@ export async function cancelAppointmentAction(formData: FormData) {
   const appointmentId = z.string().parse(formData.get("appointmentId"));
   await (await getStore()).cancelAppointment(businessId, appointmentId);
   revalidatePath("/panel", "layout");
+  // Takvim sayfası "iptal edildi" mesajıyla aynı haftaya döner (sadece panel içi adres).
+  const back = String(formData.get("back") ?? "");
+  if (back.startsWith("/panel/")) redirect(back);
 }
 
 // Instagram bağlantısını kaldırır: anahtar silinir, mesajlar artık işlenmez. Geçmiş konuşmalar kalır.

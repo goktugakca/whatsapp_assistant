@@ -11,6 +11,7 @@ import { resolvePanelBusiness } from "@/lib/dal";
 import { PanelHeader } from "../panel-header";
 import { cancelAppointmentAction } from "../actions";
 import { ManualAppointmentForm } from "./manual-appointment-form";
+import { ConfirmButton, ScrollToColumn } from "../ui";
 
 export const metadata = { title: "Takvim · Sırada" };
 
@@ -34,7 +35,7 @@ const dayLabel = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "shor
 
 export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
   await connection();
-  const { isletme, hafta, calisan } = await props.searchParams;
+  const { isletme, hafta, calisan, mesaj } = await props.searchParams;
   const store = await getStore();
   const { session, businessId } = await resolvePanelBusiness(isletme);
   const business = (await loadBusiness(store, businessId)) ?? businesses[0];
@@ -120,7 +121,13 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
         </nav>
       )}
 
-      <section className="mt-4 overflow-x-auto rounded-xl border border-border bg-card">
+      {mesaj === "iptal" && (
+        <p role="status" className="mt-4 rounded-lg border border-border bg-card px-4 py-2 text-sm text-ok">
+          Randevu iptal edildi; saat yeniden boşa çıktı.
+        </p>
+      )}
+      <p className="mt-4 text-xs text-muted sm:hidden">Takvimi sağa-sola kaydırarak diğer günleri görebilirsiniz.</p>
+      <ScrollToColumn index={days.indexOf(today)} columns={7} className="mt-2 overflow-x-auto rounded-xl border border-border bg-card sm:mt-4">
         <div className="grid min-w-[760px]" style={{ gridTemplateColumns: `56px repeat(7, minmax(0, 1fr))` }}>
           <div />
           {days.map((d, i) => (
@@ -192,7 +199,7 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
             </div>
           ))}
         </div>
-      </section>
+      </ScrollToColumn>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <section>
@@ -219,7 +226,13 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
                     <form action={cancelAppointmentAction}>
                       <input type="hidden" name="businessId" value={business.id} />
                       <input type="hidden" name="appointmentId" value={a.id} />
-                      <button className="text-xs text-red-600 hover:underline">İptal et</button>
+                      <input type="hidden" name="back" value={`${weekLink(monday)}&mesaj=iptal`} />
+                      <ConfirmButton
+                        message={`${card.customerName} · ${card.serviceName} randevusu iptal edilsin mi? Müşteriye otomatik bilgi gitmez; gerekiyorsa siz haber verin.`}
+                        className="btn btn-line btn-sm border-red-600 text-red-600"
+                      >
+                        İptal et
+                      </ConfirmButton>
                     </form>
                   </li>
                 );
