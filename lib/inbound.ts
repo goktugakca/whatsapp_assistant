@@ -11,6 +11,7 @@ import {
 } from "./instagram";
 import {
   countMediaMarkers,
+  historyWindow,
   MAX_IMAGES_PER_CONVERSATION,
   MAX_MEDIA_BYTES,
   mediaMarker,
@@ -57,7 +58,7 @@ async function storeImage(
       data,
     });
     if (
-      countMediaMarkers(conversation.history) >= MAX_IMAGES_PER_CONVERSATION
+      countMediaMarkers(historyWindow(conversation.history)) >= MAX_IMAGES_PER_CONVERSATION
     ) {
       const note = "[Müşteri bir fotoğraf daha gönderdi; panelde görülebilir.]";
       return {

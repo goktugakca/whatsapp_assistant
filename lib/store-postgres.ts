@@ -184,18 +184,24 @@ export class PostgresStore implements Store {
     );
   }
 
-  async listConversations(businessId: string) {
+  async listConversations(businessId: string, opts?: { since?: string; limit?: number }) {
+    // history (araç çağrıları, görsel işaretleri) listede gerekmez ve en büyük sütundur.
     const rows = await this.db.query<Row>(
-      "select * from conversations where business_id = $1 order by updated_at desc limit 200",
-      [businessId],
+      `select id, business_id, channel, contact, contact_name, status, handoff_reason, lead,
+              '[]'::jsonb as history, transcript, created_at, updated_at
+       from conversations where business_id = $1 and ($2::timestamptz is null or updated_at >= $2)
+       order by updated_at desc limit $3`,
+      [businessId, opts?.since ?? null, opts?.limit ?? 200],
     );
     return rows.map(toConversation);
   }
 
-  async listAppointments(businessId: string) {
+  async listAppointments(businessId: string, range?: { from: string; to: string }) {
     const rows = await this.db.query<Row>(
-      "select * from appointments where business_id = $1 and cancelled_at is null order by start_at",
-      [businessId],
+      `select * from appointments where business_id = $1 and cancelled_at is null
+         and ($2::timestamptz is null or (end_at > $2 and start_at < $3))
+       order by start_at`,
+      [businessId, range?.from ?? null, range?.to ?? null],
     );
     return rows.map(toAppointment);
   }

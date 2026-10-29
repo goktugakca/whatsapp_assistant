@@ -100,7 +100,8 @@ describe("fotoğrafla gelen mesaj", () => {
     expect(sent[0]).toEqual({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: JPEG.toString("base64") } });
     expect(sent[1]).toMatchObject({ type: "text", text: expect.stringContaining("bu boya kaç para?") });
 
-    const [conversation] = await store.listConversations(hairSalon.id);
+    const [listed] = await store.listConversations(hairSalon.id);
+    const conversation = (await store.getConversation(listed.id))!;
     expect(JSON.stringify(conversation.history)).not.toContain(JPEG.toString("base64"));
     const mediaId = conversation.transcript[0].mediaId!;
     expect((await store.getMedia(mediaId))?.businessId).toBe(hairSalon.id);
@@ -169,5 +170,23 @@ describe("fotoğrafla fiyat ayarı", () => {
   it("ayar doğrulamasından geçer, geçersiz değeri reddeder", () => {
     expect(validateBusiness({ ...barber, photoQuotes: "assistant" })).toMatchObject({ ok: true });
     expect(validateBusiness({ ...barber, photoQuotes: "robot" }).ok).toBe(false);
+  });
+});
+
+describe("geçmiş penceresi", () => {
+  it("pencere müşteri turunda başlar, araç sonucu ile başlamaz; saklanan geçmiş sınırlanır", async () => {
+    const { historyWindow, trimStoredHistory, MAX_HISTORY_MESSAGES } = await import("@/lib/media");
+    const history: Anthropic.Beta.Messages.BetaMessageParam[] = [];
+    for (let i = 0; i < 100; i++) {
+      history.push({ role: "user", content: `mesaj ${i}` });
+      history.push({ role: "assistant", content: [{ type: "tool_use", id: `t${i}`, name: "save_lead", input: {} }] });
+      history.push({ role: "user", content: [{ type: "tool_result", tool_use_id: `t${i}`, content: "ok" }] });
+      history.push({ role: "assistant", content: `cevap ${i}` });
+    }
+    const window = historyWindow(history);
+    expect(window.length).toBeLessThanOrEqual(MAX_HISTORY_MESSAGES);
+    expect(window[0]).toEqual({ role: "user", content: expect.stringMatching(/^mesaj/) });
+    expect(trimStoredHistory(history).length).toBeLessThan(history.length);
+    expect(trimStoredHistory(history.slice(0, 100))).toHaveLength(100);
   });
 });

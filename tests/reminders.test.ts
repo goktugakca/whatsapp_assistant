@@ -83,7 +83,8 @@ describe("yarınki randevu hatırlatmaları", () => {
     const store = new InMemoryStore();
     await store.addAppointmentIfFree(appt({}));
     await sendTomorrowReminders({ store, now, send: vi.fn(async () => {}) });
-    const [conversation] = await store.listConversations(barber.id);
+    const [listed] = await store.listConversations(barber.id);
+    const conversation = (await store.getConversation(listed.id))!;
     expect(conversation.contact).toBe("905551112233");
     expect(conversation.transcript[0].text).toContain("Hatırlatma gönderildi");
     expect(JSON.stringify(conversation.history)).toContain("[Otomatik hatırlatma]");

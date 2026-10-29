@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { runAssistant } from "@/lib/agent/run";
 import { loadBusiness } from "@/lib/business";
-import { countMediaMarkers, MAX_IMAGES_PER_CONVERSATION, mediaMarker } from "@/lib/media";
+import { countMediaMarkers, historyWindow, MAX_IMAGES_PER_CONVERSATION, mediaMarker } from "@/lib/media";
 import { getStore } from "@/lib/store";
 
 // WhatsApp kurulumu olmadan asistanı tarayıcıdan denemek için.
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const result = await store.withConversationLock(key, async () => {
     const conversation = await store.findOrCreateConversation({ ...key, contactName: "Demo kullanıcısı" });
     const mediaId =
-      image && countMediaMarkers(conversation.history) < MAX_IMAGES_PER_CONVERSATION
+      image && countMediaMarkers(historyWindow(conversation.history)) < MAX_IMAGES_PER_CONVERSATION
         ? (
             await store.saveMedia({
               businessId: business.id,

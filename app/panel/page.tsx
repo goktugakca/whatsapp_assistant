@@ -27,11 +27,16 @@ export default async function PanelPage(props: PageProps<"/panel">) {
   await connection(); // Her istekte güncel veri
   const { isletme, kanal } = await props.searchParams;
   const store = await getStore();
+  const nowMs = new Date().getTime();
   const { session, businessId } = await resolvePanelBusiness(isletme);
   const business = (await loadBusiness(store, businessId)) ?? businesses[0];
   const [conversations, appointments, waitlist] = await Promise.all([
     store.listConversations(business.id),
-    store.listAppointments(business.id),
+    // Yaklaşan randevular (bugünden itibaren); geçmiş takvim sayfasında.
+    store.listAppointments(business.id, {
+      from: new Date(nowMs - 86_400_000).toISOString(),
+      to: new Date(nowMs + 365 * 86_400_000).toISOString(),
+    }),
     session.isAdmin ? store.listWaitlist() : Promise.resolve([]),
   ]);
   const handoffs = conversations.filter((c) => c.status === "handoff");

@@ -126,9 +126,12 @@ export interface Store {
   findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation>;
   getConversation(id: string): Promise<Conversation | undefined>;
   saveConversation(conversation: Conversation): Promise<void>;
-  listConversations(businessId: string): Promise<Conversation[]>;
-  // İptal edilmemiş randevular, başlangıca göre sıralı.
-  listAppointments(businessId: string): Promise<Appointment[]>;
+  // Panel listesi: geçmiş (history) yüklenmez (boş dizi döner); tam kayıt için getConversation.
+  // since: sadece bu andan sonra güncellenenler (rapor için); limit varsayılan 200.
+  listConversations(businessId: string, opts?: { since?: string; limit?: number }): Promise<Conversation[]>;
+  // İptal edilmemiş randevular, başlangıca göre sıralı. range: [from, to) ile kesişenler;
+  // verilmezse hepsi (küçük işletme dışında range verin).
+  listAppointments(businessId: string, range?: { from: string; to: string }): Promise<Appointment[]>;
   getAppointment(id: string): Promise<Appointment | undefined>;
   // [from, to) aralığında oluşturulan randevular, iptal edilenler dahil (pilot raporu için).
   listAppointmentsCreatedBetween(businessId: string, from: string, to: string): Promise<Appointment[]>;
@@ -233,16 +236,22 @@ export class InMemoryStore implements Store {
     this.conversations.set(conversation.id, structuredClone(conversation));
   }
 
-  async listConversations(businessId: string) {
+  async listConversations(businessId: string, opts?: { since?: string; limit?: number }) {
     return [...this.conversations.values()]
-      .filter((c) => c.businessId === businessId)
+      .filter((c) => c.businessId === businessId && (!opts?.since || c.updatedAt >= opts.since))
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-      .map((c) => structuredClone(c));
+      .slice(0, opts?.limit ?? 200)
+      .map((c) => ({ ...structuredClone(c), history: [] }));
   }
 
-  async listAppointments(businessId: string) {
+  async listAppointments(businessId: string, range?: { from: string; to: string }) {
     return this.appointments
-      .filter((a) => a.businessId === businessId && !a.cancelledAt)
+      .filter(
+        (a) =>
+          a.businessId === businessId &&
+          !a.cancelledAt &&
+          (!range || (Date.parse(a.end) > Date.parse(range.from) && Date.parse(a.start) < Date.parse(range.to))),
+      )
       .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
   }
 

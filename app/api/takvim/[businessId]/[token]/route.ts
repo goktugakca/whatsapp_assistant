@@ -15,8 +15,12 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/takvim/[bus
   if (!business) return new Response("Bulunamadı", { status: 404 });
 
   const since = Date.now() - 30 * 24 * 60 * 60_000; // son 30 gün ve sonrası
-  const events = (await store.listAppointments(business.id))
-    .filter((a) => Date.parse(a.end) >= since)
+  const events = (
+    await store.listAppointments(business.id, {
+      from: new Date(since).toISOString(),
+      to: new Date(Date.now() + 365 * 86_400_000).toISOString(),
+    })
+  )
     .map((a) => {
       const card = toCard(business, a);
       const event = cardToEvent(card);

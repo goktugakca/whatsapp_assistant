@@ -47,7 +47,11 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
   // randevu düşünce ızgara karışır; 3'ten fazla çalışan varsa varsayılan ilk çalışandır.
   const selectedStaff = business.staff.find((s) => s.id === calisan);
   const staffView = selectedStaff ?? (calisan === "hepsi" || business.staff.length <= 3 ? undefined : business.staff[0]);
-  const weekAppointments = (await store.listAppointments(business.id)).filter((a) =>
+  const weekRange = {
+    from: `${addDays(monday, -1)}T00:00:00${offset}`,
+    to: `${addDays(monday, 8)}T00:00:00${offset}`,
+  };
+  const weekAppointments = (await store.listAppointments(business.id, weekRange)).filter((a) =>
     days.includes(localDate(a.start, offset)),
   );
   const appointments = staffView ? weekAppointments.filter((a) => a.staffId === staffView.id) : weekAppointments;

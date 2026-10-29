@@ -192,7 +192,12 @@ export async function addManualAppointment(
     date: input.date,
     serviceId: service.id,
     staffId: staffFilter,
-    busy: (await store.listAppointments(business.id)).map((a) => ({ start: a.start, end: a.end, staffId: a.staffId })),
+    busy: (
+      await store.listAppointments(business.id, {
+        from: `${input.date}T00:00:00${business.utcOffset}`,
+        to: `${input.date}T23:59:59${business.utcOffset}`,
+      })
+    ).map((a) => ({ start: a.start, end: a.end, staffId: a.staffId })),
   });
   const slot = slots.find((s) => s.start === start);
   if (!slot) {

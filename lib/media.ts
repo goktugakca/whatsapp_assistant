@@ -23,6 +23,31 @@ export function mediaMarker(id: string): ContentBlock {
   return { type: "text", text: `[[foto:${id}]]` };
 }
 
+// Modele gönderilen geçmiş penceresi: en fazla MAX_HISTORY_MESSAGES mesaj; kesim her zaman
+// müşterinin gerçek bir mesajında (araç sonucu değil) başlar ki tool_use/tool_result çifti
+// bölünmesin. Saklanan geçmiş ayrıca trimStoredHistory ile sınırlanır.
+export const MAX_HISTORY_MESSAGES = 60;
+const STORED_HISTORY_LIMIT = 240;
+
+function isCustomerTurn(m: MessageParam): boolean {
+  if (m.role !== "user") return false;
+  if (typeof m.content === "string") return true;
+  return !m.content.some((b) => b.type === "tool_result");
+}
+
+export function historyWindow(history: MessageParam[], max = MAX_HISTORY_MESSAGES): MessageParam[] {
+  if (history.length <= max) return history;
+  let start = history.length - max;
+  while (start < history.length && !isCustomerTurn(history[start])) start++;
+  return history.slice(start);
+}
+
+// Saklanan geçmiş sınırsız büyümesin: sınır aşılınca eski kısım müşteri turu sınırından atılır.
+// Nadiren olduğu için istem önbelleğini pratikte bozmaz.
+export function trimStoredHistory(history: MessageParam[]): MessageParam[] {
+  return history.length > STORED_HISTORY_LIMIT ? historyWindow(history, MAX_HISTORY_MESSAGES * 2) : history;
+}
+
 export function countMediaMarkers(history: MessageParam[]): number {
   let n = 0;
   for (const m of history) {

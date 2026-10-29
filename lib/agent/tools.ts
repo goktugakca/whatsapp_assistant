@@ -419,7 +419,12 @@ function lastPhotoId(conversation: Conversation): string | undefined {
 }
 
 async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staffId: string): Promise<Slot[]> {
-  const appointments = await ctx.store.listAppointments(calendarIdFor(ctx.business.id, ctx.conversation.channel));
+  // Sadece o günün randevuları (gece yarısı taşmaları için bir gün pay).
+  const dayStart = new Date(`${date}T00:00:00${ctx.business.utcOffset}`).getTime();
+  const appointments = await ctx.store.listAppointments(calendarIdFor(ctx.business.id, ctx.conversation.channel), {
+    from: new Date(dayStart - 86_400_000).toISOString(),
+    to: new Date(dayStart + 2 * 86_400_000).toISOString(),
+  });
   return freeSlots({
     business: ctx.business,
     date,
@@ -432,7 +437,8 @@ async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staff
 
 async function customerAppointments(ctx: ToolContext) {
   const now = (ctx.now ?? new Date()).getTime();
-  return (await ctx.store.listAppointments(calendarIdFor(ctx.business.id, ctx.conversation.channel))).filter(
+  const range = { from: new Date(now).toISOString(), to: new Date(now + 365 * 86_400_000).toISOString() };
+  return (await ctx.store.listAppointments(calendarIdFor(ctx.business.id, ctx.conversation.channel), range)).filter(
     (a) => a.contact === ctx.conversation.contact && Date.parse(a.end) > now,
   );
 }

@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { describeNow } from "../availability";
 import type { Business } from "../business";
 import { toCard, type AppointmentCard } from "../calendar";
-import { hydrateMedia, mediaMarker } from "../media";
+import { historyWindow, hydrateMedia, mediaMarker, trimStoredHistory } from "../media";
 import type { ParseQuote } from "../photo-quote";
 import { containsProfanity } from "../profanity";
 import type { Conversation, Store } from "../store";
@@ -37,6 +37,19 @@ const defaultCreateMessage: CreateMessage = (params) => {
   return client.beta.messages.create(params);
 };
 
+// Modele giden geçmiş: son mesajlar; eski kısım atıldıysa müşteri hakkında bilinenler kısa
+// bir notla başa konur ki asistan adı ve ilgisini yeniden sormasın.
+function windowed(conversation: Conversation): Anthropic.Beta.Messages.BetaMessageParam[] {
+  const window = historyWindow(conversation.history);
+  if (window.length === conversation.history.length) return window;
+  const lead = conversation.lead;
+  const known = [lead?.name && `adı ${lead.name}`, lead?.interest && `ilgilendiği hizmet: ${lead.interest}`, lead?.language && `dili ${lead.language}`]
+    .filter(Boolean)
+    .join(", ");
+  const note = `[Bu konuşmanın daha eski kısmı gösterilmiyor.${known ? ` Müşteri hakkında bilinenler: ${known}.` : ""}]`;
+  return [{ role: "user", content: note }, { role: "assistant", content: "Anlaşıldı." }, ...window];
+}
+
 export interface RunResult {
   reply: string;
   handedOff: boolean;
@@ -68,6 +81,7 @@ export async function runAssistant(params: {
     content: params.mediaId ? [mediaMarker(params.mediaId), { type: "text", text: message }] : message,
   });
   const mediaCache = new Map();
+  conversation.history = trimStoredHistory(conversation.history);
 
   // Küfür/hakaret içeren mesajda model çağrılmaz: ilkinde tek cümlelik uyarı, tekrarında engel.
   if (containsProfanity(text)) {
@@ -105,7 +119,7 @@ export async function runAssistant(params: {
         cache_control: { type: "ephemeral" },
         system,
         tools,
-        messages: await hydrateMedia(conversation.history, store, mediaCache),
+        messages: await hydrateMedia(windowed(conversation), store, mediaCache),
       });
 
       roundTimes.push(Date.now() - roundStart);
