@@ -12,6 +12,7 @@ export function ManualAppointmentForm(props: {
   services: { id: string; name: string; durationMinutes: number }[];
   staff: { id: string; name: string }[];
   defaultDate: string;
+  defaultStaffId?: string; // Takvimde seçili çalışan
 }) {
   const [state, action, pending] = useActionState<ManualAppointmentState, FormData>(addManualAppointment, null);
   const v = state?.values ?? {};
@@ -39,7 +40,7 @@ export function ManualAppointmentForm(props: {
       {props.staff.length > 0 ? (
         <label className="grid gap-1 text-sm">
           <span className="text-xs text-muted">Çalışan</span>
-          <select name="staffId" className={input} defaultValue={v.staffId ?? "any"}>
+          <select name="staffId" className={input} defaultValue={v.staffId ?? props.defaultStaffId ?? "any"}>
             <option value="any">Fark etmez</option>
             {props.staff.map((s) => (
               <option key={s.id} value={s.id}>

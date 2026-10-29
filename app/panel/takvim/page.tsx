@@ -16,6 +16,8 @@ export const metadata = { title: "Takvim · Sırada" };
 
 const DAY_NAMES = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 const HOUR_HEIGHT = 64; // px
+// Kapalı saatler: çizgili sayfada kurşun kalemle taranmış gibi hafif gri.
+const CLOSED_BG = "repeating-linear-gradient(135deg, color-mix(in srgb, var(--border) 45%, transparent) 0 2px, transparent 2px 8px)";
 // Çalışan renkleri (açık ve koyu temada okunur).
 const STAFF_COLORS = [
   "bg-[#2346b8]/12 border-[#2346b8] text-[#1a3388] dark:text-[#c9d7ff]", // tükenmez mavisi
@@ -32,7 +34,7 @@ const dayLabel = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "shor
 
 export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
   await connection();
-  const { isletme, hafta } = await props.searchParams;
+  const { isletme, hafta, calisan } = await props.searchParams;
   const store = await getStore();
   const { session, businessId } = await resolvePanelBusiness(isletme);
   const business = (await loadBusiness(store, businessId)) ?? businesses[0];
@@ -41,9 +43,14 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
   const today = localDate(new Date(), offset);
   const monday = mondayOf(isDate(hafta) ? hafta : today);
   const days = weekDays(monday);
-  const appointments = (await store.listAppointments(business.id)).filter((a) =>
+  // Çalışan sekmeleri: "Hepsi" veya tek çalışan. Çok çalışanlı işletmede aynı saate birkaç
+  // randevu düşünce ızgara karışır; 3'ten fazla çalışan varsa varsayılan ilk çalışandır.
+  const selectedStaff = business.staff.find((s) => s.id === calisan);
+  const staffView = selectedStaff ?? (calisan === "hepsi" || business.staff.length <= 3 ? undefined : business.staff[0]);
+  const weekAppointments = (await store.listAppointments(business.id)).filter((a) =>
     days.includes(localDate(a.start, offset)),
   );
+  const appointments = staffView ? weekAppointments.filter((a) => a.staffId === staffView.id) : weekAppointments;
 
   // Izgara, haftanın en erken açılışından en geç kapanışına kadar (çalışan saatleri dahil).
   const allHours = [...business.workingHours, ...business.staff.flatMap((s) => s.workingHours ?? [])];
@@ -53,12 +60,18 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
 
   const colorOf = (staffId?: string) =>
     STAFF_COLORS[Math.max(0, business.staff.findIndex((p) => p.id === staffId)) % STAFF_COLORS.length];
-  const isOpen = (date: string) => business.workingHours.some((h) => h.day === new Date(`${date}T00:00:00Z`).getUTCDay());
+  // Seçili çalışanın (yoksa işletmenin) o gün çalıştığı aralık; ızgarada gri alan dışı.
+  const hoursFor = staffView?.workingHours ?? business.workingHours;
+  const openRange = (date: string) => hoursFor.find((h) => h.day === new Date(`${date}T00:00:00Z`).getUTCDay());
+  const isOpen = (date: string) => !!openRange(date);
 
   const host = (await headers()).get("host");
   const base = appUrl() ?? (host ? `https://${host}` : "");
   const feedUrl = `${base}/api/takvim/${business.id}/${feedToken(business.id)}.ics`;
-  const weekLink = (date: string) => `/panel/takvim?isletme=${business.id}&hafta=${date}`;
+  const staffParam = staffView ? `&calisan=${staffView.id}` : business.staff.length > 3 ? "&calisan=hepsi" : "";
+  const weekLink = (date: string) => `/panel/takvim?isletme=${business.id}&hafta=${date}${staffParam}`;
+  const staffLink = (id: string) => `/panel/takvim?isletme=${business.id}&hafta=${monday}&calisan=${id}`;
+  const countFor = (id?: string) => weekAppointments.filter((a) => (id ? a.staffId === id : true)).length;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
@@ -85,13 +98,22 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
       </header>
 
       {business.staff.length > 0 && (
-        <ul className="mt-4 flex flex-wrap gap-2 text-xs" aria-label="Çalışan renkleri">
+        <nav className="mt-4 flex flex-wrap gap-2" aria-label="Çalışan">
+          <Link href={staffLink("hepsi")} className={`tab ${staffView ? "" : "tab-active"}`} aria-current={staffView ? undefined : "page"}>
+            Hepsi <span className="text-muted">({countFor()})</span>
+          </Link>
           {business.staff.map((s) => (
-            <li key={s.id} className={`rounded-sm border px-2.5 py-1 ${colorOf(s.id)}`}>
-              {s.name}
-            </li>
+            <Link
+              key={s.id}
+              href={staffLink(s.id)}
+              className={`tab ${staffView?.id === s.id ? "tab-active" : ""}`}
+              aria-current={staffView?.id === s.id ? "page" : undefined}
+            >
+              <span className={`mr-1.5 inline-block h-2.5 w-2.5 rounded-sm border ${colorOf(s.id)}`} aria-hidden />
+              {s.name} <span className="text-muted">({countFor(s.id)})</span>
+            </Link>
           ))}
-        </ul>
+        </nav>
       )}
 
       <section className="mt-4 overflow-x-auto rounded-xl border border-border bg-card">
@@ -117,12 +139,25 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
           {days.map((d) => (
             <div
               key={d}
-              className={`relative border-l border-border ${isOpen(d) ? "" : "bg-background/60"}`}
-              style={{ height: hours.length * HOUR_HEIGHT }}
+              className="relative border-l border-border"
+              style={{ height: hours.length * HOUR_HEIGHT, background: isOpen(d) ? undefined : CLOSED_BG }}
             >
               {hours.map((h, i) => (
                 <div key={h} className="absolute inset-x-0 border-t border-border/60" style={{ top: i * HOUR_HEIGHT }} />
               ))}
+              {/* Açılıştan önce ve kapanıştan sonra gri: tek çalışan görünümünde onun kendi saatleri. */}
+              {(() => {
+                const r = openRange(d);
+                if (!r) return null;
+                const top = ((toMin(r.open) - gridStart) / 60) * HOUR_HEIGHT;
+                const bottom = ((gridEnd - toMin(r.close)) / 60) * HOUR_HEIGHT;
+                return (
+                  <>
+                    {top > 0 && <div className="absolute inset-x-0 top-0" style={{ height: top, background: CLOSED_BG }} />}
+                    {bottom > 0 && <div className="absolute inset-x-0 bottom-0" style={{ height: bottom, background: CLOSED_BG }} />}
+                  </>
+                );
+              })()}
               {layoutDay(
                 appointments.filter((a) => localDate(a.start, offset) === d),
                 offset,
@@ -157,9 +192,9 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">
         <section>
-          <h2 className="text-lg font-semibold">Bu haftanın randevuları</h2>
+          <h2 className="text-lg font-semibold">Bu haftanın randevuları{staffView ? ` · ${staffView.name}` : ""}</h2>
           {appointments.length === 0 ? (
-            <p className="mt-2 text-sm text-muted">Bu hafta randevu yok.</p>
+            <p className="mt-2 text-sm text-muted">Bu hafta {staffView ? `${staffView.name} için ` : ""}randevu yok.</p>
           ) : (
             <ul className="mt-3 divide-y divide-border rounded-xl border border-border bg-card text-sm">
               {appointments.map((a) => {
@@ -198,6 +233,8 @@ export default async function CalendarPage(props: PageProps<"/panel/takvim">) {
               services={business.services}
               staff={business.staff}
               defaultDate={today}
+              key={staffView?.id ?? "hepsi"}
+              defaultStaffId={staffView?.id}
             />
           </div>
         </section>
