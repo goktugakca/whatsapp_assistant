@@ -120,6 +120,18 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
         ]
       : []),
     {
+      name: "block_customer",
+      description:
+        "Küfür, hakaret, cinsel içerik, taciz veya ısrarla uygunsuz istek yazan müşteriyi engeller: bundan sonra asistan bu kişiye yanıt vermez, mesajları panelde 'engellendi' olarak görünür. Önce bir kez nazikçe sınır koy; devam ederse kullan. Açıkça uygunsuz ilk mesajda da kullanabilirsin.",
+      strict: true,
+      input_schema: {
+        type: "object",
+        properties: { reason: { type: "string", description: "Engelleme nedeni, işletme için kısa ve nötr" } },
+        required: ["reason"],
+        additionalProperties: false,
+      },
+    },
+    {
       name: "handoff_to_human",
       description:
         "Konuşmayı işletme personeline devreder. Bundan sonra asistan bu müşteriye otomatik yanıt vermez.",
@@ -356,6 +368,13 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
           reminder: "Bunu ön fiyat olarak söyle; kesin fiyat salonda belirlenir.",
         }),
       };
+    }
+
+    case "block_customer": {
+      const args = handoffInput.parse(input);
+      conversation.status = "blocked";
+      conversation.handoffReason = args.reason;
+      return { content: "Müşteri engellendi. Tek kısa ve nötr bir cümleyle bu konuda yardımcı olamayacağını söyle; tartışma, açıklama yapma." };
     }
 
     case "handoff_to_human": {

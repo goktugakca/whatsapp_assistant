@@ -202,14 +202,16 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
           <span className="stamp stamp-alert">
             Sizi bekliyor
           </span>
+        ) : c.status === "blocked" ? (
+          <span className="stamp text-muted">Engellendi</span>
         ) : (
           <span className="stamp text-muted">Asistan yanıtlıyor</span>
         )}
       </header>
 
-      {c.status === "handoff" && c.handoffReason && (
+      {c.status !== "bot" && c.handoffReason && (
         <p className="border-b border-dashed border-border bg-bubble-out px-4 py-2 text-xs">
-          Devretme nedeni: {c.handoffReason}
+          {c.status === "blocked" ? "Engelleme nedeni" : "Devretme nedeni"}: {c.handoffReason}
         </p>
       )}
 
@@ -263,10 +265,12 @@ function ConversationCard({ conversation: c }: { conversation: Conversation }) {
             Gönder
           </button>
         </form>
-        {c.status === "handoff" && (
+        {c.status !== "bot" && (
           <form action={resumeAssistant}>
             <input type="hidden" name="conversationId" value={c.id} />
-            <button className="text-xs text-muted underline">Asistanı bu konuşmada yeniden aç</button>
+            <button className="text-xs text-muted underline">
+              {c.status === "blocked" ? "Engeli kaldır, asistan yeniden yanıtlasın" : "Asistanı bu konuşmada yeniden aç"}
+            </button>
           </form>
         )}
       </footer>

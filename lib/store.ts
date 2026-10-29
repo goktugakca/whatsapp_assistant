@@ -7,7 +7,8 @@ import { KeyedQueue } from "./keyed-queue";
 // (sunucu yeniden başlayınca silinir; sadece geliştirme ve demo için).
 
 export type Channel = "whatsapp" | "instagram" | "demo";
-export type ConversationStatus = "bot" | "handoff";
+// blocked: küfür, taciz veya uygunsuz istek; asistan artık yanıt vermez, mesajlar panelde görünür.
+export type ConversationStatus = "bot" | "handoff" | "blocked";
 
 export interface Lead {
   name?: string;

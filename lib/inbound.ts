@@ -12,7 +12,7 @@ import {
 import { countMediaMarkers, MAX_IMAGES_PER_CONVERSATION, MAX_MEDIA_BYTES, mediaMarker } from "./media";
 import { downloadMedia, sendReply, type InboundMessage } from "./whatsapp";
 
-type Outcome = "duplicate" | "unknown-business" | "handoff" | "replied";
+type Outcome = "duplicate" | "unknown-business" | "handoff" | "blocked" | "replied";
 type Download = () => Promise<{ data: Buffer; mimeType: string }>;
 
 // Kanaldan bağımsız gelen mesaj: işletme bulunmuş, gönderim ve indirme kanala göre verilmiş.
@@ -66,9 +66,9 @@ async function handleIncoming(message: Incoming, deps: Deps): Promise<Outcome> {
     if (!conversation.contactName && message.resolveName) conversation.contactName = await message.resolveName();
     const { text, mediaId, panelMediaId } = await storeImage(message, conversation, store);
 
-    if (conversation.status === "handoff") {
-      // Personel devraldı: mesajı panelde göster, otomatik yanıt verme. Geçmişe de ekle ki
-      // asistan yeniden açıldığında konuşmanın bu kısmını bilsin.
+    if (conversation.status === "handoff" || conversation.status === "blocked") {
+      // Personel devraldı ya da müşteri engellendi: mesajı panelde göster, otomatik yanıt verme.
+      // Geçmişe de ekle ki asistan yeniden açıldığında konuşmanın bu kısmını bilsin.
       const shown = mediaId ?? panelMediaId;
       conversation.transcript.push({ from: "customer", text, at: new Date().toISOString(), mediaId: shown });
       conversation.history.push({
@@ -76,7 +76,7 @@ async function handleIncoming(message: Incoming, deps: Deps): Promise<Outcome> {
         content: mediaId ? [mediaMarker(mediaId), { type: "text", text: text || "(Fotoğraf)" }] : text || "(Fotoğraf)",
       });
       await store.saveConversation(conversation);
-      return "handoff";
+      return conversation.status;
     }
 
     const customerEntry = conversation.transcript.length; // runAssistant müşterinin mesajını buraya ekler

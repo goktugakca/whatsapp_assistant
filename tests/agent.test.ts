@@ -159,6 +159,36 @@ describe("runAssistant", () => {
   });
 });
 
+describe("block_customer", () => {
+  it("uygunsuz müşteriyi engeller: tek cümle gider, sonraki mesajlara yanıt verilmez", async () => {
+    vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");
+    vi.stubEnv("WHATSAPP_BUSINESS_ID", barber.id);
+    const store = new InMemoryStore();
+    const send = vi.fn(async () => {});
+    const { createMessage, calls } = scripted([
+      message([{ type: "tool_use", id: "t1", name: "block_customer", input: { reason: "Cinsel içerikli ısrar" } }], "tool_use"),
+      message([{ type: "text", text: "Bu konuda yardımcı olamıyorum.", citations: null }], "end_turn"),
+    ]);
+    const inbound = { id: "w1", phoneNumberId: "pn-1", from: "905551112233", text: "(uygunsuz)", timestamp: 0 };
+    expect(await handleInboundMessage(inbound, { store, send, createMessage })).toBe("replied");
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ text: "Bu konuda yardımcı olamıyorum.", options: [] }));
+    const [c] = await store.listConversations(barber.id);
+    expect(c.status).toBe("blocked");
+    expect(c.handoffReason).toBe("Cinsel içerikli ısrar");
+
+    expect(await handleInboundMessage({ ...inbound, id: "w2", text: "tekrar" }, { store, send, createMessage })).toBe("blocked");
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(calls).toHaveLength(2);
+    expect((await store.listConversations(barber.id))[0].transcript.map((m) => m.text)).toContain("tekrar");
+  });
+
+  it("istem küfür ve mahrem bölge isteklerine karşı kuralı içerir, araç tanımlıdır", () => {
+    expect(buildSystemPrompt(barber)).toContain("block_customer");
+    expect(buildSystemPrompt(barber)).toContain("etek tıraşı");
+    expect(buildTools(barber).some((t) => t.name === "block_customer")).toBe(true);
+  });
+});
+
 describe("handleInboundMessage", () => {
   it("numarayı doğru işletmeye bağlar, tekrarı yok sayar, devredilmiş konuşmada sessiz kalır", async () => {
     vi.stubEnv("WHATSAPP_PHONE_NUMBER_ID", "pn-1");
