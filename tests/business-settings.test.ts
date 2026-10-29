@@ -84,7 +84,7 @@ describe("kaydedilen ayarlar asistana ulaşır", () => {
     b.staff = [];
     await store.saveBusinessSettings(b);
     const business = (await loadBusiness(store, b.id))!;
-    const conversation = await store.findOrCreateConversation({ businessId: b.id, channel: "demo", contact: "x" });
+    const conversation = await store.findOrCreateConversation({ businessId: b.id, channel: "whatsapp", contact: "x" });
     const ctx = { business, conversation, store, now: new Date("2026-10-25T09:00:00+03:00") };
 
     const monday = JSON.parse(

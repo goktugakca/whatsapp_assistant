@@ -37,7 +37,10 @@ export default async function ReportPage(props: PageProps<"/panel/rapor">) {
   const from = new Date(to.getTime() - days * 86_400_000);
   const [conversations, appointments] = await Promise.all([
     store.listConversations(business.id),
-    store.listAppointmentsCreatedBetween(business.id, from.toISOString(), to.toISOString()),
+    store.listAppointmentsCreatedBetween(business.id, from.toISOString(), to.toISOString()).then(async (real) =>
+      // Demo sohbetlerinin randevuları ayrı takvimde durur (gerçek takvimi kirletmesin diye).
+      includeDemo ? [...real, ...(await store.listAppointmentsCreatedBetween(`${business.id}#demo`, from.toISOString(), to.toISOString()))] : real,
+    ),
   ]);
   const r = buildPilotReport({
     business,

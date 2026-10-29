@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildSystemPrompt } from "@/lib/agent/prompt";
 import { FALLBACK_REPLY, runAssistant, type CreateMessage } from "@/lib/agent/run";
 import { buildTools, executeTool } from "@/lib/agent/tools";
-import { businesses, type Business } from "@/lib/business";
+import { businesses, loadBusiness, type Business } from "@/lib/business";
 import { barber } from "@/lib/businesses/barber";
 import { dentalClinic } from "@/lib/businesses/dental-clinic";
 import { handleInboundMessage } from "@/lib/inbound";
@@ -32,7 +32,7 @@ async function setup(business: Business) {
   const store = new InMemoryStore();
   const conversation = await store.findOrCreateConversation({
     businessId: business.id,
-    channel: "demo",
+    channel: "whatsapp",
     contact: "test-session",
   });
   return { store, conversation, ctx: { business, conversation, store, now } };
@@ -371,5 +371,26 @@ describe("araç girdisindeki kaçış kodları", () => {
       ctx,
     );
     expect((await store.listAppointments(barber.id))[0].customerName).toBe("Ayşe Işık");
+  });
+});
+
+describe("demo takvimi", () => {
+  it("demo sohbetinin randevusu gerçek takvime düşmez ama randevu kartı açılır", async () => {
+    const store = new InMemoryStore();
+    const conversation = await store.findOrCreateConversation({ businessId: barber.id, channel: "demo", contact: "d1" });
+    const ctx = { business: barber, conversation, store, now };
+    const r = await executeTool(
+      "book_appointment",
+      { customer_name: "Murat", service_id: "sac", staff_id: "mehmet", start: "2026-10-26T18:00:00+03:00" },
+      ctx,
+    );
+    const { appointmentId } = JSON.parse(r.content);
+    expect(await store.listAppointments(barber.id)).toHaveLength(0);
+    expect(await store.listAppointments(`${barber.id}#demo`)).toHaveLength(1);
+    const appointment = await store.getAppointment(appointmentId);
+    expect((await loadBusiness(store, appointment!.businessId))?.id).toBe(barber.id);
+    // Demo müşterisi kendi randevusunu görür ve iptal edebilir.
+    expect(JSON.parse((await executeTool("list_my_appointments", {}, ctx)).content)).toHaveLength(1);
+    expect((await executeTool("cancel_appointment", { appointment_id: appointmentId }, ctx)).content).toContain("ok");
   });
 });

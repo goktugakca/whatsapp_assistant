@@ -40,7 +40,7 @@ describe("çalışana özel fiyat", () => {
 
   it("randevu verilen ustanın fiyatı araç sonucunda ve randevu kartında görünür", async () => {
     const store = new InMemoryStore();
-    const conversation = await store.findOrCreateConversation({ businessId: barber.id, channel: "demo", contact: "x" });
+    const conversation = await store.findOrCreateConversation({ businessId: barber.id, channel: "whatsapp", contact: "x" });
     const ctx = { business: barber, conversation, store, now };
     const booked = await executeTool(
       "book_appointment",

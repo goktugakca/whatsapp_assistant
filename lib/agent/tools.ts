@@ -209,9 +209,16 @@ export function decodeUnicodeEscapes<T>(value: T): T {
   return value;
 }
 
+// Demo sohbetleri (herkese açık /demo sayfası) gerçek takvime yazmaz: randevuları ayrı bir
+// takvim kimliği altında tutulur; panel ve müsaitlik hesabı bunları görmez.
+export function calendarIdFor(businessId: string, channel: Conversation["channel"]): string {
+  return channel === "demo" ? `${businessId}#demo` : businessId;
+}
+
 export async function executeTool(name: string, rawInput: unknown, ctx: ToolContext): Promise<ToolOutcome> {
   const input = decodeUnicodeEscapes(rawInput);
   const { business, conversation, store } = ctx;
+  const calendarId = calendarIdFor(business.id, conversation.channel);
   const staffName = (id: string) => business.staff.find((s) => s.id === id)?.name;
 
   switch (name) {
@@ -262,7 +269,7 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
       let appointment = null;
       for (const staffId of slot.staffIds) {
         appointment = await store.addAppointmentIfFree({
-          businessId: business.id,
+          businessId: calendarId,
           conversationId: conversation.id,
           source: "assistant",
           customerName: args.customer_name,
@@ -324,7 +331,7 @@ export async function executeTool(name: string, rawInput: unknown, ctx: ToolCont
       if (!own) {
         return { content: "Bu müşteriye ait böyle yaklaşan bir randevu yok. list_my_appointments ile kontrol et.", isError: true };
       }
-      await store.cancelAppointment(business.id, own.id);
+      await store.cancelAppointment(calendarId, own.id);
       return { content: JSON.stringify({ ok: true, cancelled: own.id, start: own.start }) };
     }
 
@@ -412,7 +419,7 @@ function lastPhotoId(conversation: Conversation): string | undefined {
 }
 
 async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staffId: string): Promise<Slot[]> {
-  const appointments = await ctx.store.listAppointments(ctx.business.id);
+  const appointments = await ctx.store.listAppointments(calendarIdFor(ctx.business.id, ctx.conversation.channel));
   return freeSlots({
     business: ctx.business,
     date,
@@ -425,7 +432,7 @@ async function slotsFor(ctx: ToolContext, date: string, serviceId: string, staff
 
 async function customerAppointments(ctx: ToolContext) {
   const now = (ctx.now ?? new Date()).getTime();
-  return (await ctx.store.listAppointments(ctx.business.id)).filter(
+  return (await ctx.store.listAppointments(calendarIdFor(ctx.business.id, ctx.conversation.channel))).filter(
     (a) => a.contact === ctx.conversation.contact && Date.parse(a.end) > now,
   );
 }

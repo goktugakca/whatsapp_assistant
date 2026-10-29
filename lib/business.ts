@@ -81,7 +81,9 @@ export function getDefaultBusiness(id: string): Business | undefined {
 
 // İşletmenin güncel hali: panelden kaydedilmiş ayar varsa o, yoksa başlangıç değeri.
 export async function loadBusiness(store: Store, id: string): Promise<Business | undefined> {
-  return (await store.getBusinessSettings(id)) ?? getDefaultBusiness(id);
+  // Demo randevuları "<id>#demo" takvim kimliğiyle kaydedilir (lib/agent/tools.ts); işletme aynı.
+  const businessId = id.split("#")[0];
+  return (await store.getBusinessSettings(businessId)) ?? getDefaultBusiness(businessId);
 }
 
 // Pilotta tek bir WhatsApp numarası, WHATSAPP_BUSINESS_ID ile seçilen işletmeye bağlanır.

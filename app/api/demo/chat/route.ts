@@ -22,6 +22,25 @@ const body = z
   })
   .refine((b) => b.text.trim() || b.image, { message: "Boş mesaj" });
 
+// Basit istek sınırı (süreç belleğinde): IP başına 10 dakikada 30 mesaj, oturum başına toplam 60.
+// Herkese açık demo gerçek model çağrısı harcar; bu sınır kötüye kullanımı pahalı olmaktan çıkarır.
+const WINDOW_MS = 10 * 60_000;
+const PER_IP = 30;
+const PER_SESSION = 60;
+const hits = new Map<string, number[]>();
+const sessionCounts = new Map<string, number>();
+function limited(ip: string, sessionId: string): boolean {
+  const now = Date.now();
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS);
+  recent.push(now);
+  hits.set(ip, recent);
+  const count = (sessionCounts.get(sessionId) ?? 0) + 1;
+  sessionCounts.set(sessionId, count);
+  if (hits.size > 5000) hits.clear();
+  if (sessionCounts.size > 5000) sessionCounts.clear();
+  return recent.length > PER_IP || count > PER_SESSION;
+}
+
 export async function POST(request: Request) {
   if (process.env.DEMO_ENABLED === "false") {
     return Response.json({ error: "Demo kapalı" }, { status: 404 });
@@ -29,6 +48,10 @@ export async function POST(request: Request) {
 
   const parsed = body.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Geçersiz istek" }, { status: 400 });
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "?";
+  if (limited(ip, parsed.data.sessionId)) {
+    return Response.json({ error: "Demo için mesaj sınırına ulaşıldı; biraz sonra tekrar deneyin." }, { status: 429 });
+  }
   const store = await getStore();
   const business = await loadBusiness(store, parsed.data.businessId);
   if (!business) return Response.json({ error: "Bilinmeyen işletme" }, { status: 404 });
@@ -52,7 +75,7 @@ export async function POST(request: Request) {
         : undefined;
     if (image && !mediaId) text = [text, "[Müşteri bir fotoğraf daha gönderdi.]"].filter(Boolean).join("\n");
 
-    if (conversation.status === "handoff") {
+    if (conversation.status === "handoff" || conversation.status === "blocked") {
       conversation.transcript.push({ from: "customer", text, at: new Date().toISOString(), mediaId });
       conversation.history.push({
         role: "user",
