@@ -9,7 +9,8 @@ import { loadBusiness, phoneNumberIdFor } from "@/lib/business";
 import { validateBusiness } from "@/lib/business-schema";
 import { assertBusinessAccess } from "@/lib/dal";
 import { normalizePhone } from "@/lib/phone";
-import { extractServicesFromImages, IMAGE_TYPES, MAX_IMAGES, type ImageType } from "@/lib/price-list-import";
+import { fetchPageText } from "@/lib/fetch-page";
+import { extractServicesFromImages, extractServicesFromText, IMAGE_TYPES, MAX_IMAGES, type ImageType } from "@/lib/price-list-import";
 import type { ExtractedService } from "@/lib/service-merge";
 import { getStore, type Conversation, type Store } from "@/lib/store";
 import { openToken, sendInstagramReply } from "@/lib/instagram";
@@ -102,6 +103,36 @@ export async function saveBusinessSettings(_prev: SettingsState, formData: FormD
   revalidatePath("/panel", "layout");
   revalidatePath("/demo");
   return { ok: true, message: "Kaydedildi. Asistan bir sonraki mesajdan itibaren yeni bilgileri kullanır." };
+}
+
+// Web sayfasından (işletmenin sitesi, fiyat sayfası) hizmet ve fiyatları çeker. Fotoğraf
+// yolunun aynısı: sonuç forma eklenir, sahibi kontrol edip kaydeder.
+export async function importPriceListFromUrl(businessId: string, formData: FormData): Promise<PriceListImportResult> {
+  await assertBusinessAccess(businessId);
+  const business = await loadBusiness(await getStore(), businessId);
+  if (!business) return { ok: false, message: "İşletme bulunamadı." };
+  const url = String(formData.get("url") ?? "").trim();
+  if (!url) return { ok: false, message: "Bir adres yazın." };
+  let page;
+  try {
+    page = await fetchPageText(/^https?:\/\//i.test(url) ? url : `https://${url}`);
+  } catch (error) {
+    return { ok: false, message: `Sayfa alınamadı: ${(error as Error).message}` };
+  }
+  try {
+    const existing = z.array(z.string().max(80)).max(100).catch([]).parse(safeJson(formData.get("existing")));
+    const result = await extractServicesFromText({
+      businessType: business.type,
+      text: page.text,
+      sourceUrl: page.finalUrl,
+      existingServiceNames: existing,
+    });
+    if (result.services.length === 0) return { ok: false, message: result.notes || "Sayfada hizmet ve fiyat bulunamadı." };
+    return { ok: true, services: result.services, notes: result.notes };
+  } catch (error) {
+    console.error("Sayfadan fiyat listesi okunamadı:", error);
+    return { ok: false, message: "Sayfa şu an okunamadı, biraz sonra tekrar deneyin." };
+  }
 }
 
 export type PriceListImportResult =

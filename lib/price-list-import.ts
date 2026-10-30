@@ -41,9 +41,13 @@ const defaultParse: ParseMessage = async (params) => {
   return { parsed_output: response.parsed_output as Extracted | null, stop_reason: response.stop_reason };
 };
 
-function instructions(type: BusinessType, existing: string[]): string {
+function instructions(type: BusinessType, existing: string[], source: "image" | "text" = "image"): string {
   const current = existing.length > 0 ? existing.map((n) => `- ${n}`).join("\n") : "(liste boş)";
-  return `Bu görseller bir ${verticals[type].label.toLocaleLowerCase("tr")} işletmesinin fiyat listesi (tabela, menü, broşür veya ekran görüntüsü). Listedeki her hizmeti çıkar.
+  const intro =
+    source === "image"
+      ? `Bu görseller bir ${verticals[type].label.toLocaleLowerCase("tr")} işletmesinin fiyat listesi (tabela, menü, broşür veya ekran görüntüsü). Listedeki her hizmeti çıkar.`
+      : `Aşağıdaki metin bir ${verticals[type].label.toLocaleLowerCase("tr")} işletmesinin web sayfasından alındı (menü, gezinti ve ilgisiz yazılar da içerebilir). Sadece işletmenin verdiği hizmetleri ve fiyatlarını çıkar; ürün satışı (şampuan vb.), blog yazısı, başka işletmelerin fiyatları alınmaz.`;
+  return `${intro}
 
 Kurallar:
 - Sadece görselde yazan hizmetleri al; yazmayan bir hizmet veya fiyat ekleme. Okunamayan kısımları "notes" alanına yaz.
@@ -95,6 +99,39 @@ export async function extractServicesFromImages(params: {
   });
   if (response.stop_reason === "refusal" || !response.parsed_output) {
     return { services: [], notes: "Fotoğraf okunamadı. Daha net bir fotoğrafla tekrar deneyin." };
+  }
+  return response.parsed_output;
+}
+
+// Web sayfası metninden hizmet listesini çıkarır (lib/fetch-page.ts ile indirilen metin).
+export async function extractServicesFromText(params: {
+  businessType: BusinessType;
+  text: string;
+  sourceUrl: string;
+  existingServiceNames?: string[];
+  parse?: ParseMessage;
+}): Promise<Extracted> {
+  if (params.text.trim().length < 40) {
+    return { services: [], notes: "Sayfada okunabilir metin bulunamadı; sayfa fiyatları görsel olarak gösteriyor olabilir. Fiyat listesinin ekran görüntüsünü fotoğraf olarak yükleyin." };
+  }
+  const parse = params.parse ?? defaultParse;
+  const response = await parse({
+    model: MODEL,
+    max_tokens: 16000,
+    ...(SUPPORTS_FALLBACK && { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const }),
+    output_config: { effort: "medium", format: betaZodOutputFormat(extractedSchema) },
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: `Kaynak: ${params.sourceUrl}\n\n<sayfa>\n${params.text}\n</sayfa>` },
+          { type: "text", text: instructions(params.businessType, params.existingServiceNames ?? [], "text") },
+        ],
+      },
+    ],
+  });
+  if (response.stop_reason === "refusal" || !response.parsed_output) {
+    return { services: [], notes: "Sayfa okunamadı." };
   }
   return response.parsed_output;
 }

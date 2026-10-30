@@ -133,9 +133,9 @@ için bölme desteklenir; hatırlatma şablonu yalnızca WhatsApp'ta vardır.
 - **Sadece metin.** Sesli mesaj ve görseller şimdilik okunmuyor; asistana kısa bir not olarak iletiliyor. Kuaför ve berber müşterileri sık sesli mesaj attığı için bu, yol haritasında öne alınmalı.
 - Model: varsayılan `claude-haiku-5-5` (hızlı ve ucuz), `low` efor. `ANTHROPIC_MODEL` ile değiştirilebilir (ör. `claude-sonnet-5-5`); Opus, Sonnet ve Fable modellerinde reddedilen isteklerde sunucu tarafı yedek model (`fallbacks: "default"`) otomatik açılır. Vercel loglarında her yanıtın süresi `asistan: ...ms` satırında görünür.
 
-## Fiyat listesini fotoğraftan alma
+## Fiyat listesini fotoğraftan veya web sayfasından alma
 
-Ayarlar → Hizmetler ve fiyatlar bölümünde işletme sahibi tabela, menü veya fiyat listesinin fotoğrafını (en fazla 5) yükler. Fotoğraflar tarayıcıda küçültülür, `ANTHROPIC_IMPORT_MODEL` (varsayılan `claude-opus-5-5`) hizmetleri, fiyatları ve tahmini süreleri çıkarır. Sonuç forma eklenir ve kaydedilmeden önce kontrol edilir:
+Ayarlar → Hizmetler ve fiyatlar bölümünde işletme sahibi tabela, menü veya fiyat listesinin fotoğrafını (en fazla 5) yükler ya da fiyatların yazdığı web sayfasının adresini yapıştırır (`lib/fetch-page.ts`: yalnızca herkese açık http(s) adresler, iç ağ ve yönlendirme denetimi, 2 MB / 15 sn sınırı; sayfa metne çevrilip aynı modele verilir; JavaScript ile çizilen sayfalarda metin bulunamazsa ekran görüntüsü yüklemesi önerilir). Fotoğraflar tarayıcıda küçültülür, `ANTHROPIC_IMPORT_MODEL` (varsayılan `claude-opus-5-5`) hizmetleri, fiyatları ve tahmini süreleri çıkarır. Sonuç forma eklenir ve kaydedilmeden önce kontrol edilir:
 
 - Aynı hizmet (aynı ad ya da sektör sözlüğüne göre farklı adla aynı işlem) yeni kayıt açmaz, mevcut hizmetin fiyatı güncellenir.
 - Süresi listede yazmayan hizmetlerin süresi tahminidir ve sarıyla işaretlenir.
