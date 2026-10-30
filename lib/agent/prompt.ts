@@ -4,7 +4,7 @@ import { verticals } from "../verticals";
 
 // Sistem istemi sadece işletme verisinden üretilir ve konuşma boyunca sabit kalır;
 // böylece önbelleğe (prompt caching) alınır. Değişken bilgi (saat) kullanıcı mesajına eklenir.
-export function buildSystemPrompt(business: Business): string {
+export function buildSystemPrompt(business: Business, style: { customerText: string; staffReply: string }[] = []): string {
   const vertical = verticals[business.type];
   const days = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
   const formatHours = (hours: Business["workingHours"]) =>
@@ -50,7 +50,20 @@ Sektör sözlüğü (müşteriler aynı işlemi farklı adlarla sorar; bu liste 
 ${glossaryText(business.type)}
 
 İşletmeye özel kurallar:
-${rules || "- (yok)"}${noServices}
+${rules || "- (yok)"}${noServices}${
+    style.length > 0
+      ? `
+
+# Salonun kendi yazışmalarından örnekler (üslup için)
+Aşağıdakiler bu işletmenin personelinin müşterilere gerçekte nasıl yazdığını gösterir. Hitap şeklini ("abi", "hocam", "canım", "efendim" vb.), samimiyet düzeyini, cümle uzunluğunu, emoji ve kısaltma kullanımını ve hizmetlere verdikleri adları benimse; müşteri salonla konuşuyormuş gibi hissetsin. Ama:
+- Fiyat, saat ve tarih bilgisi burada gizlendi ([fiyat], [saat], [tarih]); bunları asla buradan çıkarma, yalnızca yukarıdaki hizmet listesinden ve araçlardan söyle.
+- Örneklerdeki kişi adlarını, kaba ifadeleri ve işletmenin kurallarına aykırı vaatleri (indirim, "hemen gelin" gibi) taklit etme.
+- Kendini insan gibi tanıtma kuralı geçerli; üslup benzese de dijital asistansın.
+<ornekler>
+${style.map((e) => `Müşteri: ${e.customerText}\nSalon: ${e.staffReply}`).join("\n---\n")}
+</ornekler>`
+      : ""
+  }
 
 # Nasıl davranmalısın
 - Müşteri hangi dilde yazıyorsa o dilde yanıt ver.

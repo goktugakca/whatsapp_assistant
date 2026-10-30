@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { toExportMessages, type ScreenshotRead } from "@/lib/screenshot-messages";
 import { blobToBase64, shrinkImage } from "@/lib/shrink-image";
-import { extractExamples } from "@/lib/whatsapp-export";
-import { importExamples } from "./actions";
+import { extractExamples, extractStylePairs } from "@/lib/whatsapp-export";
+import { importExamples, importStyleExamples } from "./actions";
 import { readScreenshots } from "./screenshot-actions";
 
 const MAX_EDGE = 1600; // yazı ve küçük fotoğraf okunsun
@@ -63,10 +63,19 @@ export function ImportScreenshots({ businessId }: { businessId: string }) {
     let duplicates = 0;
     let found = 0;
     let priced = 0;
+    let styleAdded = 0;
     for (const [gi, group] of groups.entries()) {
       setBusy(`Örnekler kaydediliyor… sohbet ${gi + 1}/${groups.length}`);
       const { messages, photos } = toExportMessages(group);
       const examples = extractExamples(messages, ["salon"], new Set(photos.keys()));
+      const style = extractStylePairs(messages, ["salon"]);
+      if (style.length > 0) {
+        try {
+          styleAdded += (await importStyleExamples(businessId, style.slice(0, 100))).added;
+        } catch {
+          // Üslup örneği kaydedilemese de fiyat örneklerine devam edilir.
+        }
+      }
       found += examples.length;
       priced += examples.filter((e) => e.price).length;
       const items = examples.map((e) => ({
@@ -95,8 +104,8 @@ export function ImportScreenshots({ businessId }: { businessId: string }) {
       [
         `${files.length} ekran okundu, ${groups.length} sohbet bulundu.`,
         `${found} fotoğraflı fiyat sorusu; ${priced} tanesinde fiyat okunabildi.`,
-        `${added} örnek eklendi.`,
-        duplicates > 0 && `${duplicates} örnek zaten vardı.`,
+        `${added} fiyat örneği, ${styleAdded} üslup örneği eklendi.`,
+        duplicates > 0 && `${duplicates} fiyat örneği zaten vardı.`,
         unreadable > 0 && `${unreadable} ekran okunamadı.`,
       ]
         .filter(Boolean)

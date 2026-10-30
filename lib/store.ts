@@ -103,6 +103,20 @@ export interface PriceExample {
 
 export type NewPriceExample = Omit<PriceExample, "id" | "createdAt" | "included">;
 
+// Üslup örneği: müşterinin yazdığı ve salonun gerçekte verdiği cevap (geçmiş yazışmalardan).
+// Asistan hitap, ton ve jargonu bunlardan öğrenir. Ad, numara, fiyat ve saat gizlenmiş olarak saklanır.
+export interface StyleExample {
+  id: string;
+  businessId: string;
+  customerText: string;
+  staffReply: string;
+  hash: string; // Aynı çift iki kez eklenmez
+  included: boolean;
+  createdAt: string;
+}
+
+export type NewStyleExample = Pick<StyleExample, "customerText" | "staffReply" | "hash">;
+
 // İşletmenin panelden bağladığı Instagram hesabı. Erişim anahtarı şifreli saklanır (lib/instagram.ts).
 export interface InstagramAccount {
   businessId: string;
@@ -182,6 +196,11 @@ export interface Store {
   updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax">>): Promise<boolean>;
   // Örneği ve fotoğraflarını birlikte siler.
   deletePriceExample(businessId: string, id: string): Promise<void>;
+  // Aynı hash'li örnekler eklenmez; eklenen ve atlanan sayısını döndürür.
+  addStyleExamples(businessId: string, items: NewStyleExample[]): Promise<{ added: number; duplicates: number }>;
+  listStyleExamples(businessId: string): Promise<StyleExample[]>;
+  setStyleExampleIncluded(businessId: string, id: string, included: boolean): Promise<void>;
+  deleteStyleExample(businessId: string, id: string): Promise<void>;
   // Hesap başka bir işletmeye bağlıysa oradan alınır (aynı hesap iki işletmeye bağlanamaz).
   saveInstagramAccount(account: InstagramAccount): Promise<void>;
   getInstagramAccount(businessId: string): Promise<InstagramAccount | undefined>;
@@ -212,6 +231,7 @@ export class InMemoryStore implements Store {
   private priceExamples: PriceExample[] = [];
   private instagram: InstagramAccount[] = [];
   private evals: PhotoQuoteEval[] = [];
+  private styles: StyleExample[] = [];
 
   async findOrCreateConversation(input: ConversationKey & { contactName?: string }): Promise<Conversation> {
     for (const c of this.conversations.values()) {
@@ -450,6 +470,32 @@ export class InMemoryStore implements Store {
 
   async deleteInstagramAccount(businessId: string) {
     this.instagram = this.instagram.filter((a) => a.businessId !== businessId);
+  }
+
+  async addStyleExamples(businessId: string, items: NewStyleExample[]) {
+    let added = 0;
+    for (const item of items) {
+      if (this.styles.some((s) => s.businessId === businessId && s.hash === item.hash)) continue;
+      this.styles.push({ id: randomUUID(), businessId, included: true, createdAt: new Date().toISOString(), ...item });
+      added++;
+    }
+    return { added, duplicates: items.length - added };
+  }
+
+  async listStyleExamples(businessId: string) {
+    return this.styles
+      .filter((s) => s.businessId === businessId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((s) => ({ ...s }));
+  }
+
+  async setStyleExampleIncluded(businessId: string, id: string, included: boolean) {
+    const s = this.styles.find((x) => x.businessId === businessId && x.id === id);
+    if (s) s.included = included;
+  }
+
+  async deleteStyleExample(businessId: string, id: string) {
+    this.styles = this.styles.filter((s) => !(s.businessId === businessId && s.id === id));
   }
 
   async savePhotoQuoteEval(businessId: string, result: unknown) {

@@ -5,11 +5,12 @@ import { MIN_EXAMPLES } from "@/lib/photo-quote";
 import { resolvePanelBusiness } from "@/lib/dal";
 import { getStore, type PriceExample } from "@/lib/store";
 import { PanelHeader } from "../panel-header";
-import { deleteExample, setExampleIncluded, setExamplePrice } from "./actions";
+import { deleteExample, deleteStyle, setExampleIncluded, setExamplePrice, setStyleIncluded } from "./actions";
+import { pickStyleExamples } from "@/lib/style-examples";
 import { ImportChats } from "./import-chats";
 import { ImportScreenshots } from "./import-screenshots";
 
-export const metadata = { title: "Fiyat örnekleri · Sırada" };
+export const metadata = { title: "Geçmiş yazışmalar · Sırada" };
 // Ekran görüntüsü okuma (görsel model) birkaç ekran için onlarca saniye sürebilir.
 export const maxDuration = 120;
 
@@ -23,7 +24,8 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
   const store = await getStore();
   const { session, businessId } = await resolvePanelBusiness(isletme);
   const business = (await loadBusiness(store, businessId)) ?? businesses[0];
-  const examples = await store.listPriceExamples(business.id);
+  const [examples, styles] = await Promise.all([store.listPriceExamples(business.id), store.listStyleExamples(business.id)]);
+  const usedStyles = new Set(pickStyleExamples(styles).map((e) => e.staffReply));
 
   const missing = examples.filter((e) => e.included && e.priceMin === undefined);
   const ready = examples.filter((e) => e.included && e.priceMin !== undefined);
@@ -34,7 +36,7 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
       <PanelHeader session={session} basePath="/panel/ornekler" businessId={business.id} />
       <header className="mt-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Fotoğrafla fiyat örnekleri</h1>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">Geçmiş yazışmalar</h1>
           <p className="text-sm text-muted">{business.name}</p>
         </div>
         <div className="flex gap-4 text-sm">
@@ -48,8 +50,9 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
       </header>
 
       <p className="mt-4 max-w-3xl text-sm text-muted">
-        Müşterilerin gönderdiği saç fotoğrafları ve ustanın verdiği fiyatlar. Asistan, fotoğrafla fiyat sorulduğunda
-        bu salonun benzer örneklerine bakarak karar verir. Örnekler sadece bu işletmenin asistanında kullanılır.
+        Eski WhatsApp ve Instagram yazışmalarınızı yükleyin; asistan iki şey öğrenir: <b>nasıl konuştuğunuzu</b> (hitap,
+        ton, hizmetlere verdiğiniz adlar) ve <b>fotoğrafa göre nasıl fiyat verdiğinizi</b>. Ad, numara, fiyat ve saatler
+        gizlenir; örnekler sadece bu işletmenin asistanında kullanılır.
       </p>
       <p className="mt-2 max-w-3xl text-sm">
         {photoQuotePolicy(business) === "examples" ? (
@@ -83,6 +86,49 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
         <Stat label="Hariç tutulan" value={excluded.length} />
       </dl>
 
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">
+          Üslup örnekleri <span className="text-muted">({styles.length})</span>
+        </h2>
+        <p className="text-sm text-muted">
+          Asistan cevap yazarken bunlardan en fazla 25 tanesine bakar (yeşil işaretliler). Tarzınıza uymayanları hariç
+          tutun ya da silin.
+        </p>
+        {styles.length === 0 ? (
+          <p className="mt-3 text-sm text-muted">Henüz yok. Yukarıdan yazışma yükleyince otomatik çıkar.</p>
+        ) : (
+          <details className="mt-3 rounded-xl border border-border bg-card">
+            <summary className="cursor-pointer px-4 py-2.5 text-sm">Listeyi göster</summary>
+            <ul className="divide-y divide-border">
+              {styles.slice(0, 200).map((s) => (
+                <li key={s.id} className={`grid gap-1 px-4 py-2.5 text-sm sm:grid-cols-[1fr_1fr_auto] sm:gap-4 ${s.included ? "" : "opacity-50"}`}>
+                  <p className="whitespace-pre-wrap text-muted">{s.customerText}</p>
+                  <p className="whitespace-pre-wrap">
+                    {usedStyles.has(s.staffReply) && s.included && <span className="mr-1 text-ok" title="Asistan bu örneğe bakıyor">●</span>}
+                    {s.staffReply}
+                  </p>
+                  <div className="flex gap-3 text-xs">
+                    <form action={setStyleIncluded}>
+                      <input type="hidden" name="businessId" value={business.id} />
+                      <input type="hidden" name="id" value={s.id} />
+                      <input type="hidden" name="included" value={s.included ? "false" : "true"} />
+                      <button className="underline">{s.included ? "Hariç tut" : "Dahil et"}</button>
+                    </form>
+                    <form action={deleteStyle}>
+                      <input type="hidden" name="businessId" value={business.id} />
+                      <input type="hidden" name="id" value={s.id} />
+                      <button className="text-danger hover:underline">Sil</button>
+                    </form>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            {styles.length > 200 && <p className="px-4 py-2 text-xs text-muted">İlk 200 gösteriliyor.</p>}
+          </details>
+        )}
+      </section>
+
+      <h2 className="mt-10 text-lg font-semibold">Fotoğrafla fiyat örnekleri</h2>
       {examples.length === 0 ? (
         <p className="mt-6 text-sm text-muted">Henüz örnek yok.</p>
       ) : (

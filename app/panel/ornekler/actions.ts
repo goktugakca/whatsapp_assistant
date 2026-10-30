@@ -94,3 +94,34 @@ export async function deleteExample(formData: FormData) {
   await (await getStore()).deletePriceExample(businessId, z.string().parse(formData.get("id")));
   revalidatePath("/panel/ornekler");
 }
+
+// Üslup örnekleri (müşteri mesajı → personel cevabı). Tarayıcıda çıkarılıp gizlenmiş gelir;
+// sunucu yine de kısaltır ve aynı çifti iki kez eklemez.
+const styleInput = z.array(z.object({ customerText: z.string().max(400), staffReply: z.string().min(2).max(500) })).max(100);
+
+export async function importStyleExamples(businessId: string, items: unknown): Promise<{ added: number; duplicates: number }> {
+  await assertBusinessAccess(businessId);
+  const parsed = styleInput.parse(items);
+  const rows = parsed.map((p) => ({
+    customerText: p.customerText.trim(),
+    staffReply: p.staffReply.trim(),
+    hash: createHash("sha256").update(`${p.customerText.trim()}\u0000${p.staffReply.trim()}`).digest("hex"),
+  }));
+  const result = await (await getStore()).addStyleExamples(businessId, rows);
+  revalidatePath("/panel/ornekler");
+  return result;
+}
+
+export async function setStyleIncluded(formData: FormData) {
+  const businessId = z.string().parse(formData.get("businessId"));
+  await assertBusinessAccess(businessId);
+  await (await getStore()).setStyleExampleIncluded(businessId, z.string().parse(formData.get("id")), formData.get("included") === "true");
+  revalidatePath("/panel/ornekler");
+}
+
+export async function deleteStyle(formData: FormData) {
+  const businessId = z.string().parse(formData.get("businessId"));
+  await assertBusinessAccess(businessId);
+  await (await getStore()).deleteStyleExample(businessId, z.string().parse(formData.get("id")));
+  revalidatePath("/panel/ornekler");
+}

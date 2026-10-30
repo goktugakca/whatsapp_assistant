@@ -152,6 +152,12 @@ yanında yazdığı metin ve salonun fiyatlı cevabı gider. Gönderen adları t
 müşteri adı, telefon ve e-posta silinir. Fiyatı okunamayan örnekler listede işaretlenir, salon
 elle yazar. Aynı fotoğraf ikinci kez eklenmez. Örnekler sadece o işletmenin kaydında durur.
 
+**Üslup örnekleri:** Yüklenen her yazışmadan (dışa aktarma veya ekran görüntüsü) müşteri mesajı → personel
+cevabı çiftleri de çıkarılır (`extractStylePairs`). Ad, numara, fiyat, saat ve tarih gizlenir; küfürlü ve sistem
+satırları alınmaz. Asistanın sistem istemine en fazla 25 örnek (`lib/style-examples.ts`) "üslup için" bölümü
+olarak eklenir: hitap, ton, emoji ve hizmet adları benimsenir, fiyat yine yalnızca güncel listeden söylenir.
+Panelde "Geçmiş yazışmalar → Üslup örnekleri" listesinden hariç tutulup silinebilir.
+
 **Ekran görüntüsünden:** salonun elinde dışa aktarma yerine sohbet ekran görüntüleri varsa aynı sayfadaki
 ikinci kutudan yüklenir. Görsel model (`ANTHROPIC_IMPORT_MODEL`) her ekranı okur (sağ balonlar salon, sol
 balonlar müşteri), müşterinin fotoğrafını ekrandan kırpar (`sharp`), metinlerdeki adları siler; başlıktaki ad

@@ -6,11 +6,12 @@ import { blobToBase64, shrinkImage } from "@/lib/shrink-image";
 import {
   allSenders,
   extractExamples,
+  extractStylePairs,
   guessSalonSenders,
   parseExport,
   type ExportMessage,
 } from "@/lib/whatsapp-export";
-import { importExamples } from "./actions";
+import { importExamples, importStyleExamples } from "./actions";
 
 const IMAGE = /\.(jpe?g|png|webp)$/i;
 const MAX_EDGE = 1280; // saçın uzunluğu ve rengi için yeterli, yüklemeyi küçük tutar
@@ -81,15 +82,30 @@ export function ImportChats({ businessId }: { businessId: string }) {
     : [];
   const total = preview.reduce((n, list) => n + list.length, 0);
   const priced = preview.reduce((n, list) => n + list.filter((e) => e.price).length, 0);
+  const stylePairs = salon.length ? chats.map((c) => extractStylePairs(c.messages, salon)) : [];
+  const styleTotal = stylePairs.reduce((n, list) => n + list.length, 0);
 
   async function upload() {
     let added = 0;
     let duplicates = 0;
     let failedPhotos = 0;
+    let styleAdded = 0;
+    // Önce üslup örnekleri (hafif, fotoğrafsız); sonra fotoğraflı fiyat örnekleri.
+    const allStyle = stylePairs.flat();
+    for (let k = 0; k < allStyle.length; k += 100) {
+      setBusy(`Üslup örnekleri kaydediliyor… ${Math.min(k + 100, allStyle.length)}/${allStyle.length}`);
+      try {
+        styleAdded += (await importStyleExamples(businessId, allStyle.slice(k, k + 100))).added;
+      } catch {
+        setBusy(null);
+        setResult(`Yükleme yarıda kesildi (${styleAdded} üslup örneği eklendi). Aynı dosyaları tekrar seçebilirsiniz.`);
+        return;
+      }
+    }
     for (const [i, chat] of chats.entries()) {
       setBusy(`Yükleniyor… ${i + 1}/${chats.length} sohbet · ${added} örnek eklendi`);
       const examples = preview[i];
-      if (examples.length === 0) continue;
+      if (!examples || examples.length === 0) continue;
       const needed = new Set(examples.flatMap((e) => e.photos));
       const images = /\.zip$/i.test(chat.file.name)
         ? unzip(new Uint8Array(await chat.file.arrayBuffer()), (n) => needed.has(n))
@@ -133,8 +149,8 @@ export function ImportChats({ businessId }: { businessId: string }) {
     setChats([]);
     setResult(
       [
-        `${added} örnek eklendi.`,
-        duplicates > 0 && `${duplicates} örnek zaten vardı.`,
+        `${added} fotoğraflı fiyat örneği, ${styleAdded} üslup örneği eklendi.`,
+        duplicates > 0 && `${duplicates} fiyat örneği zaten vardı.`,
         failedPhotos > 0 && `${failedPhotos} fotoğraf açılamadı (HEIC olabilir).`,
       ]
         .filter(Boolean)
@@ -195,10 +211,11 @@ export function ImportChats({ businessId }: { businessId: string }) {
             <>
               <p>
                 <b>{total}</b> fotoğraflı fiyat sorusu bulundu; <b>{priced}</b> tanesinde salonun verdiği fiyat
-                okunabildi. Diğerlerinin fiyatını yükledikten sonra listeden yazabilirsiniz.
+                okunabildi. Ayrıca salonun cevaplarından <b>{styleTotal}</b> üslup örneği çıktı (asistan hitap ve
+                jargonu bunlardan öğrenir; fiyat ve saatler gizlenir).
               </p>
-              <button type="button" className="btn" disabled={total === 0} onClick={() => void upload()}>
-                {total} örneği içe aktar
+              <button type="button" className="btn" disabled={total === 0 && styleTotal === 0} onClick={() => void upload()}>
+                İçe aktar
               </button>
             </>
           ) : (

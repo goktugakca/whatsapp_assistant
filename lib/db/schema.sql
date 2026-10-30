@@ -148,3 +148,16 @@ create table if not exists photo_quote_evals (
   created_at timestamptz not null default now()
 );
 create index if not exists photo_quote_evals_business_idx on photo_quote_evals (business_id, created_at desc);
+
+-- Üslup örnekleri: salonun geçmiş yazışmalarından müşteri mesajı → personel cevabı.
+-- Asistan ton ve jargonu bunlardan öğrenir; ad, numara, fiyat ve saat gizlenmiş saklanır.
+create table if not exists style_examples (
+  id uuid primary key,
+  business_id text not null,
+  customer_text text not null,
+  staff_reply text not null,
+  hash text not null,
+  included boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (business_id, hash)
+);

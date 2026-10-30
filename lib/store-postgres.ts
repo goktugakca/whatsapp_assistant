@@ -4,6 +4,8 @@ import { Pool } from "pg";
 import type {
   InstagramAccount,
   PhotoQuoteEval,
+  NewStyleExample,
+  StyleExample,
   Appointment,
   Media,
   NewAppointment,
@@ -509,6 +511,41 @@ export class PostgresStore implements Store {
     await this.db.query("delete from instagram_accounts where business_id = $1", [businessId]);
   }
 
+  async addStyleExamples(businessId: string, items: NewStyleExample[]) {
+    if (items.length === 0) return { added: 0, duplicates: 0 };
+    const rows = await this.db.query<Row>(
+      `insert into style_examples (id, business_id, customer_text, staff_reply, hash)
+       select * from unnest($1::uuid[], $2::text[], $3::text[], $4::text[], $5::text[])
+       on conflict (business_id, hash) do nothing returning id`,
+      [
+        items.map(() => randomUUID()),
+        items.map(() => businessId),
+        items.map((i) => i.customerText),
+        items.map((i) => i.staffReply),
+        items.map((i) => i.hash),
+      ],
+    );
+    return { added: rows.length, duplicates: items.length - rows.length };
+  }
+
+  async listStyleExamples(businessId: string) {
+    const rows = await this.db.query<Row>(
+      "select * from style_examples where business_id = $1 order by created_at desc limit 2000",
+      [businessId],
+    );
+    return rows.map(toStyleExample);
+  }
+
+  async setStyleExampleIncluded(businessId: string, id: string, included: boolean) {
+    if (!UUID_RE.test(id)) return;
+    await this.db.query("update style_examples set included = $3 where business_id = $1 and id = $2", [businessId, id, included]);
+  }
+
+  async deleteStyleExample(businessId: string, id: string) {
+    if (!UUID_RE.test(id)) return;
+    await this.db.query("delete from style_examples where business_id = $1 and id = $2", [businessId, id]);
+  }
+
   async savePhotoQuoteEval(businessId: string, result: unknown) {
     const [row] = await this.db.query<Row>(
       "insert into photo_quote_evals (id, business_id, result) values ($1, $2, $3) returning *",
@@ -524,6 +561,18 @@ export class PostgresStore implements Store {
     );
     return row ? toEval(row) : undefined;
   }
+}
+
+function toStyleExample(r: Row): StyleExample {
+  return {
+    id: String(r.id),
+    businessId: String(r.business_id),
+    customerText: String(r.customer_text),
+    staffReply: String(r.staff_reply),
+    hash: String(r.hash),
+    included: Boolean(r.included),
+    createdAt: iso(r.created_at),
+  };
 }
 
 function toEval(r: Row): PhotoQuoteEval {

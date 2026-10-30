@@ -1,3 +1,5 @@
+import { containsProfanity } from "./profanity";
+
 // WhatsApp "Sohbeti dışa aktar" dosyasını okur ve fiyat örneklerini çıkarır: müşterinin
 // gönderdiği saç fotoğrafı ve salonun ardından verdiği fiyat. Tarayıcıda da çalışır.
 // Kişisel veri azaltılır: gönderen adları tutulmaz (sadece müşteri/salon), metinlerdeki
@@ -146,6 +148,67 @@ export function extractExamples(messages: ExportMessage[], salonSenders: string[
     });
   }
   return examples;
+}
+
+// Üslup örnekleri: müşterinin arka arkaya yazdıkları → salonun ardından (24 saat içinde)
+// verdiği cevap (en fazla 3 mesaj). Asistan hitap, ton ve hizmet adlarını bunlardan öğrenir.
+// Fiyat, saat ve tarih gizlenir (eskimiş olabilir; asistan bunları güncel listeden söyler);
+// ad, numara ve e-posta silinir. Sistem satırları, silinen mesajlar ve küfürlü çiftler alınmaz.
+export interface StylePair {
+  customerText: string;
+  staffReply: string;
+}
+
+const SYSTEM_LINE =
+  /(uçtan uca şifre|end-to-end encrypted|medya dahil edilmedi|media omitted|bu mesaj silindi|this message was deleted|<ekli|attached>|görüntü dahil edilmedi|image omitted|sticker omitted|çıkartma dahil edilmedi|güvenlik kodu değişti|security code changed)/i;
+
+export function maskVolatile(text: string): string {
+  return text
+    .replace(/\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b/g, "[tarih]")
+    .replace(/\b\d{1,2}:\d{2}\b/g, "[saat]")
+    // "12.10" tarih, "19.30" / "14.00" saat (ay 1–12 değilse saattir)
+    .replace(/\b(\d{1,2})[./](\d{2})\b(?!\s*(tl|₺|lira|bin))/gi, (_m, a: string, b: string) =>
+      Number(b) >= 1 && Number(b) <= 12 && Number(a) <= 31 ? "[tarih]" : "[saat]",
+    )
+    .replace(/(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)\s*(?:-|–|ile)?\s*(\d{1,3}(?:[.,]\d{3})+|\d+)?\s*(bin\b|k\b)?\s*(tl\b|₺|lira\b)/gi, "[fiyat]")
+    .replace(/\b\d+\s*bin\b/gi, "[fiyat]");
+}
+
+export function extractStylePairs(messages: ExportMessage[], salonSenders: string[]): StylePair[] {
+  const isSalon = (m: ExportMessage) => salonSenders.includes(m.sender);
+  const customerNames = [...new Set(messages.filter((m) => !isSalon(m)).map((m) => m.sender))];
+  const usable = (m: ExportMessage) => !SYSTEM_LINE.test(m.text);
+  const clean = (t: string) => maskVolatile(redact(t, customerNames)).replace(/\s+\n/g, "\n").trim();
+  const DAY = 24 * 3600 * 1000;
+  const pairs: StylePair[] = [];
+  let i = 0;
+  while (i < messages.length) {
+    if (isSalon(messages[i])) {
+      i++;
+      continue;
+    }
+    const customer: string[] = [];
+    let photo = false;
+    let lastAt = messages[i].at.getTime();
+    for (; i < messages.length && !isSalon(messages[i]); i++) {
+      const m = messages[i];
+      if (m.attachment && IMAGE.test(m.attachment)) photo = true;
+      if (m.text && usable(m)) customer.push(m.text);
+      lastAt = m.at.getTime();
+    }
+    const replies: string[] = [];
+    for (; i < messages.length && isSalon(messages[i]); i++) {
+      const m = messages[i];
+      if (m.at.getTime() - lastAt > DAY || replies.length >= 3) continue;
+      if (m.text && usable(m)) replies.push(m.text);
+    }
+    const customerText = clean([photo ? "(fotoğraf gönderdi)" : "", ...customer].filter(Boolean).join("\n")).slice(0, 400);
+    const staffReply = clean(replies.join("\n")).slice(0, 500);
+    if (!customerText || staffReply.length < 2) continue;
+    if (containsProfanity(customerText) || containsProfanity(staffReply)) continue;
+    pairs.push({ customerText, staffReply });
+  }
+  return pairs;
 }
 
 // Salonun adı: sohbetlerin çoğunda görünen gönderen (dışa aktarma salonun telefonundan yapılır).

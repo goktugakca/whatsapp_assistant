@@ -84,7 +84,7 @@ export default async function PanelPage(props: PageProps<"/panel">) {
             Aylık özet
           </Link>
           <Link href={`/panel/ornekler?isletme=${business.id}`} className="mt-2 ml-2 btn btn-line btn-sm">
-            Fotoğrafla fiyat örnekleri
+            Geçmiş yazışmalar
           </Link>
         </div>
         <dl className="flex gap-6 text-sm">

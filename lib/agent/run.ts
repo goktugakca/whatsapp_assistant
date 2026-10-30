@@ -11,6 +11,7 @@ import {
 import type { ParseQuote } from "../photo-quote";
 import { containsProfanity } from "../profanity";
 import type { Conversation, Store } from "../store";
+import { pickStyleExamples } from "../style-examples";
 import { buildSystemPrompt } from "./prompt";
 import { addDays, localDate } from "../week";
 import {
@@ -271,7 +272,7 @@ export async function runAssistant(params: {
     return { reply, handedOff: false, options: [], appointments: [] };
   }
 
-  const system = buildSystemPrompt(business);
+  const system = buildSystemPrompt(business, pickStyleExamples(await store.listStyleExamples(business.id).catch(() => [])));
   const tools = buildTools(business);
   const replyParts: string[] = [];
   const effects: TurnEffects = { options: [], bookedAppointmentIds: [] };

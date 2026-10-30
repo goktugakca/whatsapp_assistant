@@ -14,7 +14,7 @@ const implementations: [string, () => Promise<Store>][] = [
   [
     "PostgresStore",
     async () => {
-      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media, price_examples, instagram_accounts, photo_quote_evals cascade");
+      await pglite.query("truncate conversations, appointments, processed_messages, waitlist, business_settings, panel_users, media, price_examples, instagram_accounts, photo_quote_evals, style_examples cascade");
       return new PostgresStore(pglite);
     },
   ],
@@ -286,5 +286,24 @@ describe.each(implementations)("%s Instagram hesapları", (_name, create) => {
     expect((await store.listInstagramAccounts()).map((a) => a.businessId)).toEqual(["demo-berber"]);
     await store.deleteInstagramAccount("demo-berber");
     expect(await store.findInstagramAccount("178")).toBeUndefined();
+  });
+});
+
+describe.each(implementations)("%s üslup örnekleri", (_name, create) => {
+  it("ekler, tekrarı atlar, hariç tutar ve siler", async () => {
+    const store = await create();
+    expect(await store.addStyleExamples("demo-berber", [
+      { customerText: "selam", staffReply: "Selam hocam", hash: "h1" },
+      { customerText: "fiyat", staffReply: "[fiyat] kral", hash: "h2" },
+    ])).toEqual({ added: 2, duplicates: 0 });
+    expect(await store.addStyleExamples("demo-berber", [{ customerText: "selam", staffReply: "Selam hocam", hash: "h1" }])).toEqual({ added: 0, duplicates: 1 });
+    const list = await store.listStyleExamples("demo-berber");
+    expect(list).toHaveLength(2);
+    await store.setStyleExampleIncluded("demo-berber", list[0].id, false);
+    expect((await store.listStyleExamples("demo-berber")).find((s) => s.id === list[0].id)?.included).toBe(false);
+    await store.deleteStyleExample("baska", list[1].id); // başka işletme silemez
+    expect(await store.listStyleExamples("demo-berber")).toHaveLength(2);
+    await store.deleteStyleExample("demo-berber", list[1].id);
+    expect(await store.listStyleExamples("demo-berber")).toHaveLength(1);
   });
 });
