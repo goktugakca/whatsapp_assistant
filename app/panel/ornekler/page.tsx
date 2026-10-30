@@ -7,8 +7,11 @@ import { getStore, type PriceExample } from "@/lib/store";
 import { PanelHeader } from "../panel-header";
 import { deleteExample, setExampleIncluded, setExamplePrice } from "./actions";
 import { ImportChats } from "./import-chats";
+import { ImportScreenshots } from "./import-screenshots";
 
 export const metadata = { title: "Fiyat örnekleri · Sırada" };
+// Ekran görüntüsü okuma (görsel model) birkaç ekran için onlarca saniye sürebilir.
+export const maxDuration = 120;
 
 const dateFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", day: "numeric", month: "short", year: "numeric" });
 
@@ -64,8 +67,9 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
         )}
       </p>
 
-      <section className="mt-6">
+      <section className="mt-6 grid gap-4 lg:grid-cols-2">
         <ImportChats businessId={business.id} />
+        <ImportScreenshots businessId={business.id} />
       </section>
 
       {hata === "fiyat" && (

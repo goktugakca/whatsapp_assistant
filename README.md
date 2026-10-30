@@ -152,6 +152,12 @@ yanında yazdığı metin ve salonun fiyatlı cevabı gider. Gönderen adları t
 müşteri adı, telefon ve e-posta silinir. Fiyatı okunamayan örnekler listede işaretlenir, salon
 elle yazar. Aynı fotoğraf ikinci kez eklenmez. Örnekler sadece o işletmenin kaydında durur.
 
+**Ekran görüntüsünden:** salonun elinde dışa aktarma yerine sohbet ekran görüntüleri varsa aynı sayfadaki
+ikinci kutudan yüklenir. Görsel model (`ANTHROPIC_IMPORT_MODEL`) her ekranı okur (sağ balonlar salon, sol
+balonlar müşteri), müşterinin fotoğrafını ekrandan kırpar (`sharp`), metinlerdeki adları siler; başlıktaki ad
+yalnızca aynı sohbetin ekranlarını gruplamak için özet olarak kullanılır, saklanmaz. Dosya adları sıralıysa
+art arda gelen ekranlar tek sohbet sayılır (`lib/screenshot-import.ts`).
+
 Örnekler modele "eğitim" olarak değil, soru anında referans olarak verilir (`lib/photo-quote.ts`):
 müşteri fotoğrafla fiyat sorduğunda asistan `quote_from_photo` aracını çağırır; araç soruya en yakın
 12 örneği (fotoğraf + ustanın verdiği fiyat) ve müşterinin fotoğrafını `ANTHROPIC_PHOTO_MODEL`
