@@ -16,7 +16,7 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
       ? 'Belirli bir çalışan isteniyorsa onun kimliği, tercih yoksa "any".'
       : 'Bu işletmede çalışan seçimi yok; her zaman "any".';
 
-  return [
+  const tools: Anthropic.Beta.Messages.BetaTool[] = [
     {
       name: "check_availability",
       description:
@@ -161,6 +161,11 @@ export function buildTools(business: Business): Anthropic.Beta.Messages.BetaTool
       },
     },
   ];
+  // Hizmet listesi henüz boşsa (yeni işletme) hizmet seçen araçlar verilmez; boş enum geçersizdir.
+  if (serviceIds.length === 0) {
+    return tools.filter((t) => !["check_availability", "book_appointment", "reschedule_appointment"].includes(t.name));
+  }
+  return tools;
 }
 
 const checkAvailabilityInput = z.object({ date: z.string(), service_id: z.string(), staff_id: z.string() });

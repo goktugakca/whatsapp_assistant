@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { runAssistant } from "@/lib/agent/run";
-import { loadBusiness } from "@/lib/business";
+import { demoBusinesses, loadBusiness } from "@/lib/business";
 import { countMediaMarkers, historyWindow, MAX_IMAGES_PER_CONVERSATION, mediaMarker } from "@/lib/media";
 import { getStore } from "@/lib/store";
 
@@ -53,6 +53,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Demo için mesaj sınırına ulaşıldı; biraz sonra tekrar deneyin." }, { status: 429 });
   }
   const store = await getStore();
+  // Pilot salonlar herkese açık demodan denenemez.
+  if (!demoBusinesses.some((b) => b.id === parsed.data.businessId)) {
+    return Response.json({ error: "Bilinmeyen işletme" }, { status: 404 });
+  }
   const business = await loadBusiness(store, parsed.data.businessId);
   if (!business) return Response.json({ error: "Bilinmeyen işletme" }, { status: 404 });
 

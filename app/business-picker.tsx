@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { businesses as allBusinesses, type Business } from "@/lib/business";
+import { demoBusinesses, type Business } from "@/lib/business";
 import { verticals } from "@/lib/verticals";
 
 // Demo ve panelde örnek işletmeler arasında geçiş.
 export function BusinessPicker({
   basePath,
   currentId,
-  businesses = allBusinesses,
+  businesses = demoBusinesses,
 }: {
   basePath: string;
   currentId: string;

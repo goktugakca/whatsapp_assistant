@@ -4,6 +4,7 @@
 
 import { barber } from "./businesses/barber";
 import { dentalClinic } from "./businesses/dental-clinic";
+import { garageAnkara } from "./businesses/garage-ankara";
 import { hairSalon } from "./businesses/hair-salon";
 import { nailSalon } from "./businesses/nail-salon";
 import { validateBusiness } from "./business-schema";
@@ -62,6 +63,9 @@ export interface Business {
   photoQuotes?: PhotoQuotePolicy;
   // Asistan bir konuşmayı personele bıraktığında WhatsApp'tan haber verilecek numara (lib/notify.ts).
   notifyPhone?: string;
+  // Gerçek pilot işletme (örnek değil): herkese açık demoda gösterilmez. Kodda tanımlıdır,
+  // panelden değiştirilemez.
+  pilot?: boolean;
 }
 
 // Diş kliniğinde fotoğraftan değerlendirme teşhis sayılır; her zaman hekime gider.
@@ -76,7 +80,10 @@ export function priceFor(business: Business, serviceId: string, staffId?: string
 }
 
 // Örnek işletmeler: demo ve panelde listelenir, ayarı hiç kaydedilmemişse başlangıç değeri.
-export const businesses: Business[] = [hairSalon, barber, nailSalon, dentalClinic];
+export const businesses: Business[] = [hairSalon, barber, nailSalon, dentalClinic, garageAnkara];
+
+// Herkese açık /demo sayfasında denenebilen örnek işletmeler (pilot salonlar hariç).
+export const demoBusinesses: Business[] = businesses.filter((b) => !b.pilot);
 
 export function getDefaultBusiness(id: string): Business | undefined {
   return businesses.find((b) => b.id === id);

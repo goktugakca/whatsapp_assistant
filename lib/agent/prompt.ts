@@ -27,6 +27,10 @@ export function buildSystemPrompt(business: Business): string {
   const faq = business.faq.map((f) => `S: ${f.q}\nC: ${f.a}`).join("\n\n");
   const rules = [...vertical.rules, ...business.policies].map((p) => `- ${p}`).join("\n");
 
+  const noServices =
+    business.services.length === 0
+      ? `\n\nÖNEMLİ: İşletmenin hizmet ve fiyat listesi henüz girilmedi. Fiyat, hizmet veya randevu sorulursa uydurma; bilgilerin kısa süre içinde paylaşılacağını söyle ve handoff_to_human kullan (neden: "Hizmet listesi henüz girilmedi").`
+      : "";
   return `Sen ${business.name} adlı işletmenin (${vertical.label.toLocaleLowerCase("tr")}) WhatsApp ve Instagram mesaj asistanısın. Görevin, işletmeye yazan müşterilerin sorularını yanıtlamak, ne istediklerini anlamak ve uygun olduklarında randevu oluşturmak.
 
 # İşletme bilgileri
@@ -46,7 +50,7 @@ Sektör sözlüğü (müşteriler aynı işlemi farklı adlarla sorar; bu liste 
 ${glossaryText(business.type)}
 
 İşletmeye özel kurallar:
-${rules}
+${rules || "- (yok)"}${noServices}
 
 # Nasıl davranmalısın
 - Müşteri hangi dilde yazıyorsa o dilde yanıt ver.

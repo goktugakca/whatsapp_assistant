@@ -10,8 +10,24 @@ import { InMemoryStore } from "@/lib/store";
 const clone = <T,>(x: T): T => structuredClone(x);
 
 describe("validateBusiness", () => {
-  it.each(businesses.map((b) => [b.id, b] as const))("örnek işletme %s geçerli", (_id, b) => {
+  it.each(businesses.filter((b) => !b.pilot).map((b) => [b.id, b] as const))("örnek işletme %s geçerli", (_id, b) => {
     expect(validateBusiness(b)).toMatchObject({ ok: true });
+  });
+
+  it("boş başlayan pilot işletme: hizmet seçen araçlar yok, istem uydurmamayı söyler, demoda görünmez", async () => {
+    const { garageAnkara } = await import("@/lib/businesses/garage-ankara");
+    const { buildTools } = await import("@/lib/agent/tools");
+    const { buildSystemPrompt } = await import("@/lib/agent/prompt");
+    const { demoBusinesses } = await import("@/lib/business");
+    const names = buildTools(garageAnkara).map((t) => t.name);
+    expect(names).not.toContain("check_availability");
+    expect(names).not.toContain("book_appointment");
+    expect(names).toContain("handoff_to_human");
+    expect(buildSystemPrompt(garageAnkara)).toContain("henüz girilmedi");
+    expect(demoBusinesses.some((b) => b.id === garageAnkara.id)).toBe(false);
+    // Hizmet eklenip kaydedilince geçerli olur.
+    const withService = { ...garageAnkara, services: [{ id: "kesim", name: "Kesim", description: "", durationMinutes: 30, priceInfo: "500 TL" }] };
+    expect(validateBusiness(withService)).toMatchObject({ ok: true });
   });
 
   it("kapanışı açılıştan önce olan günü reddeder", () => {
