@@ -1,3 +1,4 @@
+import { findRepeatedLines, isBoilerplateLine } from "./boilerplate";
 import type { PriceExample, StyleExample } from "./store";
 
 // "Geçmiş yazışmalar" sayfasındaki kalite özeti: içe aktarılan örneklerin sağlıklı olup
@@ -10,6 +11,7 @@ export interface QualityReport {
   price: { total: number; priced: number; missing: number; excluded: number; min?: number; median?: number; max?: number; multiPhoto: number };
   style: { total: number; included: number; avgReply: number; withEmoji: number; topAddress: { word: string; count: number }[] };
   issues: { kind: string; text: string }[];
+  boilerplate: number; // Otomatik karşılama/KVKK satırı içeren örnek sayısı
 }
 
 export function buildQualityReport(prices: PriceExample[], styles: StyleExample[]): QualityReport {
@@ -21,6 +23,9 @@ export function buildQualityReport(prices: PriceExample[], styles: StyleExample[
     const words = new Set(s.staffReply.toLocaleLowerCase("tr").split(/[^a-zçğıöşü]+/));
     for (const w of ADDRESS_WORDS) if (words.has(w)) counts.set(w, (counts.get(w) ?? 0) + 1);
   }
+  const repeated = findRepeatedLines([...styles.map((s) => s.staffReply), ...prices.map((p) => p.staffReply)]);
+  const hasBoilerplate = (t: string) => t.split("\n").some((l) => isBoilerplateLine(l, repeated));
+  const boilerplate = styles.filter((s) => hasBoilerplate(s.staffReply)).length + prices.filter((p) => hasBoilerplate(p.staffReply)).length;
   const issues: QualityReport["issues"] = [];
   for (const s of includedStyles) {
     if (/\d{5,}/.test(s.staffReply) || /\d{5,}/.test(s.customerText)) issues.push({ kind: "Gizlenmemiş uzun sayı", text: s.staffReply.slice(0, 120) });
@@ -48,5 +53,6 @@ export function buildQualityReport(prices: PriceExample[], styles: StyleExample[
       topAddress: [...counts].map(([word, count]) => ({ word, count })).sort((a, b) => b.count - a.count).slice(0, 6),
     },
     issues: issues.slice(0, 15),
+    boilerplate,
   };
 }

@@ -48,7 +48,7 @@ const INSTRUCTIONS = `Bu görsel, bir kuaför/berber/güzellik salonunun telefon
 Yukarıdan aşağıya her mesaj balonunu sırayla çıkar:
 - from: sağdaysa "salon", soldaysa "customer", emin değilsen "unknown".
 - text: balondaki yazı. Kişi adlarını "[müşteri]", telefon numaralarını "[numara]" ile değiştir. Fotoğraf altındaki açıklama varsa text'e yaz. Sadece fotoğrafsa boş metin.
-- hasPhoto: balon bir fotoğraf içeriyorsa true (emoji, çıkartma, profil resmi, bağlantı önizlemesi değil).
+- hasPhoto: balon, müşterinin saçının, tırnağının veya istediği modelin fotoğrafını içeriyorsa true. Fiyat listesi, tablo, yazı ekran görüntüsü, belge, harita, emoji, çıkartma, profil resmi ve bağlantı önizlemesi için false.
 - photoBox: fotoğrafın görseldeki yeri, görselin genişlik ve yüksekliğinin YÜZDESİ olarak sol üst köşeden {x, y, w, h}; fotoğraf yoksa null. Kenar boşluğu bırakma, balonun köşelerini değil fotoğrafın kendisini kapsa.
 - headerName: ekranın üstündeki kişi adı veya kullanıcı adı (yoksa boş).
 - platform: whatsapp / instagram / unknown.

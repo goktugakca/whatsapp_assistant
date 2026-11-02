@@ -193,7 +193,7 @@ export interface Store {
   addPriceExample(input: NewPriceExample): Promise<PriceExample | null>;
   hasPriceExample(businessId: string, imageHash: string): Promise<boolean>;
   listPriceExamples(businessId: string): Promise<PriceExample[]>;
-  updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax">>): Promise<boolean>;
+  updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax" | "staffReply" | "customerText">>): Promise<boolean>;
   // Örneği ve fotoğraflarını birlikte siler.
   deletePriceExample(businessId: string, id: string): Promise<void>;
   // Aynı hash'li örnekler eklenmez; eklenen ve atlanan sayısını döndürür.
@@ -201,6 +201,7 @@ export interface Store {
   listStyleExamples(businessId: string): Promise<StyleExample[]>;
   setStyleExampleIncluded(businessId: string, id: string, included: boolean): Promise<void>;
   deleteStyleExample(businessId: string, id: string): Promise<void>;
+  updateStyleExampleText(businessId: string, id: string, staffReply: string): Promise<void>;
   // Hesap başka bir işletmeye bağlıysa oradan alınır (aynı hesap iki işletmeye bağlanamaz).
   saveInstagramAccount(account: InstagramAccount): Promise<void>;
   getInstagramAccount(businessId: string): Promise<InstagramAccount | undefined>;
@@ -435,7 +436,7 @@ export class InMemoryStore implements Store {
       .map((e) => ({ ...e }));
   }
 
-  async updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax">>) {
+  async updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax" | "staffReply" | "customerText">>) {
     const e = this.priceExamples.find((x) => x.id === id && x.businessId === businessId);
     if (!e) return false;
     Object.assign(e, patch);
@@ -492,6 +493,11 @@ export class InMemoryStore implements Store {
   async setStyleExampleIncluded(businessId: string, id: string, included: boolean) {
     const s = this.styles.find((x) => x.businessId === businessId && x.id === id);
     if (s) s.included = included;
+  }
+
+  async updateStyleExampleText(businessId: string, id: string, staffReply: string) {
+    const s = this.styles.find((x) => x.businessId === businessId && x.id === id);
+    if (s) s.staffReply = staffReply;
   }
 
   async deleteStyleExample(businessId: string, id: string) {

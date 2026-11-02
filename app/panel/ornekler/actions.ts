@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { assertBusinessAccess } from "@/lib/dal";
 import { getStore } from "@/lib/store";
+import { findRepeatedLines, stripBoilerplate } from "@/lib/boilerplate";
 import { extractPrice } from "@/lib/whatsapp-export";
 
 // Fotoğraflar tarayıcıda küçültülüp (≈1280 px JPEG) base64 gelir; bir istekte birkaç örnek.
@@ -124,4 +125,44 @@ export async function deleteStyle(formData: FormData) {
   await assertBusinessAccess(businessId);
   await (await getStore()).deleteStyleExample(businessId, z.string().parse(formData.get("id")));
   revalidatePath("/panel/ornekler");
+}
+
+// Daha önce içe aktarılmış örneklerden otomatik karşılama/KVKK satırlarını temizler; fiyatı
+// bulunamamış fiyat örneklerinde temizlenen cevapta fiyatı yeniden arar. Boşalan üslup örneği silinir.
+export async function cleanImportedExamples(formData: FormData) {
+  const businessId = z.string().parse(formData.get("businessId"));
+  await assertBusinessAccess(businessId);
+  const store = await getStore();
+  const [styles, prices] = await Promise.all([store.listStyleExamples(businessId), store.listPriceExamples(businessId)]);
+  const repeated = findRepeatedLines([...styles.map((s) => s.staffReply), ...prices.map((p) => p.staffReply)]);
+  let changed = 0;
+  let removed = 0;
+  let pricedNow = 0;
+  for (const s of styles) {
+    const text = stripBoilerplate(s.staffReply, repeated);
+    if (text === s.staffReply) continue;
+    if (text.length < 2) {
+      await store.deleteStyleExample(businessId, s.id);
+      removed++;
+    } else {
+      await store.updateStyleExampleText(businessId, s.id, text);
+      changed++;
+    }
+  }
+  for (const p of prices) {
+    const text = stripBoilerplate(p.staffReply, repeated);
+    if (text === p.staffReply) continue;
+    const patch: Parameters<typeof store.updatePriceExample>[2] = { staffReply: text };
+    if (p.priceMin === undefined) {
+      const price = text.split("\n").map(extractPrice).find(Boolean);
+      if (price) {
+        Object.assign(patch, { priceText: price.text, priceMin: price.min, priceMax: price.max });
+        pricedNow++;
+      }
+    }
+    await store.updatePriceExample(businessId, p.id, patch);
+    changed++;
+  }
+  revalidatePath("/panel/ornekler");
+  redirect(`/panel/ornekler?isletme=${encodeURIComponent(businessId)}&temizlendi=${changed}-${removed}-${pricedNow}`);
 }

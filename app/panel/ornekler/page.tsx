@@ -5,7 +5,7 @@ import { MIN_EXAMPLES } from "@/lib/photo-quote";
 import { resolvePanelBusiness } from "@/lib/dal";
 import { getStore, type PriceExample } from "@/lib/store";
 import { PanelHeader } from "../panel-header";
-import { deleteExample, deleteStyle, setExampleIncluded, setExamplePrice, setStyleIncluded } from "./actions";
+import { cleanImportedExamples, deleteExample, deleteStyle, setExampleIncluded, setExamplePrice, setStyleIncluded } from "./actions";
 import { pickStyleExamples } from "@/lib/style-examples";
 import { buildQualityReport } from "@/lib/import-quality";
 import { ImportChats } from "./import-chats";
@@ -21,7 +21,8 @@ const dateFmt = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", 
 // fotoğrafla fiyat sorulduğunda o salonun fiyat mantığını öğrenmek için kullanacak.
 export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) {
   await connection();
-  const { isletme, hata } = await props.searchParams;
+  const { isletme, hata, temizlendi } = await props.searchParams;
+  const [cleanedCount, removedCount, pricedCount] = typeof temizlendi === "string" ? temizlendi.split("-").map(Number) : [];
   const store = await getStore();
   const { session, businessId } = await resolvePanelBusiness(isletme);
   const business = (await loadBusiness(store, businessId)) ?? businesses[0];
@@ -86,6 +87,22 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
       {(examples.length > 0 || styles.length > 0) && (
         <section className="mt-8 rounded-xl border border-border bg-card p-4 text-sm" aria-label="Kalite özeti">
           <h2 className="font-semibold">Kalite özeti</h2>
+          {cleanedCount !== undefined && (
+            <p role="status" className="mt-2 text-ok">
+              Temizlendi: {cleanedCount} örnekten otomatik mesaj satırları silindi, {removedCount} boş örnek kaldırıldı,
+              {" "}{pricedCount} örnekte fiyat yeniden bulundu.
+            </p>
+          )}
+          {q.boilerplate > 0 && (
+            <form action={cleanImportedExamples} className="mt-2 flex flex-wrap items-center gap-3 rounded-lg bg-bubble-out px-3 py-2">
+              <input type="hidden" name="businessId" value={business.id} />
+              <span>
+                <b>{q.boilerplate}</b> örnekte otomatik karşılama / KVKK mesajı var (&ldquo;…iletişime geçtiğiniz için teşekkür
+                ederiz…&rdquo;). Asistan bunu taklit etmesin diye silin.
+              </span>
+              <button className="btn btn-sm">Otomatik mesajları temizle</button>
+            </form>
+          )}
           <div className="mt-3 grid gap-4 sm:grid-cols-3">
             <div>
               <p className="text-xs text-muted">Fotoğrafla fiyat örnekleri</p>
@@ -247,8 +264,10 @@ function ExampleCard({ example: e, businessId }: { example: PriceExample; busine
         ))}
       </div>
       <div className="flex-1 space-y-2 px-3 pb-3 text-sm">
-        {e.customerText && <p className="line-clamp-3 rounded-lg bg-bubble-in px-2.5 py-1.5">{e.customerText}</p>}
-        <p className="line-clamp-4 rounded-lg bg-bubble-out px-2.5 py-1.5">{e.staffReply}</p>
+        {e.customerText && (
+          <p className="max-h-28 overflow-y-auto whitespace-pre-wrap rounded-lg bg-bubble-in px-2.5 py-1.5">{e.customerText}</p>
+        )}
+        <p className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg bg-bubble-out px-2.5 py-1.5">{e.staffReply}</p>
         <p className="text-xs text-muted">{dateFmt.format(new Date(e.saidAt))}</p>
       </div>
       <footer className="space-y-2 border-t border-border px-3 py-2.5">

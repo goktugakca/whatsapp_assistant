@@ -451,16 +451,18 @@ export class PostgresStore implements Store {
     return rows.map(toPriceExample);
   }
 
-  async updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax">>) {
+  async updatePriceExample(businessId: string, id: string, patch: Partial<Pick<PriceExample, "included" | "priceText" | "priceMin" | "priceMax" | "staffReply" | "customerText">>) {
     if (!UUID_RE.test(id)) return false;
     const rows = await this.db.query(
       `update price_examples set
          included = coalesce($3, included),
          price_text = case when $4::boolean then $5 else price_text end,
          price_min = case when $4::boolean then $6::int else price_min end,
-         price_max = case when $4::boolean then $7::int else price_max end
+         price_max = case when $4::boolean then $7::int else price_max end,
+         staff_reply = coalesce($8, staff_reply),
+         customer_text = coalesce($9, customer_text)
        where business_id = $1 and id = $2 returning id`,
-      [businessId, id, patch.included ?? null, "priceText" in patch, patch.priceText ?? null, patch.priceMin ?? null, patch.priceMax ?? null],
+      [businessId, id, patch.included ?? null, "priceText" in patch, patch.priceText ?? null, patch.priceMin ?? null, patch.priceMax ?? null, patch.staffReply ?? null, patch.customerText ?? null],
     );
     return rows.length > 0;
   }
@@ -539,6 +541,11 @@ export class PostgresStore implements Store {
   async setStyleExampleIncluded(businessId: string, id: string, included: boolean) {
     if (!UUID_RE.test(id)) return;
     await this.db.query("update style_examples set included = $3 where business_id = $1 and id = $2", [businessId, id, included]);
+  }
+
+  async updateStyleExampleText(businessId: string, id: string, staffReply: string) {
+    if (!UUID_RE.test(id)) return;
+    await this.db.query("update style_examples set staff_reply = $3 where business_id = $1 and id = $2", [businessId, id, staffReply]);
   }
 
   async deleteStyleExample(businessId: string, id: string) {

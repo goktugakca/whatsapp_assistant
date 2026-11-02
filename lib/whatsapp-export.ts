@@ -1,3 +1,4 @@
+import { findRepeatedLines, stripBoilerplate } from "./boilerplate";
 import { containsProfanity } from "./profanity";
 
 // WhatsApp "Sohbeti dışa aktar" dosyasını okur ve fiyat örneklerini çıkarır: müşterinin
@@ -136,7 +137,7 @@ export function extractExamples(messages: ExportMessage[], salonSenders: string[
       if (!isSalon(m) || !m.text) continue;
       replies.push(m.text);
       price = extractPrice(m.text);
-      if (price || replies.length >= 3) break;
+      if (price || replies.length >= 6) break;
     }
     if (photos.length === 0 || replies.length === 0) continue;
     examples.push({
@@ -199,7 +200,7 @@ export function extractStylePairs(messages: ExportMessage[], salonSenders: strin
     const replies: string[] = [];
     for (; i < messages.length && isSalon(messages[i]); i++) {
       const m = messages[i];
-      if (m.at.getTime() - lastAt > DAY || replies.length >= 3) continue;
+      if (m.at.getTime() - lastAt > DAY || replies.length >= 4) continue;
       if (m.text && usable(m)) replies.push(m.text);
     }
     const customerText = clean([photo ? "(fotoğraf gönderdi)" : "", ...customer].filter(Boolean).join("\n")).slice(0, 400);
@@ -209,6 +210,20 @@ export function extractStylePairs(messages: ExportMessage[], salonSenders: strin
     pairs.push({ customerText, staffReply });
   }
   return pairs;
+}
+
+// Salonun otomatik karşılama/KVKK mesajlarını içe aktarmadan önce siler (lib/boilerplate.ts).
+// Tüm sohbetlerdeki salon mesajlarına birlikte bakılır; boşalan salon mesajı atılır.
+export function removeBoilerplate(chats: ExportMessage[][], salonSenders: string[]): ExportMessage[][] {
+  const salonTexts = chats.flat().filter((m) => salonSenders.includes(m.sender)).map((m) => m.text);
+  const repeated = findRepeatedLines(salonTexts);
+  return chats.map((chat) =>
+    chat.flatMap((m) => {
+      if (!salonSenders.includes(m.sender)) return [m];
+      const text = stripBoilerplate(m.text, repeated);
+      return text || m.attachment ? [{ ...m, text }] : [];
+    }),
+  );
 }
 
 // Salonun adı: sohbetlerin çoğunda görünen gönderen (dışa aktarma salonun telefonundan yapılır).

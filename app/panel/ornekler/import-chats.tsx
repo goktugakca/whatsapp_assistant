@@ -7,6 +7,7 @@ import {
   allSenders,
   extractExamples,
   extractStylePairs,
+  removeBoilerplate,
   guessSalonSenders,
   parseExport,
   type ExportMessage,
@@ -77,12 +78,12 @@ export function ImportChats({ businessId }: { businessId: string }) {
     setBusy(null);
   }
 
-  const preview = salon.length
-    ? chats.map((c) => extractExamples(c.messages, salon, c.imageNames))
-    : [];
+  // Otomatik karşılama/KVKK mesajları önce atılır; yoksa fiyat cevabı pencereden taşar.
+  const cleaned = salon.length ? removeBoilerplate(chats.map((c) => c.messages), salon) : [];
+  const preview = salon.length ? chats.map((c, i) => extractExamples(cleaned[i], salon, c.imageNames)) : [];
   const total = preview.reduce((n, list) => n + list.length, 0);
   const priced = preview.reduce((n, list) => n + list.filter((e) => e.price).length, 0);
-  const stylePairs = salon.length ? chats.map((c) => extractStylePairs(c.messages, salon)) : [];
+  const stylePairs = salon.length ? cleaned.map((messages) => extractStylePairs(messages, salon)) : [];
   const styleTotal = stylePairs.reduce((n, list) => n + list.length, 0);
 
   async function upload() {

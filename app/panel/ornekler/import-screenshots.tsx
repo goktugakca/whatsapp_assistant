@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toExportMessages, type ScreenshotRead } from "@/lib/screenshot-messages";
 import { blobToBase64, shrinkImage } from "@/lib/shrink-image";
-import { extractExamples, extractStylePairs } from "@/lib/whatsapp-export";
+import { extractExamples, extractStylePairs, removeBoilerplate } from "@/lib/whatsapp-export";
 import { importExamples, importStyleExamples } from "./actions";
 import { readScreenshots } from "./screenshot-actions";
 
@@ -64,9 +64,13 @@ export function ImportScreenshots({ businessId }: { businessId: string }) {
     let found = 0;
     let priced = 0;
     let styleAdded = 0;
-    for (const [gi, group] of groups.entries()) {
+    // Otomatik karşılama/KVKK mesajları tüm sohbetlere birlikte bakılarak atılır.
+    const converted = groups.map((g) => toExportMessages(g));
+    const cleanedChats = removeBoilerplate(converted.map((c) => c.messages), ["salon"]);
+    for (const [gi] of groups.entries()) {
       setBusy(`Örnekler kaydediliyor… sohbet ${gi + 1}/${groups.length}`);
-      const { messages, photos } = toExportMessages(group);
+      const { photos } = converted[gi];
+      const messages = cleanedChats[gi];
       const examples = extractExamples(messages, ["salon"], new Set(photos.keys()));
       const style = extractStylePairs(messages, ["salon"]);
       if (style.length > 0) {
