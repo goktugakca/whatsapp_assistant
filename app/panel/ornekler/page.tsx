@@ -7,6 +7,7 @@ import { getStore, type PriceExample } from "@/lib/store";
 import { PanelHeader } from "../panel-header";
 import { deleteExample, deleteStyle, setExampleIncluded, setExamplePrice, setStyleIncluded } from "./actions";
 import { pickStyleExamples } from "@/lib/style-examples";
+import { buildQualityReport } from "@/lib/import-quality";
 import { ImportChats } from "./import-chats";
 import { ImportScreenshots } from "./import-screenshots";
 
@@ -30,6 +31,8 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
   const missing = examples.filter((e) => e.included && e.priceMin === undefined);
   const ready = examples.filter((e) => e.included && e.priceMin !== undefined);
   const excluded = examples.filter((e) => !e.included);
+  const q = buildQualityReport(examples, styles);
+  const tlf = new Intl.NumberFormat("tr-TR");
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
@@ -80,6 +83,53 @@ export default async function ExamplesPage(props: PageProps<"/panel/ornekler">) 
           Fiyat anlaşılamadı. Rakamla yazın, ör. “4.000 TL” veya “3.000–4.000 TL”.
         </p>
       )}
+      {(examples.length > 0 || styles.length > 0) && (
+        <section className="mt-8 rounded-xl border border-border bg-card p-4 text-sm" aria-label="Kalite özeti">
+          <h2 className="font-semibold">Kalite özeti</h2>
+          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-muted">Fotoğrafla fiyat örnekleri</p>
+              <p>
+                {q.price.total} örnek · {q.price.priced} fiyatlı · {q.price.missing} fiyatı eksik · {q.price.excluded} hariç
+              </p>
+              {q.price.median !== undefined && (
+                <p className="text-muted">
+                  Fiyatlar: en düşük {tlf.format(q.price.min!)} · ortanca {tlf.format(q.price.median)} · en yüksek{" "}
+                  {tlf.format(q.price.max!)} TL
+                </p>
+              )}
+              <p className="text-muted">{q.price.multiPhoto} örnekte birden fazla fotoğraf</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted">Üslup örnekleri</p>
+              <p>
+                {q.style.total} örnek · {q.style.included} dahil · ortalama cevap {q.style.avgReply} karakter
+              </p>
+              <p className="text-muted">
+                Emoji: {q.style.included ? Math.round((100 * q.style.withEmoji) / q.style.included) : 0}% cevapta
+              </p>
+              {q.style.topAddress.length > 0 && (
+                <p className="text-muted">Hitap: {q.style.topAddress.map((a) => `${a.word} (${a.count})`).join(", ")}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-muted">Kontrol edilmesi gerekenler ({q.issues.length})</p>
+              {q.issues.length === 0 ? (
+                <p className="text-ok">Belirgin sorun yok.</p>
+              ) : (
+                <ul className="mt-1 space-y-1">
+                  {q.issues.map((i, k) => (
+                    <li key={k}>
+                      <span className="text-danger">{i.kind}:</span> <span className="text-muted">{i.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       <dl className="mt-8 flex flex-wrap gap-8 text-sm">
         <Stat label="Kullanıma hazır" value={ready.length} />
         <Stat label="Fiyatı eksik" value={missing.length} highlight={missing.length > 0} />
