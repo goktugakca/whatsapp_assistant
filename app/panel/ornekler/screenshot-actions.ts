@@ -17,14 +17,15 @@ const input = z
 export async function readScreenshots(businessId: string, items: unknown): Promise<ScreenshotRead[]> {
   await assertBusinessAccess(businessId);
   const parsed = input.parse(items);
-  const out: ScreenshotRead[] = [];
-  for (const item of parsed) {
-    try {
-      out.push(await readScreenshot({ mediaType: item.mediaType, data: Buffer.from(item.data, "base64") }));
-    } catch (error) {
-      console.error("Ekran görüntüsü okunamadı:", error);
-      out.push({ chatKey: "", platform: "unknown", messages: [], notes: "Okuma hatası" });
-    }
-  }
-  return out;
+  // Aynı istekteki ekranlar paralel okunur (her biri birkaç saniyelik model çağrısı); sıra korunur.
+  return Promise.all(
+    parsed.map(async (item): Promise<ScreenshotRead> => {
+      try {
+        return await readScreenshot({ mediaType: item.mediaType, data: Buffer.from(item.data, "base64") });
+      } catch (error) {
+        console.error("Ekran görüntüsü okunamadı:", error);
+        return { chatKey: "", platform: "unknown", messages: [], notes: "Okuma hatası" };
+      }
+    }),
+  );
 }
